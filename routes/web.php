@@ -1,0 +1,68 @@
+<?php
+
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Models\FacilityOption;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
+
+// --- Public Routes ---
+Route::get('/', function () {
+    $showRegisterButton = true;
+    $options = FacilityOption::first();
+    if($options){
+        $showRegisterButton = $options->show_register_button === 1;
+    } 
+
+    return Inertia::render('Welcome', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register') && $showRegisterButton,        
+    ]);
+});
+
+require __DIR__.'/auth.php';
+
+// --- Authenticated Routes ---
+Route::middleware(['auth', 'verified'])->group(function () {
+
+    // 1. MAIN ENTRY (The Launchpad)
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
+
+    // 2. HOSPITAL SERVICES (Clinical Stats)
+    Route::get('/dashboard/hospital', [DashboardController::class, 'hospitalStats'])
+        ->name('dashboard.hospital');
+
+    // 3. RESOURCE & ASSET MANAGEMENT (Procurement & Inventory Stats)
+    Route::get('/dashboard/resources', [DashboardController::class, 'resourceStats'])
+        ->name('dashboard.resources');
+
+    // 4. SALES & FINANCE MANAGEMENT (Billing & Revenue Stats)
+    Route::get('/dashboard/finance', [DashboardController::class, 'financeStats'])
+        ->name('dashboard.finance');
+
+    // 5. HUMAN RESOURCE MANAGEMENT (HR Stats)
+    Route::get('/dashboard/hr', [DashboardController::class, 'hrStats'])
+        ->name('dashboard.hr');
+
+    // Add these 2 lines to your dashboard group
+    Route::get('/dashboard/reports', [DashboardController::class, 'reportStats'])->name('dashboard.reports');
+    Route::get('/dashboard/admin', [DashboardController::class, 'adminStats'])->name('dashboard.admin');
+
+
+    // --- Profile Management ---
+    
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // --- Load Modules (Keep strict ordering if necessary) ---
+    require __DIR__.'/modules/billing.php';
+    require __DIR__.'/modules/procurement.php';
+    require __DIR__.'/modules/inventory.php';
+    require __DIR__.'/modules/accounting.php';
+    require __DIR__.'/modules/expenses.php';
+    require __DIR__.'/modules/reports.php';
+    require __DIR__.'/modules/configuration.php'; // For systemconfiguration0...
+    require __DIR__.'/modules/usermanagement.php';
+});
