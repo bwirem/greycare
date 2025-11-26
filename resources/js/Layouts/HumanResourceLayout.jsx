@@ -7,17 +7,17 @@ import {
     faBars, faTimes, faUser, faSignOutAlt, faHome, 
     faArrowLeft,
 
-    // Hospital Icons (Medical)
-    faStethoscope, faProcedures, faUserNurse, faUserMd, faHeartbeat, faWalking, faMicroscope, faTint, faRadiation,
-    faBabyCarriage, faRibbon, faClipboardList, faFileSignature, faAmbulance, faBed, faDoorOpen, faThermometerHalf,
-    faPills, faNotesMedical, faUserInjured, faSearchPlus, faFileMedical, faFileMedicalAlt, faCut, faCalendarCheck,
-    faHandsHelping, faVials, faVial, faPoll, faHandHoldingHeart, faXRay, faImages, faVenusMars, faBaby,
-    faHandHoldingMedical, faChild, faSyringe, faIdCard, faTablets,
-
-    // Mortuary & Pharmacy
-    faCross, faBookDead, faHandshake,
-    faCapsules, faPrescriptionBottle,   
+    // HR & Admin Icons
+    faUsers, faUserTie, faUserClock, faUserPlus, faUserSlash,
+    faMoneyCheckAlt, faFileContract, faBriefcase, faIdBadge,
+    faClipboardUser, faChalkboardTeacher, faHandsHelping,
+    faChartPie, faChartBar, faCog, faUsersCog, faUpload,
+    faBuilding, faMapMarkerAlt, faCalendarAlt, faHistory,
+    faListAlt
 } from "@fortawesome/free-solid-svg-icons";
+
+// Specific Icons matching your backend data
+import { faPerson as faPersonIcon } from '@fortawesome/free-solid-svg-icons'; 
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { ToastContainer } from 'react-toastify';
@@ -28,58 +28,62 @@ import usePermissionsStore from "../stores/usePermissionsStore";
 const navLinkClasses = 'flex items-center p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors duration-200';
 const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`;
 
+// 1. DEFINING HR MODULE KEYS (Parents)
+const hrModuleKeys = [
+    'humanresurces', // Matches backend typo
+    'humanresource', 
+    'usermanagement', 
+    'reporting',      // Parent for HR Reports
+    'systemConfig'    // Parent for Location/Facility Setup
+];
 
+// 2. DEFINING HR SPECIFIC ITEM KEYS (Children)
+// This list acts as a whitelist. Only these items will appear in the HR Sidebar.
+const allowedHrItemKeys = [
+    // Main HR Items
+    'humanresurces0', 'humanresurces1', 'humanresurces2', 'humanresurces3',
+    'usermanagement',
+    
+    // Specific Reports
+    'reporting5', // Human Resource Report
+    
+    // Specific Configurations
+    'systemconfiguration4', // Location Setup
+    'systemconfiguration5'  // Facility Setup
+];
 
-// Icon Map
+// Icon Map (Tailored for HR)
 const iconMap = {
     home: faHome,
-    outpatient: faClipboardList,
-    inpatient: faProcedures,
-    nursing: faUserNurse,
-    doctor: faUserMd,
-    theatre: faHeartbeat,
-    physiotherapy: faWalking,
-    laboratory: faMicroscope,
-    'blood-bank': faTint,
-    radiology: faRadiation,
-    rch: faBabyCarriage,
-    hivart: faRibbon,
-    pharmacy: faCapsules, 
-    mortuary: faCross,
-    dashboard: faStethoscope,
-    clipboard_list: faClipboardList,
-    file_signature: faFileSignature,
-    ambulance: faAmbulance,
-    bed: faBed,
-    door_open: faDoorOpen,
-    thermometer: faThermometerHalf,
-    pills: faPills,
-    notes_medical: faNotesMedical,
-    clipboard_user: faUserInjured,
-    search_plus: faSearchPlus,
-    prescription: faFileMedical,
-    file_medical: faFileMedical,
-    cut: faCut,
-    calendar_check: faCalendarCheck,
-    file_medical_alt: faFileMedicalAlt,
-    hands_helping: faHandsHelping,
-    vials: faVials,
-    vial: faVial,
-    poll: faPoll,
-    hand_holding_heart: faHandHoldingHeart,
-    x_ray: faXRay,
-    images: faImages,
-    venus_mars: faVenusMars,
-    baby: faBaby,
-    hand_holding_medical: faHandHoldingMedical,
-    child: faChild,
-    syringe: faSyringe,
-    id_card: faIdCard,
-    tablets: faTablets,
-    capsule: faCapsules,
-    prescription_bottle: faPrescriptionBottle,
-    book_dead: faBookDead,
-    handshake: faHandshake,
+    dashboard: faChartBar,
+
+    // Module Icons
+    humanresurces: faUsers,
+    humanresource: faUsers,
+    usermanagement: faUsersCog,
+    reporting: faChartPie,
+    systemConfig: faCog,
+
+    // HR Items
+    person: faUserTie, // Bio Data
+    upload: faUpload, // Import
+    person_outline: faUserSlash, // Termination
+    payroll: faMoneyCheckAlt, // Payroll
+    
+    // User Management Items
+    manage_accounts: faUsersCog,
+    
+    // ** REQUESTED SPECIFIC ICONS **
+    location_setup: faMapMarkerAlt,  // For systemconfiguration4
+    facility_setup: faBuilding,      // For systemconfiguration5
+    // 'person' is used for reporting5 in your backend
+    
+    // Generics
+    calendar: faCalendarAlt, 
+    contract: faFileContract,
+    history: faHistory,
+    settings: faCog,
+    analytics: faChartBar
 };
 
 // SidebarNavLink Component
@@ -131,23 +135,13 @@ function MenuButton({ children, onClick, className }) {
     );
 }
 
-// --- MAIN HOSPITAL LAYOUT ---
-export default function HospitalLayout({ 
-    header, 
-    children,    
-}) {
-
-    // 1. Get the shared props using the usePage hook
-    const { props } = usePage();
-    
-    // 2. Extract the keys from the shared 'moduleGroups' object
-    // We default to [] in case the middleware hasn't loaded or key is missing
-    const hospitalModuleKeys = props.moduleGroups?.hospital || []; 
-
+// --- MAIN HUMAN RESOURCE LAYOUT ---
+export default function HumanResourceLayout({ header, children }) {
   
     const { modules, moduleItems, fetchPermissions, clearPermissions } = usePermissionsStore();
     const user = usePage().props.auth.user;
     
+    // Sidebar visibility state
     const [sidebarVisible, setSidebarVisible] = useState(window.innerWidth >= 640);   
     const [sidebarState, setSidebarState] = useState({});
 
@@ -157,14 +151,14 @@ export default function HospitalLayout({
 
     useEffect(() => {
         const initialState = {};
-        // 2. Use the prop inside useEffect
+        // Only initialize state for HR modules
         modules.forEach(module => {
-            if(hospitalModuleKeys.includes(module.modulekey)) {
+            if(hrModuleKeys.includes(module.modulekey)) {
                 initialState[module.modulekey] = false;
             }
         });
         setSidebarState(initialState);
-    }, [modules, hospitalModuleKeys]); // Add hospitalModuleKeys to dependency array
+    }, [modules]);
 
     const toggleSidebarSection = (section) => {
         setSidebarState((prevState) => ({
@@ -173,21 +167,34 @@ export default function HospitalLayout({
         }));
     };
 
-    // 3. Use the prop for filtering
-    const clinicalSidebarItems = modules
-        .filter(module => hospitalModuleKeys.includes(module.modulekey))
-        .map(module => ({
-            label: module.moduletext,
-            key: module.modulekey,
-            icon: iconMap[module.modulekey] || iconMap[module.icon] || faStethoscope, 
-            isOpen: sidebarState[module.modulekey],
-            toggleOpen: () => toggleSidebarSection(module.modulekey),
-            children: moduleItems[module.modulekey]?.map(item => ({
-                label: item.text,
-                icon: iconMap[item.icon] || null,
-                href: `/${item.key}`, 
-            })) || [],
-        }));
+    // 3. Filter Modules AND Filter Children (Specific Logic for Suite Views)
+    const hrSidebarItems = modules
+        .filter(module => hrModuleKeys.includes(module.modulekey))
+        .map(module => {
+            // Filter children to show only relevant HR items
+            // This prevents "Billing Setup" from showing up when "systemConfig" is enabled for HR
+            const relevantChildren = moduleItems[module.modulekey]?.filter(item => 
+                allowedHrItemKeys.includes(item.key)
+            ) || [];
+
+            // Skip this module if it has no relevant children (and isn't a direct link)
+            if (relevantChildren.length === 0) return null;
+
+            return {
+                label: module.moduletext,
+                key: module.modulekey,
+                icon: iconMap[module.modulekey] || iconMap[module.icon] || faUsers, 
+                isOpen: sidebarState[module.modulekey],
+                toggleOpen: () => toggleSidebarSection(module.modulekey),
+                children: relevantChildren.map(item => ({
+                    label: item.text,
+                    // If the item icon is 'person' (reporting5), map it to faUser
+                    icon: item.icon === 'person' ? faUser : (iconMap[item.icon] || null),
+                    href: `/${item.key}`, 
+                })),
+            };
+        })
+        .filter(Boolean); // Remove null entries
 
     return (
         // Root container with no window scrollbars
@@ -200,7 +207,7 @@ export default function HospitalLayout({
             >
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-center h-16 bg-gray-800 shadow-md flex-shrink-0 overflow-hidden whitespace-nowrap">
-                    <Link href="/dashboard/hospital">
+                    <Link href="/dashboard/hr">
                         <div className="flex items-center px-4">
                             <img
                                 src="/img/greycarelogo.ico"
@@ -209,8 +216,9 @@ export default function HospitalLayout({
                             />
                             {sidebarVisible && (
                                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                                    GreyCare 2.0 
-                                    <span className="text-xs font-normal text-gray-400 block">Clinical Station</span>
+                                    GreyCare 
+                                    {/* Purple color for HR */}
+                                    <span className="text-xs font-normal text-purple-400 block">HRM Station</span>
                                 </h1>
                             )}
                         </div>
@@ -226,14 +234,14 @@ export default function HospitalLayout({
                                 Main Menu
                             </SidebarNavLink>
                             
-                            <SidebarNavLink href={route('dashboard.hospital')} icon={faHome}>
+                            <SidebarNavLink href={route('dashboard.hr')} icon={faChartBar}>
                                 Dashboard
                             </SidebarNavLink>
 
                             <div className="my-2 border-t border-gray-700"></div>
 
-                            {/* Dynamic Hospital Modules */}
-                            {clinicalSidebarItems.map((item) => (
+                            {/* Dynamic HR Modules */}
+                            {hrSidebarItems.map((item) => (
                                 <SidebarItem
                                     key={item.key}
                                     icon={item.icon}
@@ -249,9 +257,9 @@ export default function HospitalLayout({
                                 </SidebarItem>
                             ))}
 
-                            {clinicalSidebarItems.length === 0 && (
+                            {hrSidebarItems.length === 0 && (
                                 <div className="text-gray-500 text-sm p-4 text-center">
-                                    No clinical modules assigned.
+                                    No HR modules assigned.
                                 </div>
                             )}
                         </ul>

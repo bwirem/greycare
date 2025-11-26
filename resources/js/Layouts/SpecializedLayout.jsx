@@ -7,16 +7,13 @@ import {
     faBars, faTimes, faUser, faSignOutAlt, faHome, 
     faArrowLeft,
 
-    // Hospital Icons (Medical)
-    faStethoscope, faProcedures, faUserNurse, faUserMd, faHeartbeat, faWalking, faMicroscope, faTint, faRadiation,
-    faBabyCarriage, faRibbon, faClipboardList, faFileSignature, faAmbulance, faBed, faDoorOpen, faThermometerHalf,
-    faPills, faNotesMedical, faUserInjured, faSearchPlus, faFileMedical, faFileMedicalAlt, faCut, faCalendarCheck,
-    faHandsHelping, faVials, faVial, faPoll, faHandHoldingHeart, faXRay, faImages, faVenusMars, faBaby,
-    faHandHoldingMedical, faChild, faSyringe, faIdCard, faTablets,
-
-    // Mortuary & Pharmacy
-    faCross, faBookDead, faHandshake,
-    faCapsules, faPrescriptionBottle,   
+    // Specialized Care Icons
+    faBabyCarriage, faRibbon, faBookDead, faWalking, // Module Headers
+    faCross, faHandshake, // Mortuary
+    faVenusMars, faBaby, faHandHoldingMedical, faChild, faSyringe, // RCH
+    faIdCard, faTablets, // HIV
+    faHandsHelping, faNotesMedical, // Physio
+    faChartBar, faStethoscope
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -28,58 +25,48 @@ import usePermissionsStore from "../stores/usePermissionsStore";
 const navLinkClasses = 'flex items-center p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors duration-200';
 const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`;
 
+// 1. DEFINING SPECIALIZED KEYS
+const specializedModuleKeys = [
+    'rch',
+    'hivart',
+    'mortuary',
+    'physiotherapy'
+];
 
-
-// Icon Map
+// Icon Map (Tailored for Specialized Clinics)
 const iconMap = {
     home: faHome,
-    outpatient: faClipboardList,
-    inpatient: faProcedures,
-    nursing: faUserNurse,
-    doctor: faUserMd,
-    theatre: faHeartbeat,
-    physiotherapy: faWalking,
-    laboratory: faMicroscope,
-    'blood-bank': faTint,
-    radiology: faRadiation,
+    dashboard: faChartBar,
+
+    // Module Icons
     rch: faBabyCarriage,
     hivart: faRibbon,
-    pharmacy: faCapsules, 
-    mortuary: faCross,
-    dashboard: faStethoscope,
-    clipboard_list: faClipboardList,
-    file_signature: faFileSignature,
-    ambulance: faAmbulance,
-    bed: faBed,
-    door_open: faDoorOpen,
-    thermometer: faThermometerHalf,
-    pills: faPills,
-    notes_medical: faNotesMedical,
-    clipboard_user: faUserInjured,
-    search_plus: faSearchPlus,
-    prescription: faFileMedical,
-    file_medical: faFileMedical,
-    cut: faCut,
-    calendar_check: faCalendarCheck,
-    file_medical_alt: faFileMedicalAlt,
-    hands_helping: faHandsHelping,
-    vials: faVials,
-    vial: faVial,
-    poll: faPoll,
-    hand_holding_heart: faHandHoldingHeart,
-    x_ray: faXRay,
-    images: faImages,
-    venus_mars: faVenusMars,
-    baby: faBaby,
-    hand_holding_medical: faHandHoldingMedical,
-    child: faChild,
-    syringe: faSyringe,
-    id_card: faIdCard,
-    tablets: faTablets,
-    capsule: faCapsules,
-    prescription_bottle: faPrescriptionBottle,
-    book_dead: faBookDead,
-    handshake: faHandshake,
+    mortuary: faBookDead, // or faCross
+    physiotherapy: faWalking,
+
+    // RCH Items
+    venus_mars: faVenusMars, // Family Planning
+    baby: faBaby, // Antenatal
+    hand_holding_medical: faHandHoldingMedical, // Postnatal
+    child: faChild, // Child Health
+    syringe: faSyringe, // Immunizations
+
+    // HIV Items
+    id_card: faIdCard, // Enrollment
+    tablets: faTablets, // ART Mgmt
+
+    // Mortuary Items
+    book_dead: faBookDead, // Records
+    handshake: faHandshake, // Release
+    cross: faCross,
+
+    // Physio Items
+    hands_helping: faHandsHelping, // Sessions
+    notes_medical: faNotesMedical, // Progress Notes
+
+    // Generics
+    analytics: faChartBar,
+    stethoscope: faStethoscope
 };
 
 // SidebarNavLink Component
@@ -131,23 +118,13 @@ function MenuButton({ children, onClick, className }) {
     );
 }
 
-// --- MAIN HOSPITAL LAYOUT ---
-export default function HospitalLayout({ 
-    header, 
-    children,    
-}) {
-
-    // 1. Get the shared props using the usePage hook
-    const { props } = usePage();
-    
-    // 2. Extract the keys from the shared 'moduleGroups' object
-    // We default to [] in case the middleware hasn't loaded or key is missing
-    const hospitalModuleKeys = props.moduleGroups?.hospital || []; 
-
+// --- MAIN SPECIALIZED LAYOUT ---
+export default function SpecializedLayout({ header, children }) {
   
     const { modules, moduleItems, fetchPermissions, clearPermissions } = usePermissionsStore();
     const user = usePage().props.auth.user;
     
+    // Sidebar visibility state
     const [sidebarVisible, setSidebarVisible] = useState(window.innerWidth >= 640);   
     const [sidebarState, setSidebarState] = useState({});
 
@@ -157,14 +134,14 @@ export default function HospitalLayout({
 
     useEffect(() => {
         const initialState = {};
-        // 2. Use the prop inside useEffect
+        // Only initialize state for specialized modules
         modules.forEach(module => {
-            if(hospitalModuleKeys.includes(module.modulekey)) {
+            if(specializedModuleKeys.includes(module.modulekey)) {
                 initialState[module.modulekey] = false;
             }
         });
         setSidebarState(initialState);
-    }, [modules, hospitalModuleKeys]); // Add hospitalModuleKeys to dependency array
+    }, [modules]);
 
     const toggleSidebarSection = (section) => {
         setSidebarState((prevState) => ({
@@ -173,9 +150,9 @@ export default function HospitalLayout({
         }));
     };
 
-    // 3. Use the prop for filtering
-    const clinicalSidebarItems = modules
-        .filter(module => hospitalModuleKeys.includes(module.modulekey))
+    // 2. Filter Modules to show only Specialized Clinics
+    const specializedSidebarItems = modules
+        .filter(module => specializedModuleKeys.includes(module.modulekey))
         .map(module => ({
             label: module.moduletext,
             key: module.modulekey,
@@ -200,7 +177,7 @@ export default function HospitalLayout({
             >
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-center h-16 bg-gray-800 shadow-md flex-shrink-0 overflow-hidden whitespace-nowrap">
-                    <Link href="/dashboard/hospital">
+                    <Link href="/dashboard/specialized">
                         <div className="flex items-center px-4">
                             <img
                                 src="/img/greycarelogo.ico"
@@ -209,8 +186,9 @@ export default function HospitalLayout({
                             />
                             {sidebarVisible && (
                                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                                    GreyCare 2.0 
-                                    <span className="text-xs font-normal text-gray-400 block">Clinical Station</span>
+                                    GreyCare 
+                                    {/* Rose color for Specialized */}
+                                    <span className="text-xs font-normal text-rose-500 block">Specialized Clinics</span>
                                 </h1>
                             )}
                         </div>
@@ -226,14 +204,14 @@ export default function HospitalLayout({
                                 Main Menu
                             </SidebarNavLink>
                             
-                            <SidebarNavLink href={route('dashboard.hospital')} icon={faHome}>
+                            <SidebarNavLink href={route('dashboard.specialized')} icon={faHandsHelping}>
                                 Dashboard
                             </SidebarNavLink>
 
                             <div className="my-2 border-t border-gray-700"></div>
 
-                            {/* Dynamic Hospital Modules */}
-                            {clinicalSidebarItems.map((item) => (
+                            {/* Dynamic Specialized Modules */}
+                            {specializedSidebarItems.map((item) => (
                                 <SidebarItem
                                     key={item.key}
                                     icon={item.icon}
@@ -249,9 +227,9 @@ export default function HospitalLayout({
                                 </SidebarItem>
                             ))}
 
-                            {clinicalSidebarItems.length === 0 && (
+                            {specializedSidebarItems.length === 0 && (
                                 <div className="text-gray-500 text-sm p-4 text-center">
-                                    No clinical modules assigned.
+                                    No specialized modules assigned.
                                 </div>
                             )}
                         </ul>
@@ -306,7 +284,7 @@ export default function HospitalLayout({
                                             >
                                                 {user.name}
                                                 <svg className="-mr-1 ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                                 </svg>
                                             </button>
                                         </Dropdown.Trigger>

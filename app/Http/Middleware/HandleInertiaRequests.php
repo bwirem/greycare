@@ -29,11 +29,26 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
+        return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user(),
             ],
-        ];
+            // --- ADD YOUR MODULE DEFINITIONS HERE ---
+            'moduleGroups' => [
+                'hospital' => [
+                    'outpatient', 'inpatient', 'nursing', 'doctor', 'theatre',
+                    'laboratory', 'blood-bank', 'radiology',
+                    'pharmacy'
+                ],
+                'finance' => [
+                    'billing', 'accounting', 'expenses', 'reporting', 'systemconfiguration0'
+                ],
+                'resources' => [
+                    'procurements', 'inventory', 'fixedassets', 'systemconfiguration2'
+                ],
+                
+                // Add others as needed
+            ],
+        ]);
     }
 }

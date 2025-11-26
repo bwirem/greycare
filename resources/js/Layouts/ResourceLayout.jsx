@@ -7,17 +7,23 @@ import {
     faBars, faTimes, faUser, faSignOutAlt, faHome, 
     faArrowLeft,
 
-    // Hospital Icons (Medical)
-    faStethoscope, faProcedures, faUserNurse, faUserMd, faHeartbeat, faWalking, faMicroscope, faTint, faRadiation,
-    faBabyCarriage, faRibbon, faClipboardList, faFileSignature, faAmbulance, faBed, faDoorOpen, faThermometerHalf,
-    faPills, faNotesMedical, faUserInjured, faSearchPlus, faFileMedical, faFileMedicalAlt, faCut, faCalendarCheck,
-    faHandsHelping, faVials, faVial, faPoll, faHandHoldingHeart, faXRay, faImages, faVenusMars, faBaby,
-    faHandHoldingMedical, faChild, faSyringe, faIdCard, faTablets,
-
-    // Mortuary & Pharmacy
-    faCross, faBookDead, faHandshake,
-    faCapsules, faPrescriptionBottle,   
+    // Resource & Asset Icons
+    faTruck, faWarehouse, faBoxes, faBoxOpen, faBox,
+    faClipboardList, faFileSignature, faShoppingCart,
+    faSyncAlt, faRedo, faRecycle,
+    faBuilding, faListAlt, faArrowDown, faTrashAlt, 
+    faExchangeAlt, faWrench, faShieldAlt, faHistory,
+    faChartBar, faChartPie, faCog, faStore,
+    faTruckLoading, faPallet, faDolly
 } from "@fortawesome/free-solid-svg-icons";
+
+// Specific Icons from your permission set
+import { faFileInvoice as faRequestQuote } from '@fortawesome/free-solid-svg-icons'; 
+import { faMoneyBillWave as faExpensesSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
+import { faBoxOpen as faInventorySetupIcon } from '@fortawesome/free-solid-svg-icons'; 
+import { faMapMarkerAlt as faLocationSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
+import { faBuilding as faFacilitySetupIcon } from '@fortawesome/free-solid-svg-icons';
+import { faFileInvoice as faBillingSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { ToastContainer } from 'react-toastify';
@@ -28,58 +34,98 @@ import usePermissionsStore from "../stores/usePermissionsStore";
 const navLinkClasses = 'flex items-center p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors duration-200';
 const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`;
 
+// 1. DEFINING RESOURCE PARENT MODULE KEYS
+const resourceModuleKeys = [
+    'procurements',
+    'inventory',
+    'material',    // Material Conversion
+    'fixedassets',
+    'reporting',   // Parent for Reports
+    'systemConfig' // Parent for Setups
+];
 
+// 2. DEFINING RESOURCE CHILD ITEM KEYS (Whitelist)
+const allowedResourceItemKeys = [
+    // Procurement Items
+    'procurements0', 'procurements1',
+    
+    // Inventory Items
+    'inventory0', 'inventory1', 'inventory2', 'inventory3', 'inventory4',
+    
+    // Material Items
+    'material0',
+    
+    // Fixed Assets Items
+    'fixedassets0', 'fixedassets1', 'fixedassets2', 'fixedassets3', 
+    'fixedassets4', 'fixedassets5', 'fixedassets6', 'fixedassets7',
+
+    // --- REQUESTED REPORTS ---
+    'reporting1', // Procurement
+    'reporting2', // Inventory
+    'reporting3', // Material Conversion
+
+    // --- REQUESTED CONFIGURATIONS ---
+    'systemconfiguration0', // Billing Setup
+    'systemconfiguration1', // Expenses (or Inventory depending on your DB)
+    'systemconfiguration2', // Inventory Setup (Standard Key)
+    'systemconfiguration5'  // Facility Setup (Often needed for stores)
+];
 
 // Icon Map
 const iconMap = {
     home: faHome,
-    outpatient: faClipboardList,
-    inpatient: faProcedures,
-    nursing: faUserNurse,
-    doctor: faUserMd,
-    theatre: faHeartbeat,
-    physiotherapy: faWalking,
-    laboratory: faMicroscope,
-    'blood-bank': faTint,
-    radiology: faRadiation,
-    rch: faBabyCarriage,
-    hivart: faRibbon,
-    pharmacy: faCapsules, 
-    mortuary: faCross,
-    dashboard: faStethoscope,
-    clipboard_list: faClipboardList,
-    file_signature: faFileSignature,
-    ambulance: faAmbulance,
-    bed: faBed,
-    door_open: faDoorOpen,
-    thermometer: faThermometerHalf,
-    pills: faPills,
-    notes_medical: faNotesMedical,
-    clipboard_user: faUserInjured,
-    search_plus: faSearchPlus,
-    prescription: faFileMedical,
-    file_medical: faFileMedical,
-    cut: faCut,
-    calendar_check: faCalendarCheck,
-    file_medical_alt: faFileMedicalAlt,
-    hands_helping: faHandsHelping,
-    vials: faVials,
-    vial: faVial,
-    poll: faPoll,
-    hand_holding_heart: faHandHoldingHeart,
-    x_ray: faXRay,
-    images: faImages,
-    venus_mars: faVenusMars,
-    baby: faBaby,
-    hand_holding_medical: faHandHoldingMedical,
-    child: faChild,
-    syringe: faSyringe,
-    id_card: faIdCard,
-    tablets: faTablets,
-    capsule: faCapsules,
-    prescription_bottle: faPrescriptionBottle,
-    book_dead: faBookDead,
-    handshake: faHandshake,
+    dashboard: faChartBar,
+
+    // Module Icons
+    procurements: faShoppingCart,
+    inventory: faWarehouse, 
+    material: faRecycle,
+    fixedassets: faBuilding,
+    reporting: faChartPie,
+    systemConfig: faCog,
+
+    // Icon Strings
+    storage: faWarehouse, 
+
+    // Procurement Items
+    request_quote: faRequestQuote,
+    shopping_cart: faShoppingCart, 
+
+    // Inventory Items
+    store: faStore, 
+    local_shipping: faTruck, 
+    goods_receiving: faTruckLoading, 
+    inventory_reconciliation: faClipboardList,
+    stock_history: faHistory,
+    boxes: faBoxes,
+
+    // Material Items
+    autorenew: faSyncAlt,
+
+    // Fixed Assets Items
+    list_alt: faListAlt, 
+    arrow_down: faArrowDown, 
+    trash_alt: faTrashAlt, 
+    exchange_alt: faExchangeAlt, 
+    sync_alt: faRedo, 
+    wrench: faWrench, 
+    shield_alt: faShieldAlt, 
+    history: faHistory,
+
+    // Config Items
+    inventory_setup: faInventorySetupIcon, 
+    location_setup: faLocationSetupIcon,  
+    facility_setup: faFacilitySetupIcon,
+    billing_setup: faBillingSetupIcon, 
+    expenses_setup: faExpensesSetupIcon,
+
+    // Generics
+    analytics: faChartBar,
+    settings: faCog,
+    box: faBox,
+    box_open: faBoxOpen,
+    dolly: faDolly,
+    pallet: faPallet
 };
 
 // SidebarNavLink Component
@@ -131,23 +177,13 @@ function MenuButton({ children, onClick, className }) {
     );
 }
 
-// --- MAIN HOSPITAL LAYOUT ---
-export default function HospitalLayout({ 
-    header, 
-    children,    
-}) {
-
-    // 1. Get the shared props using the usePage hook
-    const { props } = usePage();
-    
-    // 2. Extract the keys from the shared 'moduleGroups' object
-    // We default to [] in case the middleware hasn't loaded or key is missing
-    const hospitalModuleKeys = props.moduleGroups?.hospital || []; 
-
+// --- MAIN RESOURCE LAYOUT ---
+export default function ResourceLayout({ header, children }) {
   
     const { modules, moduleItems, fetchPermissions, clearPermissions } = usePermissionsStore();
     const user = usePage().props.auth.user;
     
+    // Sidebar visibility state
     const [sidebarVisible, setSidebarVisible] = useState(window.innerWidth >= 640);   
     const [sidebarState, setSidebarState] = useState({});
 
@@ -157,14 +193,14 @@ export default function HospitalLayout({
 
     useEffect(() => {
         const initialState = {};
-        // 2. Use the prop inside useEffect
+        // Only initialize state for resource modules
         modules.forEach(module => {
-            if(hospitalModuleKeys.includes(module.modulekey)) {
+            if(resourceModuleKeys.includes(module.modulekey)) {
                 initialState[module.modulekey] = false;
             }
         });
         setSidebarState(initialState);
-    }, [modules, hospitalModuleKeys]); // Add hospitalModuleKeys to dependency array
+    }, [modules]);
 
     const toggleSidebarSection = (section) => {
         setSidebarState((prevState) => ({
@@ -173,21 +209,32 @@ export default function HospitalLayout({
         }));
     };
 
-    // 3. Use the prop for filtering
-    const clinicalSidebarItems = modules
-        .filter(module => hospitalModuleKeys.includes(module.modulekey))
-        .map(module => ({
-            label: module.moduletext,
-            key: module.modulekey,
-            icon: iconMap[module.modulekey] || iconMap[module.icon] || faStethoscope, 
-            isOpen: sidebarState[module.modulekey],
-            toggleOpen: () => toggleSidebarSection(module.modulekey),
-            children: moduleItems[module.modulekey]?.map(item => ({
-                label: item.text,
-                icon: iconMap[item.icon] || null,
-                href: `/${item.key}`, 
-            })) || [],
-        }));
+    // 3. Filter Modules AND Children
+    const resourceSidebarItems = modules
+        .filter(module => resourceModuleKeys.includes(module.modulekey))
+        .map(module => {
+            // Filter children based on the whitelist (allowedResourceItemKeys)
+            const relevantChildren = moduleItems[module.modulekey]?.filter(item => 
+                allowedResourceItemKeys.includes(item.key)
+            ) || [];
+
+            // If module has no relevant children, hide it
+            if (relevantChildren.length === 0) return null;
+
+            return {
+                label: module.moduletext,
+                key: module.modulekey,
+                icon: iconMap[module.modulekey] || iconMap[module.icon] || faBoxes, 
+                isOpen: sidebarState[module.modulekey],
+                toggleOpen: () => toggleSidebarSection(module.modulekey),
+                children: relevantChildren.map(item => ({
+                    label: item.text,
+                    icon: iconMap[item.icon] || null,
+                    href: `/${item.key}`, 
+                })),
+            };
+        })
+        .filter(Boolean); // Filter out nulls
 
     return (
         // Root container with no window scrollbars
@@ -200,7 +247,7 @@ export default function HospitalLayout({
             >
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-center h-16 bg-gray-800 shadow-md flex-shrink-0 overflow-hidden whitespace-nowrap">
-                    <Link href="/dashboard/hospital">
+                    <Link href="/dashboard/resources">
                         <div className="flex items-center px-4">
                             <img
                                 src="/img/greycarelogo.ico"
@@ -209,8 +256,9 @@ export default function HospitalLayout({
                             />
                             {sidebarVisible && (
                                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                                    GreyCare 2.0 
-                                    <span className="text-xs font-normal text-gray-400 block">Clinical Station</span>
+                                    GreyCare 
+                                    {/* Amber color for Resources */}
+                                    <span className="text-xs font-normal text-amber-500 block">Resource Hub</span>
                                 </h1>
                             )}
                         </div>
@@ -226,14 +274,14 @@ export default function HospitalLayout({
                                 Main Menu
                             </SidebarNavLink>
                             
-                            <SidebarNavLink href={route('dashboard.hospital')} icon={faHome}>
+                            <SidebarNavLink href={route('dashboard.resources')} icon={faChartBar}>
                                 Dashboard
                             </SidebarNavLink>
 
                             <div className="my-2 border-t border-gray-700"></div>
 
-                            {/* Dynamic Hospital Modules */}
-                            {clinicalSidebarItems.map((item) => (
+                            {/* Dynamic Resource Modules */}
+                            {resourceSidebarItems.map((item) => (
                                 <SidebarItem
                                     key={item.key}
                                     icon={item.icon}
@@ -249,9 +297,9 @@ export default function HospitalLayout({
                                 </SidebarItem>
                             ))}
 
-                            {clinicalSidebarItems.length === 0 && (
+                            {resourceSidebarItems.length === 0 && (
                                 <div className="text-gray-500 text-sm p-4 text-center">
-                                    No clinical modules assigned.
+                                    No resource modules assigned.
                                 </div>
                             )}
                         </ul>

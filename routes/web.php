@@ -32,6 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // 2. HOSPITAL SERVICES (Clinical Stats)
     Route::get('/dashboard/hospital', [DashboardController::class, 'hospitalStats'])
         ->name('dashboard.hospital');
+    
+     // Add this new route
+    Route::get('/dashboard/specialized', [DashboardController::class, 'specializedStats'])
+        ->name('dashboard.specialized');   
 
     // 3. RESOURCE & ASSET MANAGEMENT (Procurement & Inventory Stats)
     Route::get('/dashboard/resources', [DashboardController::class, 'resourceStats'])

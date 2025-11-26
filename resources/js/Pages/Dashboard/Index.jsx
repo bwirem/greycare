@@ -9,7 +9,8 @@ import {
     faPeopleRoof, 
     faArrowRight,
     faCogs,       // Added for System Config
-    faChartPie    // Added for Reports
+    faChartPie,    // Added for Reports
+    faHandsHelping // Add this for the new card
 } from '@fortawesome/free-solid-svg-icons';
 import usePermissionsStore from '@/stores/usePermissionsStore';
 
@@ -29,13 +30,23 @@ export default function Index({ auth }) {
     const apps = [
         {
             title: "Hospital Services",
-            description: "OPD, IPD, Doctors, Nursing, Pharmacy, Laboratory, Radiology & Mortuary.",
+            description: "OPD, IPD, Doctors, Nursing, Pharmacy, Laboratory, Radiology.",
             icon: faHospitalUser,
             color: "bg-emerald-600",
             textColor: "text-emerald-600",
             route: "dashboard.hospital", 
-            access: hasAccess(['outpatient', 'inpatient', 'nursing', 'doctor', 'theatre', 'laboratory', 'pharmacy', 'mortuary'])
-        },        
+            access: hasAccess(['outpatient', 'inpatient', 'nursing', 'doctor', 'theatre', 'laboratory', 'pharmacy', 'radiology'])
+        },   
+         // --- NEW CARD: Specialized Care ---
+        {
+            title: "Specialized Clinics",
+            description: "Reproductive Health (RCH), HIV-ART, Physiotherapy & Mortuary Services.",
+            icon: faHandsHelping,
+            color: "bg-rose-600",
+            textColor: "text-rose-600",
+            route: "dashboard.specialized", // New Route
+            access: hasAccess(['rch', 'hivart', 'mortuary', 'physiotherapy'])
+        },    
         {
             title: "Sales & Finance Mgmt",
             description: "Patient Billing, General Ledger, Expense Management & Financial Reporting.",

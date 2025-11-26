@@ -332,45 +332,7 @@ export default function Hospital({
                         </div>
                     </section>
                     )}
-
-                     {/* Mortuary Section */}
-                    {modules.some(module => module.modulekey === 'mortuary') && (
-                    <section>
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Mortuary Management</h3>
-                            <Link href={urls.mortuaryHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
-                                Go to Mortuary <FontAwesomeIcon icon={faArrowRight} className="ml-1.5 h-3 w-3 transition-transform duration-200 group-hover:translate-x-1" />
-                            </Link>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <SummaryCard
-                                title="Occupancy"
-                                value={mortuaryOccupancy}
-                                unit="Bodies"
-                                icon={faBookDead}
-                                iconBgColor="bg-slate-600"
-                                linkHref={urls.deceasedRecords}
-                                linkText="View Records"
-                            />
-                            <SummaryCard
-                                title="Register Deceased"
-                                description="Add new entry to mortuary."
-                                icon={faCross}
-                                iconBgColor="bg-slate-500"
-                                linkHref={urls.deceasedRecords}
-                                linkText="New Entry"
-                            />
-                            <SummaryCard
-                                title="Release Body"
-                                description="Process handover to family."
-                                icon={faHandshake}
-                                iconBgColor="bg-emerald-600"
-                                linkHref={urls.releaseBody}
-                                linkText="Release Form"
-                            />
-                        </div>
-                    </section>                
-                    )}
+                   
 
                 </div>
             </div>

@@ -7,17 +7,21 @@ import {
     faBars, faTimes, faUser, faSignOutAlt, faHome, 
     faArrowLeft,
 
-    // Hospital Icons (Medical)
-    faStethoscope, faProcedures, faUserNurse, faUserMd, faHeartbeat, faWalking, faMicroscope, faTint, faRadiation,
-    faBabyCarriage, faRibbon, faClipboardList, faFileSignature, faAmbulance, faBed, faDoorOpen, faThermometerHalf,
-    faPills, faNotesMedical, faUserInjured, faSearchPlus, faFileMedical, faFileMedicalAlt, faCut, faCalendarCheck,
-    faHandsHelping, faVials, faVial, faPoll, faHandHoldingHeart, faXRay, faImages, faVenusMars, faBaby,
-    faHandHoldingMedical, faChild, faSyringe, faIdCard, faTablets,
-
-    // Mortuary & Pharmacy
-    faCross, faBookDead, faHandshake,
-    faCapsules, faPrescriptionBottle,   
+    // Finance & Sales Icons
+    faShoppingCart, faPlusSquare, faMoneyBill, faMoneyBillAlt,
+    faHistory, faFileInvoice, faFileInvoiceDollar,
+    faChartBar, faChartPie, faLandmark, faBalanceScale,
+    faJournalWhills, faMoneyCheckAlt, faPaperPlane, faThumbsUp,
+    faCog, faBuilding, faBook, faArrowUp, faArrowDown,
+    faSackDollar, faCashRegister, faCalculator,
+    faCreditCard, faReceipt, faHandHoldingDollar
 } from "@fortawesome/free-solid-svg-icons";
+
+import { faHistory as faSalesHistory } from '@fortawesome/free-solid-svg-icons'; 
+import { faBan as faVoidHistory } from '@fortawesome/free-solid-svg-icons'; 
+import { faFileInvoice as faBillingSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
+import { faMoneyBillWave as faExpensesSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
+import { faMapMarkerAlt as faLocationSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { ToastContainer } from 'react-toastify';
@@ -28,58 +32,86 @@ import usePermissionsStore from "../stores/usePermissionsStore";
 const navLinkClasses = 'flex items-center p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors duration-200';
 const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`;
 
+// 1. DEFINING FINANCE PARENT KEYS 
+const financeModuleKeys = [
+    'billing', 
+    'accounting', 
+    'expenses', 
+    'reporting',   // Parent for Reports
+    'systemConfig' // Parent for Setups
+];
 
+// 2. DEFINING FINANCE CHILD ITEM KEYS (Whitelist)
+const allowedFinanceItemKeys = [
+    // Billing Items
+    'billing0', 'billing1', 'billing2', 'billing3', 'billing4', 'billing5',
+    
+    // Expenses Items
+    'expenses0', 'expenses1', 'expenses2',
+    
+    // Accounting Items
+    'accounting0', 'accounting1', 'accounting2', 'accounting3', 
+    'accounting4', 'accounting5', 'accounting6',
 
-// Icon Map
+    // --- REQUESTED REPORTS ---
+    'reporting0', // Sales & Billing
+    'reporting4', // Expenses
+    'reporting7', // Accounting
+
+    // --- REQUESTED CONFIGURATIONS ---
+    'systemconfiguration0', // Billing Setup
+    'systemconfiguration1', // Expenses Setup
+    'systemconfiguration3'  // Accounting Setup
+];
+
+// Icon Map (Tailored for Finance)
 const iconMap = {
     home: faHome,
-    outpatient: faClipboardList,
-    inpatient: faProcedures,
-    nursing: faUserNurse,
-    doctor: faUserMd,
-    theatre: faHeartbeat,
-    physiotherapy: faWalking,
-    laboratory: faMicroscope,
-    'blood-bank': faTint,
-    radiology: faRadiation,
-    rch: faBabyCarriage,
-    hivart: faRibbon,
-    pharmacy: faCapsules, 
-    mortuary: faCross,
-    dashboard: faStethoscope,
-    clipboard_list: faClipboardList,
-    file_signature: faFileSignature,
-    ambulance: faAmbulance,
-    bed: faBed,
-    door_open: faDoorOpen,
-    thermometer: faThermometerHalf,
-    pills: faPills,
-    notes_medical: faNotesMedical,
-    clipboard_user: faUserInjured,
-    search_plus: faSearchPlus,
-    prescription: faFileMedical,
-    file_medical: faFileMedical,
-    cut: faCut,
-    calendar_check: faCalendarCheck,
-    file_medical_alt: faFileMedicalAlt,
-    hands_helping: faHandsHelping,
-    vials: faVials,
-    vial: faVial,
-    poll: faPoll,
-    hand_holding_heart: faHandHoldingHeart,
-    x_ray: faXRay,
-    images: faImages,
-    venus_mars: faVenusMars,
-    baby: faBaby,
-    hand_holding_medical: faHandHoldingMedical,
-    child: faChild,
-    syringe: faSyringe,
-    id_card: faIdCard,
-    tablets: faTablets,
-    capsule: faCapsules,
-    prescription_bottle: faPrescriptionBottle,
-    book_dead: faBookDead,
-    handshake: faHandshake,
+    dashboard: faChartBar,
+    
+    // Module Icons
+    billing: faSackDollar,
+    accounting: faLandmark,
+    expenses: faMoneyBillAlt,
+    reporting: faChartPie,
+    systemConfig: faCog,
+
+    // Billing Items
+    add_shopping_cart: faShoppingCart,
+    post_add: faPlusSquare,
+    paid: faMoneyBill,
+    sales_history: faSalesHistory, 
+    payments_history: faHistory, 
+    void_history: faVoidHistory, 
+
+    // Accounting Items
+    arrow_down: faArrowDown,
+    arrow_up: faArrowUp,
+    journal_whills: faJournalWhills,
+    landmark: faLandmark,
+    file_invoice_dollar: faFileInvoiceDollar,
+    attach_money: faMoneyBillAlt,
+    chart_pie: faChartPie,
+    account_balance: faBalanceScale,
+
+    // Expense Items
+    paper_plane: faPaperPlane,
+    thumbs_up: faThumbsUp,                            
+    history: faHistory,
+
+    // Config Items
+    billing_setup: faBillingSetupIcon, 
+    expenses_setup: faExpensesSetupIcon, 
+    accounting_setup: faBook, // Maps to systemconfiguration3 if using specific icon, or generic below
+    menu_book: faBook, // Standard Accounting Setup Icon
+    
+    // Generics
+    analytics: faChartBar,
+    settings: faCog,
+    cash_register: faCashRegister,
+    calculator: faCalculator,
+    receipt: faReceipt,
+    credit_card: faCreditCard
 };
 
 // SidebarNavLink Component
@@ -131,23 +163,13 @@ function MenuButton({ children, onClick, className }) {
     );
 }
 
-// --- MAIN HOSPITAL LAYOUT ---
-export default function HospitalLayout({ 
-    header, 
-    children,    
-}) {
-
-    // 1. Get the shared props using the usePage hook
-    const { props } = usePage();
-    
-    // 2. Extract the keys from the shared 'moduleGroups' object
-    // We default to [] in case the middleware hasn't loaded or key is missing
-    const hospitalModuleKeys = props.moduleGroups?.hospital || []; 
-
+// --- MAIN FINANCE LAYOUT ---
+export default function FinanceLayout({ header, children }) {
   
     const { modules, moduleItems, fetchPermissions, clearPermissions } = usePermissionsStore();
     const user = usePage().props.auth.user;
     
+    // Sidebar visibility state
     const [sidebarVisible, setSidebarVisible] = useState(window.innerWidth >= 640);   
     const [sidebarState, setSidebarState] = useState({});
 
@@ -157,14 +179,14 @@ export default function HospitalLayout({
 
     useEffect(() => {
         const initialState = {};
-        // 2. Use the prop inside useEffect
+        // Only initialize state for finance modules
         modules.forEach(module => {
-            if(hospitalModuleKeys.includes(module.modulekey)) {
+            if(financeModuleKeys.includes(module.modulekey)) {
                 initialState[module.modulekey] = false;
             }
         });
         setSidebarState(initialState);
-    }, [modules, hospitalModuleKeys]); // Add hospitalModuleKeys to dependency array
+    }, [modules]);
 
     const toggleSidebarSection = (section) => {
         setSidebarState((prevState) => ({
@@ -173,21 +195,32 @@ export default function HospitalLayout({
         }));
     };
 
-    // 3. Use the prop for filtering
-    const clinicalSidebarItems = modules
-        .filter(module => hospitalModuleKeys.includes(module.modulekey))
-        .map(module => ({
-            label: module.moduletext,
-            key: module.modulekey,
-            icon: iconMap[module.modulekey] || iconMap[module.icon] || faStethoscope, 
-            isOpen: sidebarState[module.modulekey],
-            toggleOpen: () => toggleSidebarSection(module.modulekey),
-            children: moduleItems[module.modulekey]?.map(item => ({
-                label: item.text,
-                icon: iconMap[item.icon] || null,
-                href: `/${item.key}`, 
-            })) || [],
-        }));
+    // 3. Filter Modules AND Children
+    const financeSidebarItems = modules
+        .filter(module => financeModuleKeys.includes(module.modulekey))
+        .map(module => {
+            // Filter children based on the whitelist (allowedFinanceItemKeys)
+            const relevantChildren = moduleItems[module.modulekey]?.filter(item => 
+                allowedFinanceItemKeys.includes(item.key)
+            ) || [];
+
+            // If module has no relevant children, hide it
+            if (relevantChildren.length === 0) return null;
+
+            return {
+                label: module.moduletext,
+                key: module.modulekey,
+                icon: iconMap[module.modulekey] || iconMap[module.icon] || faSackDollar, 
+                isOpen: sidebarState[module.modulekey],
+                toggleOpen: () => toggleSidebarSection(module.modulekey),
+                children: relevantChildren.map(item => ({
+                    label: item.text,
+                    icon: iconMap[item.icon] || null,
+                    href: `/${item.key}`, 
+                })),
+            };
+        })
+        .filter(Boolean); // Filter out nulls
 
     return (
         // Root container with no window scrollbars
@@ -200,7 +233,7 @@ export default function HospitalLayout({
             >
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-center h-16 bg-gray-800 shadow-md flex-shrink-0 overflow-hidden whitespace-nowrap">
-                    <Link href="/dashboard/hospital">
+                    <Link href="/dashboard/finance">
                         <div className="flex items-center px-4">
                             <img
                                 src="/img/greycarelogo.ico"
@@ -209,8 +242,9 @@ export default function HospitalLayout({
                             />
                             {sidebarVisible && (
                                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                                    GreyCare 2.0 
-                                    <span className="text-xs font-normal text-gray-400 block">Clinical Station</span>
+                                    GreyCare 
+                                    {/* Using Blue to distinguish Finance */}
+                                    <span className="text-xs font-normal text-blue-400 block">Financial Station</span>
                                 </h1>
                             )}
                         </div>
@@ -226,14 +260,14 @@ export default function HospitalLayout({
                                 Main Menu
                             </SidebarNavLink>
                             
-                            <SidebarNavLink href={route('dashboard.hospital')} icon={faHome}>
+                            <SidebarNavLink href={route('dashboard.finance')} icon={faChartBar}>
                                 Dashboard
                             </SidebarNavLink>
 
                             <div className="my-2 border-t border-gray-700"></div>
 
-                            {/* Dynamic Hospital Modules */}
-                            {clinicalSidebarItems.map((item) => (
+                            {/* Dynamic Finance Modules */}
+                            {financeSidebarItems.map((item) => (
                                 <SidebarItem
                                     key={item.key}
                                     icon={item.icon}
@@ -249,9 +283,9 @@ export default function HospitalLayout({
                                 </SidebarItem>
                             ))}
 
-                            {clinicalSidebarItems.length === 0 && (
+                            {financeSidebarItems.length === 0 && (
                                 <div className="text-gray-500 text-sm p-4 text-center">
-                                    No clinical modules assigned.
+                                    No finance modules assigned.
                                 </div>
                             )}
                         </ul>

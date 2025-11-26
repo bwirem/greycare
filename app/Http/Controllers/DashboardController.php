@@ -33,24 +33,7 @@ class DashboardController extends Controller
     public function hospitalStats()
     {
         $today = Carbon::today();
-
-        // 1. Define the keys here (or fetch from a Config file)
-        $hospitalModuleKeys = [
-            'outpatient', 
-            'inpatient', 
-            'nursing', 
-            'doctor', 
-            'theatre', 
-            'physiotherapy', 
-            'laboratory', 
-            'blood-bank', 
-            'radiology', 
-            'pharmacy', 
-            'rch', 
-            'hivart', 
-            'mortuary'
-        ];
-
+        
         // Note: Using DB::table() here as placeholders. 
         // Replace 'opd_registrations' etc. with your actual Clinical Models when ready.
         
@@ -77,9 +60,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard/Hospital', [
             'opdRegistrationsToday' => $opdCount,
-            'activeAdmissionsCount' => $admissionCount,
-            'hospitalModuleKeys' => $hospitalModuleKeys, 
-            // You can add more props here later (e.g., doctorsOnDuty)
+            'activeAdmissionsCount' => $admissionCount,            
         ]);
     }
 
@@ -201,5 +182,26 @@ class DashboardController extends Controller
     {
         // Redirect to User Management or System Configuration
         return Inertia::render('UserManagement/Index'); 
+    }
+
+    /**
+     * 8. Specialized Care Dashboard
+     */
+    public function specializedStats()
+    {
+        // Fetch stats specific to these departments
+        // Use try-catch to avoid errors if tables don't exist yet
+        
+        $mortuaryCount = 0;
+        // try { $mortuaryCount = DB::table('mortuary_records')->where('status', 'admitted')->count(); } catch(\Exception $e){}
+
+        $physioCount = 0;
+        // try { $physioCount = DB::table('physio_sessions')->whereDate('created_at', today())->count(); } catch(\Exception $e){}
+
+        return Inertia::render('Dashboard/Specialized', [
+            'mortuaryOccupancy' => $mortuaryCount,
+            'physioSessionsToday' => $physioCount,
+            // Add RCH and HIV stats here as needed
+        ]);
     }
 }
