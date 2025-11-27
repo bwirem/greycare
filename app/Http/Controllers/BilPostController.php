@@ -61,7 +61,7 @@ class BilPostController extends Controller
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
-        return inertia('BilPosts/Index', [
+        return inertia('Billing/BilPosts/Index', [
             'orders' => $orders,
             'filters' => [
                 'search'     => $request->input('search'),
@@ -77,7 +77,7 @@ class BilPostController extends Controller
      */
     public function create()
     {
-        return inertia('BilPosts/Create', [
+        return inertia('Billing/BilPosts/Create', [
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(),
         ]);
@@ -101,7 +101,7 @@ class BilPostController extends Controller
             'orderitems.*.price' => 'required|numeric|min:0',
         ]);
 
-        return inertia('BilPosts/SaveOrderConfirmation', [
+        return inertia('Billing/BilPosts/SaveOrderConfirmation', [
             'orderData' => $validatedData
         ]);
     }
@@ -121,7 +121,7 @@ class BilPostController extends Controller
     public function edit(BILOrder $order)
     {
         $order->load(['customer', 'store', 'orderitems.item']);
-        return inertia('BilPosts/Edit', [
+        return inertia('Billing/BilPosts/Edit', [
             'order' => $order,
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(),
@@ -136,7 +136,7 @@ class BilPostController extends Controller
         $orderData = $request->all();
         $orderData['id'] = $order->id; // Pass the order ID along
 
-        return inertia('BilPosts/ConfirmOrderUpdate', [
+        return inertia('Billing/BilPosts/ConfirmOrderUpdate', [
             'orderData' => $orderData,
             'originalOrder' => $order->load('customer'), // Show original details for comparison
         ]);
@@ -166,7 +166,7 @@ class BilPostController extends Controller
             'orderitems.*.price' => 'required|numeric|min:0',
         ]);
 
-        return inertia('BilPosts/ProcessPayment', [
+        return inertia('Billing/BilPosts/ProcessPayment', [
             'orderData' => $validatedData,
             'facilityoption' => FacilityOption::first(),
             'paymentMethods' => BLSPaymentType::all(),
@@ -181,7 +181,7 @@ class BilPostController extends Controller
         $orderData = $request->all();
         $orderData['id'] = $order->id;
 
-        return inertia('BilPosts/ProcessExistingOrderPayment', [
+        return inertia('Billing/BilPosts/ProcessExistingOrderPayment', [
             'orderData' => $orderData,
             'originalOrder' => $order->load('customer'),
             'paymentMethods' => BLSPaymentType::all(),

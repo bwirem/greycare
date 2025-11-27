@@ -104,7 +104,7 @@ class IVReceiveController extends Controller
              return $receive;
          });
      
-         return inertia('IvReceive/Index', [
+         return inertia('Inventorys/IvReceive/Index', [
              'receives' => $receives,
              'tostore' => SIV_Store::all(),
              'filters' => $request->only(['search', 'fromstore']),
@@ -118,7 +118,7 @@ class IVReceiveController extends Controller
      */
     public function create()
     {
-        return inertia('IvReceive/Create', [
+        return inertia('Inventorys/IvReceive/Create', [
             'fromstore' => SPR_Supplier::all(), // Pass the correct data to the view
             'tostore' => SIV_Store::all(), // Pass the correct data to the view
         ]);
@@ -207,7 +207,7 @@ class IVReceiveController extends Controller
                 break;
         }
              
-        return inertia('IvReceive/Edit', [
+        return inertia('Inventorys/IvReceive/Edit', [
             'receive' => $receive,
             'fromstore' => $fromstoreData, // Pass the correct data to the view
             'tostore' => SIV_Store::all(), // Pass the correct data to the view

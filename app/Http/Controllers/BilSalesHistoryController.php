@@ -58,7 +58,7 @@ class BilSalesHistoryController extends Controller
         $sales = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
         // --- 4. Return Data to Inertia View ---
-        return Inertia::render('BilHistory/SaleHistory', [
+        return Inertia::render('Billing/BilHistory/SaleHistory', [
             'sales' => $sales,
             'filters' => [
                 'search'     => $request->input('search', ''),
@@ -79,7 +79,7 @@ class BilSalesHistoryController extends Controller
         // Eager load all necessary relationships for the preview component
         $sale->load(['customer','items.item']); 
 
-        return Inertia::render('BilHistory/SalePreview', [
+        return Inertia::render('Billing/BilHistory/SalePreview', [
             'sale' => $sale,           
         ]);
     }

@@ -36,7 +36,7 @@ class IVPhysicalInventoryController extends Controller
 
         $inventories = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        return inertia('IvReconciliation/PhysicalInventory/Index', [
+        return inertia('Inventorys/IvReconciliation/PhysicalInventory/Index', [
             'physicalinventorys' => $inventories, // Match view prop name
             'filters' => $request->only(['search', 'stage']),
         ]);
@@ -44,7 +44,7 @@ class IVPhysicalInventoryController extends Controller
 
     public function create()
     {
-        return inertia('IvReconciliation/PhysicalInventory/Create', [
+        return inertia('Inventorys/IvReconciliation/PhysicalInventory/Create', [
             'stores' => SIV_Store::all(['id', 'name']),
         ]);
     }
@@ -84,7 +84,7 @@ class IVPhysicalInventoryController extends Controller
     {
         $physicalinventory->load(['store', 'physicalinventoryitems.item']);
 
-        return inertia('IvReconciliation/PhysicalInventory/Edit', [
+        return inertia('Inventorys/IvReconciliation/PhysicalInventory/Edit', [
             'physicalinventory' => $physicalinventory,
             'stores' => SIV_Store::all(['id', 'name']),
         ]);

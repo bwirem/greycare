@@ -112,7 +112,7 @@ class IVIssueController extends Controller
             return $requistion;
         });
 
-        return inertia('IvIssue/Index', [
+        return inertia('Inventorys/IvIssue/Index', [
             'requistions' => $requistions,
             'filters' => $request->only(['search', 'stage', 'fromstore']), // <-- ADDED
             'fromstore' => SIV_Store::all(['id', 'name']), // or wherever your store list comes from
@@ -149,13 +149,13 @@ class IVIssueController extends Controller
         }
 
         if ($requistion->stage == 2) {
-            return inertia('IvIssue/Approve', [
+            return inertia('Inventorys/IvIssue/Approve', [
                 'requistion' => $requistion,
                 'fromstore' => SIV_Store::all(),
                 'tostore' => $tostoreData,
             ]);
         } else {
-            return inertia('IvIssue/Issue', [
+            return inertia('Inventorys/IvIssue/Issue', [
                 'requistion' => $requistion,
                 'fromstore' => SIV_Store::all(),
                 'tostore' => $tostoreData,

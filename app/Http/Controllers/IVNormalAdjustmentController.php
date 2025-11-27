@@ -42,7 +42,7 @@ class IVNormalAdjustmentController extends Controller
 
         $normaladjustments = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        return inertia('IvReconciliation/NormalAdjustment/Index', [
+        return inertia('Inventorys/IvReconciliation/NormalAdjustment/Index', [
             'normaladjustments' => $normaladjustments,
             'filters' => $request->only(['search', 'stage']),
         ]);
@@ -53,7 +53,7 @@ class IVNormalAdjustmentController extends Controller
      */
     public function create()
     {
-        return inertia('IvReconciliation/NormalAdjustment/Create', [
+        return inertia('Inventorys/IvReconciliation/NormalAdjustment/Create', [
             'stores' => SIV_Store::all(['id', 'name']),
             'adjustmentreasons' => SIV_AdjustmentReason::all(['id', 'name', 'action']),
         ]);
@@ -117,7 +117,7 @@ class IVNormalAdjustmentController extends Controller
     {
         $normaladjustment->load(['store', 'adjustmentreason', 'normaladjustmentitems.item']);
 
-        return inertia('IvReconciliation/NormalAdjustment/Edit', [
+        return inertia('Inventorys/IvReconciliation/NormalAdjustment/Edit', [
             'normaladjustment' => $normaladjustment,
             'stores' => SIV_Store::all(['id', 'name']),
             'adjustmentreasons' => SIV_AdjustmentReason::all(['id', 'name', 'action']),

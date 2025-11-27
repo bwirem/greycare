@@ -33,7 +33,7 @@ class ExpHistoryController extends Controller
          // Paginate and sort historys
          $historys = $query->orderBy('created_at', 'desc')->paginate(10);
      
-         return inertia('ExpHistory/Index', [
+         return inertia('Expenses/ExpHistory/Index', [
              'historys' => $historys,
              'filters' => $request->only(['search']),
          ]);
@@ -49,7 +49,7 @@ class ExpHistoryController extends Controller
         // Eager load history items and their related items
         $history->load(['facilityoption', 'postitems.item']);        
 
-        return inertia('ExpHistory/History', [
+        return inertia('Expenses/ExpHistory/History', [
             'history' => $history,
         ]);
     }   

@@ -47,7 +47,7 @@ class PROTenderController extends Controller
          // Paginate and sort tenders
          $tenders = $query->orderBy('created_at', 'desc')->paginate(10);
      
-         return inertia('ProTender/Index', [
+         return inertia('Procurements/ProTender/Index', [
              'tenders' => $tenders,
              'filters' => $request->only(['search', 'stage']),
          ]);
@@ -60,7 +60,7 @@ class PROTenderController extends Controller
     public function create()
     {    
         $facilityoption = FacilityOption::first();      
-        return inertia('ProTender/Create',[
+        return inertia('Procurements/ProTender/Create',[
             'facilityoption'=>$facilityoption,
         ]);
     }
@@ -135,11 +135,11 @@ class PROTenderController extends Controller
      
          // Determine the correct page based on stage
          if ($tender->stage == "2") {
-             $page = 'ProTender/Quatation';
+             $page = 'Procurements/ProTender/Quatation';
          } elseif ($tender->stage == "3") {
-             $page = 'ProTender/Evaluation';
+             $page = 'Procurements/ProTender/Evaluation';
          } else {
-             $page = 'ProTender/Edit';
+             $page = 'Procurements/ProTender/Edit';
          }
      
          // Transform quotations only if beyond stage 1

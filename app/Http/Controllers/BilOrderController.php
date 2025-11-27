@@ -39,7 +39,7 @@ class BilOrderController extends Controller
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        return inertia('BilOrders/Index', [
+        return inertia('Billing/BilOrders/Index', [
             'orders' => $orders,
             'filters' => $request->only(['search', 'stage']),
         ]);
@@ -50,7 +50,7 @@ class BilOrderController extends Controller
      */
     public function create()
     {
-        return inertia('BilOrders/Create', [
+        return inertia('Billing/BilOrders/Create', [
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(), // Use trait method
         ]);
@@ -73,7 +73,7 @@ class BilOrderController extends Controller
     {
         $order->load(['customer', 'store', 'orderitems.item']);
 
-        return inertia('BilOrders/Edit', [
+        return inertia('Billing/BilOrders/Edit', [
             'order' => $order,
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(), // Use trait method

@@ -33,7 +33,7 @@ class ExpApprovalController extends Controller
          // Paginate and sort approvals
          $approvals = $query->orderBy('created_at', 'desc')->paginate(10);
      
-         return inertia('ExpApproval/Index', [
+         return inertia('Expenses/ExpApproval/Index', [
              'approvals' => $approvals,
              'filters' => $request->only(['search']),
          ]);
@@ -49,7 +49,7 @@ class ExpApprovalController extends Controller
         // Eager load approval items and their related items
         $approval->load(['facilityoption', 'postitems.item']);        
 
-        return inertia('ExpApproval/Approval', [
+        return inertia('Expenses/ExpApproval/Approval', [
             'approval' => $approval,
         ]);
     }

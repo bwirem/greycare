@@ -63,7 +63,7 @@ class PROPurchaseController extends Controller
         $query->where('stage', '<', '4');
         $purchases = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        return inertia('ProPurchase/Index', [
+        return inertia('Procurements/ProPurchase/Index', [
             'purchases' => $purchases,
             'filters' => $request->only(['search', 'stage']),
         ]);
@@ -71,7 +71,7 @@ class PROPurchaseController extends Controller
 
     public function create()
     {
-        return inertia('ProPurchase/Create', [
+        return inertia('Procurements/ProPurchase/Create', [
             'facilityoption' => FacilityOption::first(),
         ]);
     }
@@ -132,9 +132,9 @@ class PROPurchaseController extends Controller
     {
         $purchase->load(['supplier', 'facilityoption', 'purchaseitems.item']);
         $pageName = match ((int) $purchase->stage) {
-            2 => 'ProPurchase/Dispatch',
-            3 => 'ProPurchase/Receive',
-            default => 'ProPurchase/Edit',
+            2 => 'Procurements/ProPurchase/Dispatch',
+            3 => 'Procurements/ProPurchase/Receive',
+            default => 'Procurements/ProPurchase/Edit',
         };
         return inertia($pageName, ['purchase' => $purchase, 'stores' => SIV_Store::all()]);
     }

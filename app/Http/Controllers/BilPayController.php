@@ -51,7 +51,7 @@ class BilPayController extends Controller
 
         $debtors = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
-        return inertia('BilPays/Index', [
+        return inertia('Billing/BilPays/Index', [
             'debtors' => $debtors,
             'filters' => $request->only(['search']),
         ]);
@@ -73,7 +73,7 @@ class BilPayController extends Controller
             }]);
         }]);
 
-        return inertia('BilPays/PayBills', [
+        return inertia('Billing/BilPays/PayBills', [
             'debtor' => $debtor,
             'payment_types' => BLSPaymentType::all(),
         ]);

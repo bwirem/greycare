@@ -57,7 +57,7 @@ class BilRepaymentHistoryController extends Controller
         $repayments = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
         // --- 4. Return Data to Inertia View ---
-        return Inertia::render('BilHistory/RepaymentHistory', [
+        return Inertia::render('Billing/BilHistory/RepaymentHistory', [
             'repayments' => $repayments,
             'filters' => [
                 'search'     => $request->input('search', ''),
@@ -78,7 +78,7 @@ class BilRepaymentHistoryController extends Controller
         // Eager load all necessary relationships for the preview component
         $repayment->load(['customer','items']); 
 
-        return Inertia::render('BilHistory/RepaymentPreview', [
+        return Inertia::render('Billing/BilHistory/RepaymentPreview', [
             'repayment' => $repayment,           
         ]);
     }

@@ -68,7 +68,7 @@ class BilVoidHistoryController extends Controller
         $voidsales = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
         // --- 4. Return Data to Inertia View ---
-        return Inertia::render('BilHistory/VoidHistory', [
+        return Inertia::render('Billing/BilHistory/VoidHistory', [
             'voidsales' => $voidsales,
             'filters' => [
                 'search'     => $request->input('search', ''),
@@ -89,7 +89,7 @@ class BilVoidHistoryController extends Controller
         // Eager load all relationships needed for the preview and potential refund action
         $voidsale->load(['customer', 'items.item', 'invoicepaymentdetails']); 
 
-        return Inertia::render('BilHistory/VoidPreview', [
+        return Inertia::render('Billing/BilHistory/VoidPreview', [
             'sale' => $voidsale,           
         ]);
     }
@@ -104,7 +104,7 @@ class BilVoidHistoryController extends Controller
     {
         $voidsale->load(['customer', 'items.item']);        
 
-        return Inertia::render('BilHistory/VoidRefund', [
+        return Inertia::render('Billing/BilHistory/VoidRefund', [
             'voided_sale' => $voidsale,
             'payment_methods' => BLSPaymentType::all(),            
         ]);

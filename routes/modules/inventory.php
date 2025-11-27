@@ -5,7 +5,6 @@ use Inertia\Inertia;
 use App\Http\Controllers\IVRequistionController;
 use App\Http\Controllers\IVIssueController;
 use App\Http\Controllers\IVReceiveController;
-use App\Http\Controllers\IVReconciliationController;
 use App\Http\Controllers\IVNormalAdjustmentController;
 use App\Http\Controllers\IVPhysicalInventoryController;
 
@@ -52,7 +51,8 @@ Route::prefix('inventory2')->name('inventory2.')->group(function () {
 
 // inventory3: Reconciliation
 Route::prefix('inventory3')->name('inventory3.')->group(function () {
-    Route::get('/', [IVReconciliationController::class, 'index'])->name('index');
+
+    Route::get('/', function () { return Inertia::render('Inventorys/IvReconciliation/Index'); })->name('index'); 
 
     // Normal Adjustment
     Route::prefix('normal-adjustment')->name('normal-adjustment.')->group(function () {

@@ -34,7 +34,7 @@ class ExpPostController extends Controller
          // Paginate and sort posts
          $posts = $query->orderBy('created_at', 'desc')->paginate(10);
      
-         return inertia('ExpPost/Index', [
+         return inertia('Expenses/ExpPost/Index', [
              'posts' => $posts,
              'filters' => $request->only(['search']),
          ]);
@@ -47,7 +47,7 @@ class ExpPostController extends Controller
     public function create()
     {
         $facilityoption = FacilityOption::first();      
-        return inertia('ExpPost/Create',[
+        return inertia('Expenses/ExpPost/Create',[
             'facilityoption'=>$facilityoption,
         ]);
     }
@@ -138,7 +138,7 @@ class ExpPostController extends Controller
         // Eager load post items and their related items
         $post->load(['facilityoption', 'postitems.item']);        
 
-        return inertia('ExpPost/Edit', [
+        return inertia('Expenses/ExpPost/Edit', [
             'post' => $post,
         ]);
     }

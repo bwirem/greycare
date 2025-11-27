@@ -87,7 +87,7 @@ class IVRequistionController extends Controller
              return $requisition;
          });
      
-         return inertia('IvRequisition/Index', [
+         return inertia('Inventorys/IvRequisition/Index', [
              'requisitions' => $requisitions,
              'fromstore' => SIV_Store::all(),
              'filters' => $request->only(['search', 'fromstore']),
@@ -101,7 +101,7 @@ class IVRequistionController extends Controller
      */
     public function create()
     {
-        return inertia('IvRequisition/Create', [
+        return inertia('Inventorys/IvRequisition/Create', [
             'fromstore' => SIV_Store::all(), // Pass the correct data to the view
             'tostore' => SIV_Store::all(), // Pass the correct data to the view
         ]);
@@ -189,7 +189,7 @@ class IVRequistionController extends Controller
                 break;
         }
              
-        return inertia('IvRequisition/Edit', [
+        return inertia('Inventorys/IvRequisition/Edit', [
             'requistion' => $requistion,
             'fromstore' => SIV_Store::all(), // Pass the correct data to the view
             'tostore' => SIV_Store::all(), // Pass the correct data to the view
