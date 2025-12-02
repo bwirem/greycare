@@ -204,4 +204,18 @@ class DashboardController extends Controller
             // Add RCH and HIV stats here as needed
         ]);
     }
+
+    /**
+     * 9. Mortuary Dashboard
+     */
+    public function mortuaryStats()
+    {
+        // Fetch Mortuary stats (e.g., occupancy, admissions)
+        $mortuaryOccupancy = 0;
+        // try { $mortuaryOccupancy = DB::table('mortuary_records')->where('status', 'admitted')->count(); } catch(\Exception $e){}     
+        return Inertia::render('Dashboard/Mortuary', [
+            'occupancy' => $mortuaryOccupancy,
+            // Add more stats as needed
+        ]);
+    }        
 }

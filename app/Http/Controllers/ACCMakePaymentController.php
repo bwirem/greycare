@@ -45,7 +45,7 @@ class ACCMakePaymentController extends Controller
 
         $payments = $query->latest()->paginate(15)->withQueryString();
 
-        return Inertia::render('ACCMakePayment/Index', [
+        return Inertia::render('Accounting/ACCMakePayment/Index', [
             'payments' => $payments,
             'filters' => $request->only(['search', 'stage']),
             'success' => session('success'),
@@ -57,7 +57,7 @@ class ACCMakePaymentController extends Controller
      */
     public function create()
     {
-        return Inertia::render('ACCMakePayment/Create', [
+        return Inertia::render('Accounting/ACCMakePayment/Create', [
             // 'paymentTypes' are no longer needed here, they are fetched for the 'pay' screen
         ]);
     }
@@ -127,7 +127,7 @@ class ACCMakePaymentController extends Controller
     public function edit(ACCMakePayment $payment)
     {
         $payment->load(['recipient', 'items.payable', 'documents', 'facilityoption']);
-        return Inertia::render('ACCMakePayment/Edit', [
+        return Inertia::render('Accounting/ACCMakePayment/Edit', [
             'payment' => $payment,
             // 'paymentTypes' are only needed for the final pay screen
         ]);
@@ -232,7 +232,7 @@ class ACCMakePaymentController extends Controller
             return redirect()->route('accounting1.edit', $payment->id)->with('error', 'This payment is not pending approval.');
         }
         $payment->load(['recipient', 'items.payable']);
-        return Inertia::render('ACCMakePayment/Approval', [
+        return Inertia::render('Accounting/ACCMakePayment/Approval', [
             'payment' => $payment,
         ]);
     }
@@ -260,7 +260,7 @@ class ACCMakePaymentController extends Controller
             return redirect()->route('accounting1.edit', $payment->id)->with('error', 'This payment has not been approved for payment.');
         }
         $payment->load(['recipient', 'items.payable', 'facilityoption.chartOfAccount']);
-        return Inertia::render('ACCMakePayment/Payment', [
+        return Inertia::render('Accounting/ACCMakePayment/Payment', [
             'payment' => $payment,
             'paymentTypes' => BLSPaymentType::all(['id', 'name']),
         ]);

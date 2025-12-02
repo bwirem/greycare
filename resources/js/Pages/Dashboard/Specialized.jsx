@@ -1,10 +1,10 @@
-import AuthenticatedLayout from '@/Layouts/SpecializedLayout'; // Using the Specialized Layout
+import AuthenticatedLayout from '@/Layouts/SpecializedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    // Specialized Icons
-    faBabyCarriage, faRibbon, faBookDead, faWalking, 
-    faArrowRight, faCross, faHandshake, faPlusSquare,
+    // Removed Mortuary Icons (faBookDead, faCross, faHandshake)
+    faBabyCarriage, faRibbon, faWalking, 
+    faArrowRight, faPlusSquare,
     faIdCard, faTablets, faNotesMedical
 } from '@fortawesome/free-solid-svg-icons';
 import usePermissionsStore from '@/stores/usePermissionsStore';
@@ -51,7 +51,7 @@ function SummaryCard({ title, value, unit, description, linkHref, linkText, icon
 
 export default function Specialized({ 
     auth,
-    mortuaryOccupancy = 0, 
+    // Removed mortuaryOccupancy prop
     physioSessionsToday = 0 
 }) {
     // Fetch permissions from store
@@ -73,11 +73,6 @@ export default function Specialized({
         physioHub: '/physiotherapy',
         physioSessions: '/physiotherapy0',
         physioNotes: '/physiotherapy1',
-
-        // Mortuary
-        mortuaryHub: '/mortuary',
-        deceasedRecords: '/mortuary0',
-        releaseBody: '/mortuary1',
     };
 
     return (
@@ -98,7 +93,7 @@ export default function Specialized({
                     <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div>
                             <h3 className="font-bold text-gray-700 dark:text-gray-300">Specialized Clinics Dashboard</h3>
-                            <p className="text-sm text-gray-500">RCH, CTC, Physiotherapy & Mortuary</p>
+                            <p className="text-sm text-gray-500">RCH, CTC & Physiotherapy</p>
                         </div>
                         <Link href={route('dashboard')} className="text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                             ← Back to Main Menu
@@ -194,45 +189,6 @@ export default function Specialized({
                             />
                         </div>
                     </section>
-                    )}
-
-                    {/* --- MORTUARY SECTION (Added per request) --- */}
-                    {modules.some(module => module.modulekey === 'mortuary') && (
-                    <section>
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Mortuary Management</h3>
-                            <Link href={urls.mortuaryHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
-                                Go to Mortuary <FontAwesomeIcon icon={faArrowRight} className="ml-1.5 h-3 w-3 transition-transform duration-200 group-hover:translate-x-1" />
-                            </Link>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <SummaryCard
-                                title="Occupancy"
-                                value={mortuaryOccupancy}
-                                unit="Bodies"
-                                icon={faBookDead}
-                                iconBgColor="bg-slate-700"
-                                linkHref={urls.deceasedRecords}
-                                linkText="View Records"
-                            />
-                            <SummaryCard
-                                title="Register Deceased"
-                                description="Add new entry to mortuary."
-                                icon={faCross}
-                                iconBgColor="bg-slate-500"
-                                linkHref={urls.deceasedRecords}
-                                linkText="New Entry"
-                            />
-                            <SummaryCard
-                                title="Release Body"
-                                description="Process handover to family."
-                                icon={faHandshake}
-                                iconBgColor="bg-gray-600"
-                                linkHref={urls.releaseBody}
-                                linkText="Release Form"
-                            />
-                        </div>
-                    </section>                
                     )}
 
                 </div>

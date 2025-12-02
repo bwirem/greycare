@@ -28,8 +28,7 @@ const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-20
 // 1. DEFINING SPECIALIZED KEYS
 const specializedModuleKeys = [
     'rch',
-    'hivart',
-    'mortuary',
+    'hivart',   
     'physiotherapy'
 ];
 
@@ -186,7 +185,7 @@ export default function SpecializedLayout({ header, children }) {
                             />
                             {sidebarVisible && (
                                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                                    GreyCare 
+                                    GreyCare 2.0 
                                     {/* Rose color for Specialized */}
                                     <span className="text-xs font-normal text-rose-500 block">Specialized Clinics</span>
                                 </h1>

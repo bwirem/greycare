@@ -216,7 +216,7 @@ export default function HumanResourceLayout({ header, children }) {
                             />
                             {sidebarVisible && (
                                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                                    GreyCare 
+                                    GreyCare 2.0 
                                     {/* Purple color for HR */}
                                     <span className="text-xs font-normal text-purple-400 block">HRM Station</span>
                                 </h1>

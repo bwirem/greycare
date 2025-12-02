@@ -8,9 +8,10 @@ import {
     faSackDollar, 
     faPeopleRoof, 
     faArrowRight,
-    faCogs,       // Added for System Config
-    faChartPie,    // Added for Reports
-    faHandsHelping // Add this for the new card
+    faCogs,
+    faChartPie,
+    faHandsHelping,
+    faBed // Added for Mortuary
 } from '@fortawesome/free-solid-svg-icons';
 import usePermissionsStore from '@/stores/usePermissionsStore';
 
@@ -37,16 +38,26 @@ export default function Index({ auth }) {
             route: "dashboard.hospital", 
             access: hasAccess(['outpatient', 'inpatient', 'nursing', 'doctor', 'theatre', 'laboratory', 'pharmacy', 'radiology'])
         },   
-         // --- NEW CARD: Specialized Care ---
+        // --- Specialized Care (Updated) ---
         {
             title: "Specialized Clinics",
-            description: "Reproductive Health (RCH), HIV-ART, Physiotherapy & Mortuary Services.",
+            description: "Reproductive Health (RCH), HIV-ART & Physiotherapy.",
             icon: faHandsHelping,
             color: "bg-rose-600",
             textColor: "text-rose-600",
-            route: "dashboard.specialized", // New Route
-            access: hasAccess(['rch', 'hivart', 'mortuary', 'physiotherapy'])
-        },    
+            route: "dashboard.specialized",
+            access: hasAccess(['rch', 'hivart', 'physiotherapy'])
+        },
+        // --- NEW CARD: Mortuary Services ---
+        {
+            title: "Mortuary Services",
+            description: "Body reception, preservation, storage, autopsy coordination & release.",
+            icon: faBed,
+            color: "bg-stone-600", // Distinct, neutral tone
+            textColor: "text-stone-600",
+            route: "dashboard.mortuary", // Assumed route name
+            access: hasAccess(['mortuary'])
+        },
         {
             title: "Sales & Finance Mgmt",
             description: "Patient Billing, General Ledger, Expense Management & Financial Reporting.",
@@ -74,7 +85,6 @@ export default function Index({ auth }) {
             route: "dashboard.hr",
             access: hasAccess(['humanresurces'])
         },
-        // --- NEW CARD 1: Reporting ---
         {
             title: "Reporting & Analytics",
             description: "Centralized reports for Clinical, Financial, Inventory, and Operational metrics.",
@@ -82,10 +92,8 @@ export default function Index({ auth }) {
             color: "bg-teal-600",
             textColor: "text-teal-600",
             route: "dashboard.reports",
-            // Checks for the generic 'reporting' key or specific reporting modules
             access: hasAccess(['reporting']) 
         },
-        // --- NEW CARD 2: System Config & Admin ---
         {
             title: "System & User Admin",
             description: "Global settings, module configuration, user roles, and access control.",
@@ -93,7 +101,6 @@ export default function Index({ auth }) {
             color: "bg-slate-600",
             textColor: "text-slate-600",
             route: "dashboard.admin",
-            // Checks for system config or user management keys
             access: hasAccess(['systemConfig', 'usermanagement'])
         }
     ];

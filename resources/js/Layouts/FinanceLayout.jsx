@@ -242,7 +242,7 @@ export default function FinanceLayout({ header, children }) {
                             />
                             {sidebarVisible && (
                                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                                    GreyCare 
+                                    GreyCare 2.0 
                                     {/* Using Blue to distinguish Finance */}
                                     <span className="text-xs font-normal text-blue-400 block">Financial Station</span>
                                 </h1>

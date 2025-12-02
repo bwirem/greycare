@@ -21,5 +21,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+        // This tells Laravel to ALSO look in these folders
+        $this->loadMigrationsFrom([
+            database_path('migrations/patient'),
+            database_path('migrations/opd_department'),
+            database_path('migrations/ipd_department'),
+            database_path('migrations/medical_records'),          
+        ]);
     }
 }

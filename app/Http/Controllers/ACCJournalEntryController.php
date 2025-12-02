@@ -29,7 +29,7 @@ class ACCJournalEntryController extends Controller
         // // THE FIX: Explicitly define the table for the 'created_at' column to avoid SQL ambiguity.
         $journalEntries  = $query->latest('acc_journal_entries.created_at')->paginate(15)->withQueryString();
 
-        return Inertia::render('ACCJournalEntry/Index', [
+        return Inertia::render('Accounting/ACCJournalEntry/Index', [
             'journalEntries' => $journalEntries,
             'filters' => $request->only(['search']),
             'success' => session('success'),
@@ -41,7 +41,7 @@ class ACCJournalEntryController extends Controller
      */
     public function create()
     {
-        return Inertia::render('ACCJournalEntry/Create');
+        return Inertia::render('Accounting/ACCJournalEntry/Create');
     }
 
     /**
@@ -92,7 +92,7 @@ class ACCJournalEntryController extends Controller
     {
         // Eager load the lines and the account name for each line.
         $journalEntry->load('journalEntryLines.chartOfAccount');
-        return Inertia::render('ACCJournalEntry/Edit', [
+        return Inertia::render('Accounting/ACCJournalEntry/Edit', [
             'journalEntry' => $journalEntry,
         ]);
     }

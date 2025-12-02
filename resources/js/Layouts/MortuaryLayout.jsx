@@ -7,23 +7,14 @@ import {
     faBars, faTimes, faUser, faSignOutAlt, faHome, 
     faArrowLeft,
 
-    // Resource & Asset Icons
-    faTruck, faWarehouse, faBoxes, faBoxOpen, faBox,
-    faClipboardList, faFileSignature, faShoppingCart,
-    faSyncAlt, faRedo, faRecycle,
-    faBuilding, faListAlt, faArrowDown, faTrashAlt, 
-    faExchangeAlt, faWrench, faShieldAlt, faHistory,
-    faChartBar, faChartPie, faCog, faStore,
-    faTruckLoading, faPallet, faDolly
+    // Specialized Care Icons
+    faBabyCarriage, faRibbon, faBookDead, faWalking, // Module Headers
+    faCross, faHandshake, // Mortuary
+    faVenusMars, faBaby, faHandHoldingMedical, faChild, faSyringe, // RCH
+    faIdCard, faTablets, // HIV
+    faHandsHelping, faNotesMedical, // Physio
+    faChartBar, faStethoscope
 } from "@fortawesome/free-solid-svg-icons";
-
-// Specific Icons from your permission set
-import { faFileInvoice as faRequestQuote } from '@fortawesome/free-solid-svg-icons'; 
-import { faMoneyBillWave as faExpensesSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
-import { faBoxOpen as faInventorySetupIcon } from '@fortawesome/free-solid-svg-icons'; 
-import { faMapMarkerAlt as faLocationSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
-import { faBuilding as faFacilitySetupIcon } from '@fortawesome/free-solid-svg-icons';
-import { faFileInvoice as faBillingSetupIcon } from '@fortawesome/free-solid-svg-icons'; 
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { ToastContainer } from 'react-toastify';
@@ -34,98 +25,45 @@ import usePermissionsStore from "../stores/usePermissionsStore";
 const navLinkClasses = 'flex items-center p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors duration-200';
 const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`;
 
-// 1. DEFINING RESOURCE PARENT MODULE KEYS
-const resourceModuleKeys = [
-    'procurements',
-    'inventory',
-    'material',    // Material Conversion
-    'fixedassets',
-    'reporting',   // Parent for Reports
-    'systemConfig' // Parent for Setups
+// 1. DEFINING SPECIALIZED KEYS
+const mortuaryModuleKeys = [   
+    'mortuary', 
 ];
 
-// 2. DEFINING RESOURCE CHILD ITEM KEYS (Whitelist)
-const allowedResourceItemKeys = [
-    // Procurement Items
-    'procurements0', 'procurements1',
-    
-    // Inventory Items
-    'inventory0', 'inventory1', 'inventory2', 'inventory3', 'inventory4',
-    
-    // Material Items
-    'material0',
-    
-    // Fixed Assets Items
-    'fixedassets0', 'fixedassets1', 'fixedassets2', 'fixedassets3', 
-    'fixedassets4', 'fixedassets5', 'fixedassets6', 'fixedassets7',
-
-    // --- REQUESTED REPORTS ---
-    'reporting1', // Procurement
-    'reporting2', // Inventory
-    'reporting3', // Material Conversion
-
-    // --- REQUESTED CONFIGURATIONS ---
-    'systemconfiguration0', // Billing Setup
-    'systemconfiguration1', // Expenses (or Inventory depending on your DB)
-    'systemconfiguration2', // Inventory Setup (Standard Key)
-    'systemconfiguration5'  // Facility Setup (Often needed for stores)
-];
-
-// Icon Map
+// Icon Map (Tailored for Specialized Clinics)
 const iconMap = {
     home: faHome,
     dashboard: faChartBar,
 
     // Module Icons
-    procurements: faShoppingCart,
-    inventory: faWarehouse, 
-    material: faRecycle,
-    fixedassets: faBuilding,
-    reporting: faChartPie,
-    systemConfig: faCog,
+    rch: faBabyCarriage,
+    hivart: faRibbon,
+    mortuary: faBookDead, // or faCross
+    physiotherapy: faWalking,
 
-    // Icon Strings
-    storage: faWarehouse, 
+    // RCH Items
+    venus_mars: faVenusMars, // Family Planning
+    baby: faBaby, // Antenatal
+    hand_holding_medical: faHandHoldingMedical, // Postnatal
+    child: faChild, // Child Health
+    syringe: faSyringe, // Immunizations
 
-    // Procurement Items
-    request_quote: faRequestQuote,
-    shopping_cart: faShoppingCart, 
+    // HIV Items
+    id_card: faIdCard, // Enrollment
+    tablets: faTablets, // ART Mgmt
 
-    // Inventory Items
-    store: faStore, 
-    local_shipping: faTruck, 
-    goods_receiving: faTruckLoading, 
-    inventory_reconciliation: faClipboardList,
-    stock_history: faHistory,
-    boxes: faBoxes,
+    // Mortuary Items
+    book_dead: faBookDead, // Records
+    handshake: faHandshake, // Release
+    cross: faCross,
 
-    // Material Items
-    autorenew: faSyncAlt,
-
-    // Fixed Assets Items
-    list_alt: faListAlt, 
-    arrow_down: faArrowDown, 
-    trash_alt: faTrashAlt, 
-    exchange_alt: faExchangeAlt, 
-    sync_alt: faRedo, 
-    wrench: faWrench, 
-    shield_alt: faShieldAlt, 
-    history: faHistory,
-
-    // Config Items
-    inventory_setup: faInventorySetupIcon, 
-    location_setup: faLocationSetupIcon,  
-    facility_setup: faFacilitySetupIcon,
-    billing_setup: faBillingSetupIcon, 
-    expenses_setup: faExpensesSetupIcon,
+    // Physio Items
+    hands_helping: faHandsHelping, // Sessions
+    notes_medical: faNotesMedical, // Progress Notes
 
     // Generics
     analytics: faChartBar,
-    settings: faCog,
-    box: faBox,
-    box_open: faBoxOpen,
-    dolly: faDolly,
-    pallet: faPallet
+    stethoscope: faStethoscope
 };
 
 // SidebarNavLink Component
@@ -177,8 +115,8 @@ function MenuButton({ children, onClick, className }) {
     );
 }
 
-// --- MAIN RESOURCE LAYOUT ---
-export default function ResourceLayout({ header, children }) {
+// --- MAIN SPECIALIZED LAYOUT ---
+export default function SpecializedLayout({ header, children }) {
   
     const { modules, moduleItems, fetchPermissions, clearPermissions } = usePermissionsStore();
     const user = usePage().props.auth.user;
@@ -193,9 +131,9 @@ export default function ResourceLayout({ header, children }) {
 
     useEffect(() => {
         const initialState = {};
-        // Only initialize state for resource modules
+        // Only initialize state for mortuary modules
         modules.forEach(module => {
-            if(resourceModuleKeys.includes(module.modulekey)) {
+            if(mortuaryModuleKeys.includes(module.modulekey)) {
                 initialState[module.modulekey] = false;
             }
         });
@@ -209,32 +147,21 @@ export default function ResourceLayout({ header, children }) {
         }));
     };
 
-    // 3. Filter Modules AND Children
-    const resourceSidebarItems = modules
-        .filter(module => resourceModuleKeys.includes(module.modulekey))
-        .map(module => {
-            // Filter children based on the whitelist (allowedResourceItemKeys)
-            const relevantChildren = moduleItems[module.modulekey]?.filter(item => 
-                allowedResourceItemKeys.includes(item.key)
-            ) || [];
-
-            // If module has no relevant children, hide it
-            if (relevantChildren.length === 0) return null;
-
-            return {
-                label: module.moduletext,
-                key: module.modulekey,
-                icon: iconMap[module.modulekey] || iconMap[module.icon] || faBoxes, 
-                isOpen: sidebarState[module.modulekey],
-                toggleOpen: () => toggleSidebarSection(module.modulekey),
-                children: relevantChildren.map(item => ({
-                    label: item.text,
-                    icon: iconMap[item.icon] || null,
-                    href: `/${item.key}`, 
-                })),
-            };
-        })
-        .filter(Boolean); // Filter out nulls
+    // 2. Filter Modules to show only Specialized Clinics
+    const mortuarySidebarItems = modules
+        .filter(module => mortuaryModuleKeys.includes(module.modulekey))
+        .map(module => ({
+            label: module.moduletext,
+            key: module.modulekey,
+            icon: iconMap[module.modulekey] || iconMap[module.icon] || faStethoscope, 
+            isOpen: sidebarState[module.modulekey],
+            toggleOpen: () => toggleSidebarSection(module.modulekey),
+            children: moduleItems[module.modulekey]?.map(item => ({
+                label: item.text,
+                icon: iconMap[item.icon] || null,
+                href: `/${item.key}`, 
+            })) || [],
+        }));
 
     return (
         // Root container with no window scrollbars
@@ -247,7 +174,7 @@ export default function ResourceLayout({ header, children }) {
             >
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-center h-16 bg-gray-800 shadow-md flex-shrink-0 overflow-hidden whitespace-nowrap">
-                    <Link href="/dashboard/resources">
+                    <Link href="/dashboard/mortuary">
                         <div className="flex items-center px-4">
                             <img
                                 src="/img/greycarelogo.ico"
@@ -256,9 +183,9 @@ export default function ResourceLayout({ header, children }) {
                             />
                             {sidebarVisible && (
                                 <h1 className="text-lg font-bold tracking-wide leading-tight">
-                                    GreyCare 2.0 
-                                    {/* Amber color for Resources */}
-                                    <span className="text-xs font-normal text-amber-500 block">Resource Hub</span>
+                                    GreyCare 2.0
+                                    {/* Rose color for Specialized */}
+                                    <span className="text-xs font-normal text-rose-500 block">Mortuary</span>
                                 </h1>
                             )}
                         </div>
@@ -274,14 +201,14 @@ export default function ResourceLayout({ header, children }) {
                                 Main Menu
                             </SidebarNavLink>
                             
-                            <SidebarNavLink href={route('dashboard.resources')} icon={faChartBar}>
+                            <SidebarNavLink href={route('dashboard.mortuary')} icon={faHandsHelping}>
                                 Dashboard
                             </SidebarNavLink>
 
                             <div className="my-2 border-t border-gray-700"></div>
 
-                            {/* Dynamic Resource Modules */}
-                            {resourceSidebarItems.map((item) => (
+                            {/* Dynamic Specialized Modules */}
+                            {mortuarySidebarItems.map((item) => (
                                 <SidebarItem
                                     key={item.key}
                                     icon={item.icon}
@@ -297,9 +224,9 @@ export default function ResourceLayout({ header, children }) {
                                 </SidebarItem>
                             ))}
 
-                            {resourceSidebarItems.length === 0 && (
+                            {mortuarySidebarItems.length === 0 && (
                                 <div className="text-gray-500 text-sm p-4 text-center">
-                                    No resource modules assigned.
+                                    No mortuary modules assigned.
                                 </div>
                             )}
                         </ul>
@@ -354,7 +281,7 @@ export default function ResourceLayout({ header, children }) {
                                             >
                                                 {user.name}
                                                 <svg className="-mr-1 ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                                 </svg>
                                             </button>
                                         </Dropdown.Trigger>

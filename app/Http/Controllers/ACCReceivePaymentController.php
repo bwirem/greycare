@@ -36,7 +36,7 @@ class ACCReceivePaymentController extends Controller
         }
         $receivedPayments = $query->latest()->paginate(15)->withQueryString();
 
-        return Inertia::render('ACCReceivePayment/Index', [
+        return Inertia::render('Accounting/ACCReceivePayment/Index', [
             'receivedPayments' => $receivedPayments,
             'filters' => $request->only(['search', 'stage']),
             'success' => session('success'),
@@ -48,7 +48,7 @@ class ACCReceivePaymentController extends Controller
      */
     public function create()
     {
-        return Inertia::render('ACCReceivePayment/Create', [
+        return Inertia::render('Accounting/ACCReceivePayment/Create', [
             'facilities' => FacilityOption::all(['id', 'name']),
         ]);
     }
@@ -120,7 +120,7 @@ class ACCReceivePaymentController extends Controller
     public function edit(ACCReceivePayment $payment)
     {
         $payment->load(['payer', 'items.receivable', 'documents', 'facilityoption']);
-        return Inertia::render('ACCReceivePayment/Edit', [
+        return Inertia::render('Accounting/ACCReceivePayment/Edit', [
             'receivedPayment' => $payment,
             'facilities' => FacilityOption::all(['id', 'name']),
         ]);

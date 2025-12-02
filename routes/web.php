@@ -35,7 +35,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
      // Add this new route
     Route::get('/dashboard/specialized', [DashboardController::class, 'specializedStats'])
-        ->name('dashboard.specialized');   
+        ->name('dashboard.specialized');  
+    
+     // Add this new route
+    Route::get('/dashboard/mortuary', [DashboardController::class, 'mortuaryStats'])
+        ->name('dashboard.mortuary');          
 
     // 3. RESOURCE & ASSET MANAGEMENT (Procurement & Inventory Stats)
     Route::get('/dashboard/resources', [DashboardController::class, 'resourceStats'])

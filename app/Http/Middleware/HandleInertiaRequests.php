@@ -33,6 +33,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // ADD THIS SECTION
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+            ],  
             // --- ADD YOUR MODULE DEFINITIONS HERE ---
             'moduleGroups' => [
                 'hospital' => [
@@ -45,8 +50,7 @@ class HandleInertiaRequests extends Middleware
                 ],
                 'resources' => [
                     'procurements', 'inventory', 'fixedassets', 'systemconfiguration2'
-                ],
-                
+                ],                
                 // Add others as needed
             ],
         ]);
