@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('mr_patient_diagnosesicd_confirmed', function (Blueprint $table) {
+        Schema::create('mr_patient_diagnoses_icd_confirmed', function (Blueprint $table) {
             $table->id();
 
             // Link to Booking
