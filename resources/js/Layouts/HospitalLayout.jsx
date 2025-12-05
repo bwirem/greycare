@@ -22,13 +22,11 @@ import {
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import usePermissionsStore from "../stores/usePermissionsStore";
+import usePermissionsStore from "@/stores/usePermissionsStore"; // Ensure path is correct
 
 // Constants for CSS classes
 const navLinkClasses = 'flex items-center p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors duration-200';
 const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`;
-
-
 
 // Icon Map
 const iconMap = {
@@ -87,6 +85,7 @@ function SidebarNavLink({ href, icon, children, active = false }) {
     return (
         <li>
             <Link href={href} className={`${navLinkClasses} ${active ? 'bg-gray-900 text-white' : ''}`}>
+                {/* Ensure icon exists before rendering FontAwesomeIcon */}
                 {icon && <FontAwesomeIcon icon={icon} className="mr-3 w-5 text-center" />}
                 <span className="sidebar-normal">{children}</span>
             </Link>
@@ -108,6 +107,7 @@ function SidebarItem({ icon, label, isOpen, toggleOpen, children }) {
                 <b className={caretClasses(isOpen)}>▼</b>
             </button>
             
+            {/* Render children only if they exist */}
             {children && (
                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
                     <ul className="pl-4 mt-1 space-y-1 border-l border-gray-600 ml-2">
@@ -132,19 +132,10 @@ function MenuButton({ children, onClick, className }) {
 }
 
 // --- MAIN HOSPITAL LAYOUT ---
-export default function HospitalLayout({ 
-    header, 
-    children,    
-}) {
+export default function HospitalLayout({ header, children }) {
 
-    // 1. Get the shared props using the usePage hook
     const { props } = usePage();
-    
-    // 2. Extract the keys from the shared 'moduleGroups' object
-    // We default to [] in case the middleware hasn't loaded or key is missing
     const hospitalModuleKeys = props.moduleGroups?.hospital || []; 
-
-  
     const { modules, moduleItems, fetchPermissions, clearPermissions } = usePermissionsStore();
     const user = usePage().props.auth.user;
     
@@ -157,14 +148,13 @@ export default function HospitalLayout({
 
     useEffect(() => {
         const initialState = {};
-        // 2. Use the prop inside useEffect
         modules.forEach(module => {
             if(hospitalModuleKeys.includes(module.modulekey)) {
                 initialState[module.modulekey] = false;
             }
         });
         setSidebarState(initialState);
-    }, [modules, hospitalModuleKeys]); // Add hospitalModuleKeys to dependency array
+    }, [modules, hospitalModuleKeys]); 
 
     const toggleSidebarSection = (section) => {
         setSidebarState((prevState) => ({
@@ -173,7 +163,8 @@ export default function HospitalLayout({
         }));
     };
 
-    // 3. Use the prop for filtering
+    // 3. Filter and Map Sidebar Items
+    // FIX: Renamed 'children' to 'subItems' to avoid prop conflict with React Components
     const clinicalSidebarItems = modules
         .filter(module => hospitalModuleKeys.includes(module.modulekey))
         .map(module => ({
@@ -182,15 +173,15 @@ export default function HospitalLayout({
             icon: iconMap[module.modulekey] || iconMap[module.icon] || faStethoscope, 
             isOpen: sidebarState[module.modulekey],
             toggleOpen: () => toggleSidebarSection(module.modulekey),
-            children: moduleItems[module.modulekey]?.map(item => ({
+            // Changed property name from children -> subItems
+            subItems: moduleItems[module.modulekey]?.map(item => ({
                 label: item.text,
                 icon: iconMap[item.icon] || null,
-                href: `/${item.key}`, 
+                href: `/${item.key}`, // Ensure your routes (e.g. /outpatient0) exist in web.php
             })) || [],
         }));
 
     return (
-        // Root container with no window scrollbars
         <div className="flex h-screen bg-gray-100 overflow-hidden">            
 
             {/* Sidebar Container */}
@@ -200,7 +191,7 @@ export default function HospitalLayout({
             >
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-center h-16 bg-gray-800 shadow-md flex-shrink-0 overflow-hidden whitespace-nowrap">
-                    <Link href="/dashboard/hospital">
+                    <Link href={route('dashboard.hospital')}>
                         <div className="flex items-center px-4">
                             <img
                                 src="/img/greycarelogo.ico"
@@ -241,7 +232,8 @@ export default function HospitalLayout({
                                     isOpen={item.isOpen}
                                     toggleOpen={item.toggleOpen}
                                 >
-                                    {item.children.map((child) => (
+                                    {/* FIX: Mapping over 'subItems' instead of 'children' */}
+                                    {item.subItems.map((child) => (
                                         <SidebarNavLink key={child.label} href={child.href} icon={child.icon}>
                                             {child.label}
                                         </SidebarNavLink>
@@ -258,7 +250,7 @@ export default function HospitalLayout({
                     </nav>
                 </div>
                 
-                {/* Sidebar Footer (User Info) */}
+                {/* Sidebar Footer */}
                 <div className="p-4 bg-gray-800 border-t border-gray-700 flex-shrink-0 overflow-hidden">
                      <div className="flex items-center">
                         <div className="flex-shrink-0">
@@ -283,7 +275,6 @@ export default function HospitalLayout({
                     <div className="px-4 sm:px-6 lg:px-8">
                         <div className="flex h-16 justify-between">
                             <div className="flex items-center">
-                                {/* Toggle Sidebar Button */}
                                 <MenuButton onClick={() => setSidebarVisible(!sidebarVisible)} className="mr-4">
                                     <FontAwesomeIcon icon={faBars} className="h-5 w-5" />
                                 </MenuButton>
@@ -296,49 +287,44 @@ export default function HospitalLayout({
                             </div>
 
                             <div className="flex items-center">
-                                {/* User Dropdown */}
-                                <div className="relative ml-3">
-                                    <Dropdown>
-                                        <Dropdown.Trigger>
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-700 hover:bg-gray-50 focus:outline-none transition"
-                                            >
-                                                {user.name}
-                                                <svg className="-mr-1 ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                </svg>
-                                            </button>
-                                        </Dropdown.Trigger>
+                                <Dropdown>
+                                    <Dropdown.Trigger>
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-700 hover:bg-gray-50 focus:outline-none transition"
+                                        >
+                                            {user.name}
+                                            <svg className="-mr-1 ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </Dropdown.Trigger>
 
-                                        <Dropdown.Content>
-                                            <Dropdown.Link href={route('profile.edit')}>
-                                                <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
-                                            </Dropdown.Link>
-                                            <Dropdown.Link href={route('dashboard')}>
-                                                <FontAwesomeIcon icon={faHome} className="mr-2" /> Main Menu
-                                            </Dropdown.Link>
-                                            <div className="border-t border-gray-100" />
-                                            <Dropdown.Link
-                                                href={route('logout')}
-                                                method="post"
-                                                as="button"
-                                                onClick={clearPermissions}
-                                            >
-                                                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Log Out
-                                            </Dropdown.Link>
-                                        </Dropdown.Content>
-                                    </Dropdown>
-                                </div>
+                                    <Dropdown.Content>
+                                        <Dropdown.Link href={route('profile.edit')}>
+                                            <FontAwesomeIcon icon={faUser} className="mr-2" /> Profile
+                                        </Dropdown.Link>
+                                        <Dropdown.Link href={route('dashboard')}>
+                                            <FontAwesomeIcon icon={faHome} className="mr-2" /> Main Menu
+                                        </Dropdown.Link>
+                                        <div className="border-t border-gray-100" />
+                                        <Dropdown.Link
+                                            href={route('logout')}
+                                            method="post"
+                                            as="button"
+                                            onClick={clearPermissions}
+                                        >
+                                            <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" /> Log Out
+                                        </Dropdown.Link>
+                                    </Dropdown.Content>
+                                </Dropdown>
                             </div>
                         </div>
                     </div>
                 </nav>
 
-                {/* Main Content Body - The ONLY scrollable area */}
                 <main className="flex-1 overflow-y-auto bg-gray-100 p-6">
                     {children}
-                    
                     <ToastContainer
                         position="bottom-right"
                         autoClose={5000}

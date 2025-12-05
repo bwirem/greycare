@@ -289,3 +289,52 @@ Route::prefix('humanresource')->name('humanresource.')->group(function () {
 Route::prefix('fixedassets')->name('fixedassets.')->group(function () {
     Route::get('/', function () { return Inertia::render('ModulesHub/FixedAssets/Index'); })->name('index');
 });
+
+// ... existing configuration routes ...
+
+// systemconfiguration6: Laboratory Setup
+Route::prefix('systemconfiguration6')->name('systemconfiguration6.')->group(function () {
+    
+    // Main Dashboard
+    Route::get('/', function () { 
+        return Inertia::render('SystemConfiguration/LabSetup/Index'); 
+    })->name('index');
+
+    // 1. Nature of Samples
+    Route::prefix('samples')->name('samples.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'store'])->name('store');
+        Route::get('/{sample}/edit', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'edit'])->name('edit');
+        Route::put('/{sample}', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'update'])->name('update');
+        Route::delete('/{sample}', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'destroy'])->name('destroy');
+    });
+
+    // 2. Rejection Reasons
+    Route::prefix('rejections')->name('rejections.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Laboratory\LabRejectionReasonController::class, 'index'])->name('index');
+        Route::post('/', [App\Http\Controllers\Laboratory\LabRejectionReasonController::class, 'store'])->name('store');
+        // Add other CRUD routes similarly...
+    });
+
+    // 3. Lab Categories (Departments)
+    Route::prefix('categories')->name('categories.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Laboratory\LabCategoryController::class, 'index'])->name('index');
+        Route::post('/', [App\Http\Controllers\Laboratory\LabCategoryController::class, 'store'])->name('store');
+        // ...
+    });
+
+    // 4. Lab Panels (Orderable Tests)
+    Route::prefix('panels')->name('panels.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Laboratory\LabPanelController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Laboratory\LabPanelController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Laboratory\LabPanelController::class, 'store'])->name('store');
+        // ...
+    });
+
+    // 5. Lab Parameters (Result Fields)
+    Route::prefix('parameters')->name('parameters.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Laboratory\LabTestParameterController::class, 'index'])->name('index');
+        // ...
+    });
+});

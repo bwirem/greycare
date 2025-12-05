@@ -65,6 +65,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // --- Load Modules (Keep strict ordering if necessary) ---
+    require __DIR__.'/modules/hospital.php';
+
     require __DIR__.'/modules/billing.php';
     require __DIR__.'/modules/procurement.php';
     require __DIR__.'/modules/inventory.php';

@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/ReportLayout';
 import { Head, Link } from '@inertiajs/react'; // usePage removed as ziggy not used directly here
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {

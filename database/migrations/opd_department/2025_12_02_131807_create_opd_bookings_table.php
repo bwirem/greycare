@@ -60,7 +60,16 @@ return new class extends Migration
 
             // IPD & Status
             $table->dateTime('ipdstart')->nullable();
-            $table->dateTime('ipdstop')->nullable();           
+            $table->dateTime('ipdstop')->nullable();   
+            
+           // Doctor Info
+            $table->unsignedBigInteger('doctor_user_id')->nullable();
+            $table->foreign('doctor_user_id')
+                ->references('id')->on('users')
+                ->restrictOnDelete();
+            $table->string('DoctorName', 255)->nullable(); 
+
+            $table->string('vitalsignstatus', 50)->default('Pending')->index(); 
 
             // User
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();

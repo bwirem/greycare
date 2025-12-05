@@ -255,9 +255,10 @@ class UserPermissionController extends Controller
             ],
             // Medical Modules
             'outpatient' => [
-                ['key' => 'outpatient0', 'text' => 'Registrations', 'icon' => 'clipboard_list'],
-                ['key' => 'outpatient1', 'text' => 'Approval Request', 'icon' => 'file_signature'],
-                ['key' => 'outpatient2', 'text' => 'To Referral Hospital', 'icon' => 'ambulance'],                               
+                ['key' => 'outpatient0', 'text' => 'Registrations', 'icon' => 'clipboard_list'],                
+                ['key' => 'outpatient1', 'text' => 'Appointments', 'icon' => 'calendar_check'], 
+                ['key' => 'outpatient2', 'text' => 'Approval Request', 'icon' => 'file_signature'],
+                ['key' => 'outpatient3', 'text' => 'To Referral Hospital', 'icon' => 'ambulance'],                               
             ],
             'inpatient' => [
                 ['key' => 'inpatient0', 'text' => 'Admissions', 'icon' => 'bed'],
@@ -389,6 +390,7 @@ class UserPermissionController extends Controller
                 ['key' => 'systemconfiguration3', 'text' => 'Accounting Setup', 'icon' => 'menu_book'],
                 ['key' => 'systemconfiguration4', 'text' => 'Location Setup', 'icon' => 'location_setup'],
                 ['key' => 'systemconfiguration5', 'text' => 'Facility Setup', 'icon' => 'facility_setup'],
+                ['key' => 'systemconfiguration6', 'text' => 'Lab Setup', 'icon' => 'lab_setup'],
             ],
             'usermanagement' => [
                 ['key' => 'usermanagement', 'text' => 'Manage Users', 'icon' => 'manage_accounts'],

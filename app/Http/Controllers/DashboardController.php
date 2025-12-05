@@ -170,7 +170,9 @@ class DashboardController extends Controller
     public function reportStats()
     {
         // You can redirect to a specific reporting hub or render a menu
-        return Inertia::render('ModulesHub/Reports/Index'); 
+        return Inertia::render('Dashboard/Report', [
+            // Add any relevant reporting stats here
+        ]); 
         // OR if you don't have a hub yet, redirect to the first report module:
         // return redirect()->route('reporting0.index');
     }
@@ -181,7 +183,9 @@ class DashboardController extends Controller
     public function adminStats()
     {
         // Redirect to User Management or System Configuration
-        return Inertia::render('UserManagement/Index'); 
+        return Inertia::render('Dashboard/SystemAndUser', [
+            // Add any relevant admin stats here
+        ]); 
     }
 
     /**

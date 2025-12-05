@@ -1,5 +1,5 @@
 import React from "react";
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/SystemAndUserLayout';
 import { Head, Link } from '@inertiajs/react'; // Ensure Link is imported
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {

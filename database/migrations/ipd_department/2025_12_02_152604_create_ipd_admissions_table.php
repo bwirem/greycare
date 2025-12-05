@@ -23,7 +23,9 @@ return new class extends Migration
             $table->string('patientcode', 50)->nullable()->index();
             $table->foreign('patientcode')->references('code')->on('patients')->restrictOnDelete();
 
-            $table->dateTime('admission_date')->useCurrent();
+            // *** FIXED LINE BELOW ***
+            // Changed dateTime() to timestamp() to support useCurrent()
+            $table->timestamp('admission_date')->useCurrent();
 
             // Current Location
             $table->foreignId('ward_id')->nullable()->constrained('ipd_wards')->restrictOnDelete();

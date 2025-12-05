@@ -26,7 +26,8 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/patient'),
             database_path('migrations/opd_department'),
             database_path('migrations/ipd_department'),
-            database_path('migrations/medical_records'),          
+            database_path('migrations/medical_records'), 
+            database_path('migrations/laboratory'),        
         ]);
     }
 }
