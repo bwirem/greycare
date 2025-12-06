@@ -54,6 +54,12 @@ use App\Http\Controllers\Hospital\Patient\PatientBillingGroupController;
 use App\Http\Controllers\Hospital\Patient\PatientBillingSubgroupController;
 use App\Http\Controllers\Hospital\Opd\OpdTreatmentPointController;
 
+// Blood Bank Controllers
+use App\Http\Controllers\BloodBank\BloodBankSetupController;
+use App\Http\Controllers\BloodBank\BbComponentTypeController;
+use App\Http\Controllers\BloodBank\BbDeferralReasonController;
+
+// Models
 use App\Models\FacilityOption;
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\Patient\PatientBillingSubgroup;
@@ -347,6 +353,50 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
         Route::put('/{point}', [OpdTreatmentPointController::class, 'update'])->name('update');
         Route::delete('/{point}', [OpdTreatmentPointController::class, 'destroy'])->name('destroy');
     });
+
+   // 5. Wards (IPD)
+    Route::prefix('wards')->name('wards.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Ipd\IpdWardController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Ipd\IpdWardController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Ipd\IpdWardController::class, 'store'])->name('store');
+        Route::get('/{ward}/edit', [App\Http\Controllers\Ipd\IpdWardController::class, 'edit'])->name('edit');
+        Route::put('/{ward}', [App\Http\Controllers\Ipd\IpdWardController::class, 'update'])->name('update');
+        Route::delete('/{ward}', [App\Http\Controllers\Ipd\IpdWardController::class, 'destroy'])->name('destroy');
+    });
+
+    // 6. Rooms & Beds
+    Route::prefix('rooms')->name('rooms.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Ipd\IpdRoomController::class, 'index'])->name('index');
+        // Add CRUD...
+    });
+
+    // 7. Diagnosis Groups
+    Route::prefix('diagnosisgroups')->name('diagnosisgroups.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Diagnosis\DxtDiagnosesGroupController::class, 'index'])->name('index');
+        // Add CRUD...
+    });
+
+    // 8. ICD Diagnoses
+    Route::prefix('diagnoses')->name('diagnoses.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Diagnosis\DxtDiagnosesIcdController::class, 'index'])->name('index');
+        // Add CRUD...
+    });
+
+    // Mtuha Diagnoses (Dynamic Type)
+    // URL Example: /systemconfiguration5/mtuha/opd
+    Route::prefix('mtuha')->name('mtuha.')->group(function () {
+        
+        Route::get('/{type}', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'index'])
+            ->where('type', 'opd|ipd|dental|eyes') // Security constraint
+            ->name('index');
+            
+        Route::get('/{type}/create', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'create'])->name('create');
+        Route::post('/{type}', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'store'])->name('store');
+        Route::get('/{type}/{id}/edit', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'edit'])->name('edit');
+        Route::put('/{type}/{id}', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'update'])->name('update');
+        Route::delete('/{type}/{id}', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'destroy'])->name('destroy');
+    });
+
 });
 
 // Extra: Human Resource / Fixed Assets Hubs
@@ -515,5 +565,32 @@ Route::prefix('systemconfiguration9')->name('systemconfiguration9.')->group(func
         Route::get('/', [PharmacyDrugMasterController::class, 'index'])->name('index');
         Route::get('/{id}/edit', [PharmacyDrugMasterController::class, 'edit'])->name('edit');
         Route::put('/{id}', [PharmacyDrugMasterController::class, 'update'])->name('update');
+    });
+});
+
+// systemconfiguration10: Blood Bank Setup
+Route::prefix('systemconfiguration10')->name('systemconfiguration10.')->group(function () {
+    
+    // Dashboard
+    Route::get('/', [BloodBankSetupController::class, 'index'])->name('index');
+
+    // 1. Component Types (Whole Blood, Plasma)
+    Route::prefix('components')->name('components.')->group(function () {
+        Route::get('/', [BbComponentTypeController::class, 'index'])->name('index');
+        Route::get('/create', [BbComponentTypeController::class, 'create'])->name('create');
+        Route::post('/', [BbComponentTypeController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [BbComponentTypeController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [BbComponentTypeController::class, 'update'])->name('update');
+        Route::delete('/{id}', [BbComponentTypeController::class, 'destroy'])->name('destroy');
+    });
+
+    // 2. Deferral Reasons (Rejection)
+    Route::prefix('deferrals')->name('deferrals.')->group(function () {
+        Route::get('/', [BbDeferralReasonController::class, 'index'])->name('index');
+        Route::get('/create', [BbDeferralReasonController::class, 'create'])->name('create');
+        Route::post('/', [BbDeferralReasonController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [BbDeferralReasonController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [BbDeferralReasonController::class, 'update'])->name('update');
+        Route::delete('/{id}', [BbDeferralReasonController::class, 'destroy'])->name('destroy');
     });
 });

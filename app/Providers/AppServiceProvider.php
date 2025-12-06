@@ -31,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/radiology'),   
             database_path('migrations/theatre'),  
             database_path('migrations/pharmacy'),
+            database_path('migrations/bloodbank'),
         ]);
     }
 }

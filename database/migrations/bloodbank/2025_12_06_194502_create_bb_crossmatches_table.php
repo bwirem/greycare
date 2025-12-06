@@ -23,7 +23,7 @@ return new class extends Migration
             // Results
             $table->string('compatibility_result', 20); // Compatible, Incompatible
             $table->foreignId('performed_by')->constrained('users');
-            $table->dateTime('performed_at')->useCurrent();
+            $table->timestamp('performed_at')->useCurrent();
             
             // Reservation logic
             $table->dateTime('reserved_until')->nullable(); // Bag is held until this time

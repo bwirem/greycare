@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('remarks')->nullable();
             
             $table->foreignId('disposed_by')->constrained('users');
-            $table->dateTime('disposed_at')->useCurrent();
+            $table->timestamp('disposed_at')->useCurrent();
 
             $table->timestamps();
         });

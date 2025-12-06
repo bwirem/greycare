@@ -28,7 +28,7 @@ return new class extends Migration
             // Bag Number (Barcode on the physical bag)
             $table->string('bag_serial_number', 50)->unique();
 
-            $table->dateTime('donation_date')->useCurrent();
+            $table->timestamp('donation_date')->useCurrent();
             $table->foreignId('collected_by')->nullable()->constrained('users');
             
             // Status: Collected, Screened, Discarded, Processed
