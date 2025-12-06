@@ -34,5 +34,21 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    
+    'nhif' => [
+        'username'      => env('NHIF_USERNAME'),
+        'password'      => env('NHIF_PASSWORD'),
+        'facility_code' => env('NHIF_FACILITY_CODE'),
+        'token_url'     => env('NHIF_TOKEN_URL', 'https://nhif.or.ke/nhifapi/api/Token'),
+        'service_url'   => env('NHIF_SERVICE_URL', 'https://nhif.or.ke/nhifapi/api/'),
+    ],
+
+    'nhif_breeze' => [
+        'username'     => env('NHIF_BREEZE_USERNAME'),
+        'password'     => env('NHIF_BREEZE_PASSWORD'),
+        'token_url'    => env('NHIF_BREEZE_TOKEN_URL'),
+        'service_url'  => env('NHIF_BREEZE_SERVICE_URL'),
+    ],
+
 
 ];

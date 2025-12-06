@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo; // Import BelongsTo
+use App\Models\Pharmacy\PharmacyDrugDetail; // Add this import
 
 class SIV_Product extends Model
 {
@@ -44,5 +45,18 @@ class SIV_Product extends Model
     public function blsItem(): HasOne
     {
         return $this->hasOne(BLSItem::class, 'product_id');
+    }
+
+    public function drugDetails()
+    {
+        return $this->hasOne(PharmacyDrugDetail::class, 'product_id');
+    }
+    
+    /**
+     * Helper to check if product is a drug.
+     */
+    public function isDrug()
+    {
+        return $this->drugDetails()->exists();
     }
 }

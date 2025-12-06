@@ -1,5 +1,5 @@
 import React from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/SystemAndUserLayout';
 import { Head } from '@inertiajs/react';
 import FacilityOptionForm from './FacilityOptionForm';
 

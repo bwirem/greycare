@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Head, Link, useForm, router } from "@inertiajs/react";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import AuthenticatedLayout from "@/Layouts/SystemAndUserLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faPlus, faEdit, faTrash, faHome, faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import Modal from '@/Components/CustomModal';

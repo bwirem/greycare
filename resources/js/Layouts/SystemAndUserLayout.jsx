@@ -50,6 +50,10 @@ const allowedFinanceItemKeys = [
     'systemconfiguration4', // 
     'systemconfiguration5', // 
     'systemconfiguration6', // Lab Setup
+    'systemconfiguration7', // Radiology Setup
+    'systemconfiguration8', // Theatre Setup
+    'systemconfiguration9', // Pharmacy Setup
+    'systemconfiguration10', // Blood Bank Setup
 
     // --- USER MANAGEMENT ---
     'usermanagement',
@@ -77,7 +81,12 @@ const iconMap = {
     location_setup: faLocationSetupIcon,
     facility_setup: faBuilding,
     lab_setup: faFlask,
-    
+    radiology_setup: faFlask,
+    theatre_setup: faFlask,
+    pharmacy_setup: faFlask,
+    blood_bank_setup: faFlask,
+
+    // User Management
     manage_accounts: faUser,    
 
     accounting_setup: faBook, // Maps to systemconfiguration3 if using specific icon, or generic below

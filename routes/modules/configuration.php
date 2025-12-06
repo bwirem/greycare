@@ -30,6 +30,35 @@ use App\Http\Controllers\LOCWardController;
 use App\Http\Controllers\LOCStreetController;
 // Facility Controllers
 use App\Http\Controllers\FacilityOptionController;
+// Laboratory Controllers
+use App\Http\Controllers\Laboratory\LabNatureOfSampleController;
+use App\Http\Controllers\Laboratory\LabRejectionReasonController;
+use App\Http\Controllers\Laboratory\LabCategoryController;
+use App\Http\Controllers\Laboratory\LabPanelController;
+use App\Http\Controllers\Laboratory\LabTestParameterController;
+
+// Radiology Controllers
+use App\Http\Controllers\Radiology\RadModalityController;       
+use App\Http\Controllers\Radiology\RadProcedureController;
+
+// Pharmacy Controllers
+use App\Http\Controllers\Pharmacy\PharmacySetupController;
+use App\Http\Controllers\Pharmacy\PharmacyFrequencyController;
+use App\Http\Controllers\Pharmacy\PharmacyDrugMasterController;
+use App\Http\Controllers\Pharmacy\PharmacyDurationController;
+use App\Http\Controllers\Pharmacy\PharmacyRouteController;
+
+
+// OPD Controllers
+use App\Http\Controllers\Hospital\Patient\PatientBillingGroupController;
+use App\Http\Controllers\Hospital\Patient\PatientBillingSubgroupController;
+use App\Http\Controllers\Hospital\Opd\OpdTreatmentPointController;
+
+use App\Models\FacilityOption;
+use App\Models\Patient\PatientBillingGroup;
+use App\Models\Patient\PatientBillingSubgroup;
+use App\Models\Opd\OpdTreatmentPoint;
+
 
 
 // systemconfiguration0: Billing Setup
@@ -268,8 +297,17 @@ Route::prefix('systemconfiguration4')->name('systemconfiguration4.')->group(func
 
 // systemconfiguration5: Facility Setup
 Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(function () {
-    Route::get('/', function () { return Inertia::render('SystemConfiguration/FacilitySetup/Index'); })->name('index');
-
+    Route::get('/', function () { 
+            return Inertia::render('SystemConfiguration/FacilitySetup/Index', [
+            'facilityOptionCount' => FacilityOption::count(),
+            'billingGroupCount'   => PatientBillingGroup::count(),
+            'billingSubGroupCount'=> PatientBillingSubgroup::count(),
+            'treatmentPointCount' => OpdTreatmentPoint::count(),
+            'otherOptionCount'    => 0, // Logic for other options
+        ]);
+    })->name('index');
+    
+    // 1. Facility Options
     Route::prefix('facilityoptions')->name('facilityoptions.')->group(function () {
         Route::get('/', [FacilityOptionController::class, 'index'])->name('index');
         Route::get('/create', [FacilityOptionController::class, 'create'])->name('create');
@@ -278,7 +316,37 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
         Route::put('/{facilityoption}', [FacilityOptionController::class, 'update'])->name('update'); 
         Route::delete('/{facilityoption}', [FacilityOptionController::class, 'destroy'])->name('destroy');
         Route::get('/search', [FacilityOptionController::class, 'search'])->name('search');
-    });   
+    }); 
+ 
+    // 2. Billing Groups
+    Route::prefix('billinggroups')->name('billinggroups.')->group(function () {
+        Route::get('/', [PatientBillingGroupController::class, 'index'])->name('index');
+        Route::get('/create', [PatientBillingGroupController::class, 'create'])->name('create');
+        Route::post('/', [PatientBillingGroupController::class, 'store'])->name('store');
+        Route::get('/{group}/edit', [PatientBillingGroupController::class, 'edit'])->name('edit');
+        Route::put('/{group}', [PatientBillingGroupController::class, 'update'])->name('update');
+        Route::delete('/{group}', [PatientBillingGroupController::class, 'destroy'])->name('destroy');
+    });
+
+    // 3. Billing Subgroups
+    Route::prefix('billingsubgroups')->name('billingsubgroups.')->group(function () {
+        Route::get('/', [PatientBillingSubgroupController::class, 'index'])->name('index');
+        Route::get('/create', [PatientBillingSubgroupController::class, 'create'])->name('create');
+        Route::post('/', [PatientBillingSubgroupController::class, 'store'])->name('store');
+        Route::get('/{subgroup}/edit', [PatientBillingSubgroupController::class, 'edit'])->name('edit');
+        Route::put('/{subgroup}', [PatientBillingSubgroupController::class, 'update'])->name('update');
+        Route::delete('/{subgroup}', [PatientBillingSubgroupController::class, 'destroy'])->name('destroy');
+    });
+
+    // 4. Treatment Points
+    Route::prefix('treatmentpoints')->name('treatmentpoints.')->group(function () {
+        Route::get('/', [OpdTreatmentPointController::class, 'index'])->name('index');
+        Route::get('/create', [OpdTreatmentPointController::class, 'create'])->name('create');
+        Route::post('/', [OpdTreatmentPointController::class, 'store'])->name('store');
+        Route::get('/{point}/edit', [OpdTreatmentPointController::class, 'edit'])->name('edit');
+        Route::put('/{point}', [OpdTreatmentPointController::class, 'update'])->name('update');
+        Route::delete('/{point}', [OpdTreatmentPointController::class, 'destroy'])->name('destroy');
+    });
 });
 
 // Extra: Human Resource / Fixed Assets Hubs
@@ -290,8 +358,6 @@ Route::prefix('fixedassets')->name('fixedassets.')->group(function () {
     Route::get('/', function () { return Inertia::render('ModulesHub/FixedAssets/Index'); })->name('index');
 });
 
-// ... existing configuration routes ...
-
 // systemconfiguration6: Laboratory Setup
 Route::prefix('systemconfiguration6')->name('systemconfiguration6.')->group(function () {
     
@@ -302,39 +368,152 @@ Route::prefix('systemconfiguration6')->name('systemconfiguration6.')->group(func
 
     // 1. Nature of Samples
     Route::prefix('samples')->name('samples.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'index'])->name('index');
-        Route::get('/create', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'create'])->name('create');
-        Route::post('/', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'store'])->name('store');
-        Route::get('/{sample}/edit', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'edit'])->name('edit');
-        Route::put('/{sample}', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'update'])->name('update');
-        Route::delete('/{sample}', [App\Http\Controllers\Laboratory\LabNatureOfSampleController::class, 'destroy'])->name('destroy');
+        Route::get('/', [LabNatureOfSampleController::class, 'index'])->name('index');
+        Route::get('/create', [LabNatureOfSampleController::class, 'create'])->name('create');
+        Route::post('/', [LabNatureOfSampleController::class, 'store'])->name('store');
+        Route::get('/{sample}/edit', [LabNatureOfSampleController::class, 'edit'])->name('edit');
+        Route::put('/{sample}', [LabNatureOfSampleController::class, 'update'])->name('update');
+        Route::delete('/{sample}', [LabNatureOfSampleController::class, 'destroy'])->name('destroy');
     });
 
     // 2. Rejection Reasons
     Route::prefix('rejections')->name('rejections.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Laboratory\LabRejectionReasonController::class, 'index'])->name('index');
-        Route::post('/', [App\Http\Controllers\Laboratory\LabRejectionReasonController::class, 'store'])->name('store');
-        // Add other CRUD routes similarly...
+        Route::get('/', [LabRejectionReasonController::class, 'index'])->name('index');
+        Route::get('/create', [LabRejectionReasonController::class, 'create'])->name('create');
+        Route::post('/', [LabRejectionReasonController::class, 'store'])->name('store');
+        Route::get('/{reason}/edit', [LabRejectionReasonController::class, 'edit'])->name('edit');
+        Route::put('/{reason}', [LabRejectionReasonController::class, 'update'])->name('update');
+        Route::delete('/{reason}', [LabRejectionReasonController::class, 'destroy'])->name('destroy');
     });
 
     // 3. Lab Categories (Departments)
     Route::prefix('categories')->name('categories.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Laboratory\LabCategoryController::class, 'index'])->name('index');
-        Route::post('/', [App\Http\Controllers\Laboratory\LabCategoryController::class, 'store'])->name('store');
-        // ...
+        Route::get('/', [LabCategoryController::class, 'index'])->name('index');
+        Route::get('/create', [LabCategoryController::class, 'create'])->name('create');
+        Route::post('/', [LabCategoryController::class, 'store'])->name('store');
+        Route::get('/{category}/edit', [LabCategoryController::class, 'edit'])->name('edit');
+        Route::put('/{category}', [LabCategoryController::class, 'update'])->name('update');
+        Route::delete('/{category}', [LabCategoryController::class, 'destroy'])->name('destroy');
     });
 
     // 4. Lab Panels (Orderable Tests)
     Route::prefix('panels')->name('panels.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Laboratory\LabPanelController::class, 'index'])->name('index');
-        Route::get('/create', [App\Http\Controllers\Laboratory\LabPanelController::class, 'create'])->name('create');
-        Route::post('/', [App\Http\Controllers\Laboratory\LabPanelController::class, 'store'])->name('store');
-        // ...
+        Route::get('/', [LabPanelController::class, 'index'])->name('index');
+        Route::get('/create', [LabPanelController::class, 'create'])->name('create');
+        Route::post('/', [LabPanelController::class, 'store'])->name('store');
+        Route::get('/{panel}/edit', [LabPanelController::class, 'edit'])->name('edit');
+        Route::put('/{panel}', [LabPanelController::class, 'update'])->name('update');
+        Route::delete('/{panel}', [LabPanelController::class, 'destroy'])->name('destroy');
     });
 
     // 5. Lab Parameters (Result Fields)
     Route::prefix('parameters')->name('parameters.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Laboratory\LabTestParameterController::class, 'index'])->name('index');
-        // ...
+        Route::get('/', [LabTestParameterController::class, 'index'])->name('index');
+        Route::get('/create', [LabTestParameterController::class, 'create'])->name('create');
+        Route::post('/', [LabTestParameterController::class, 'store'])->name('store');
+        Route::get('/{parameter}/edit', [LabTestParameterController::class, 'edit'])->name('edit');
+        Route::put('/{parameter}', [LabTestParameterController::class, 'update'])->name('update');
+        Route::delete('/{parameter}', [LabTestParameterController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// systemconfiguration7: Radiology Setup
+Route::prefix('systemconfiguration7')->name('systemconfiguration7.')->group(function () {
+    
+    // Main Dashboard
+    Route::get('/', function () { 
+        return Inertia::render('SystemConfiguration/RadiologySetup/Index'); 
+    })->name('index');
+
+    // 1. Modalities (Machines)
+    Route::prefix('modalities')->name('modalities.')->group(function () {
+        Route::get('/', [RadModalityController::class, 'index'])->name('index');
+        Route::get('/create', [RadModalityController::class, 'create'])->name('create');
+        Route::post('/', [RadModalityController::class, 'store'])->name('store');
+        Route::get('/{modality}/edit', [RadModalityController::class, 'edit'])->name('edit');
+        Route::put('/{modality}', [RadModalityController::class, 'update'])->name('update');
+        Route::delete('/{modality}', [RadModalityController::class, 'destroy'])->name('destroy');
+    });
+
+    // 2. Procedures (Exams)
+    Route::prefix('procedures')->name('procedures.')->group(function () {
+        Route::get('/', [RadProcedureController::class, 'index'])->name('index');
+        Route::get('/create', [RadProcedureController::class, 'create'])->name('create');
+        Route::post('/', [RadProcedureController::class, 'store'])->name('store');
+        Route::get('/{procedure}/edit', [RadProcedureController::class, 'edit'])->name('edit');
+        Route::put('/{procedure}', [RadProcedureController::class, 'update'])->name('update');
+        Route::delete('/{procedure}', [RadProcedureController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// systemconfiguration8: Theatre Setup
+Route::prefix('systemconfiguration8')->name('systemconfiguration8.')->group(function () {
+    
+    // Main Dashboard
+    Route::get('/', function () { 
+        return Inertia::render('SystemConfiguration/TheatreSetup/Index'); 
+    })->name('index');
+
+    // 1. Procedure Groups
+    Route::prefix('groups')->name('groups.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Theatre\TheatreProcedureGroupController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Theatre\TheatreProcedureGroupController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Theatre\TheatreProcedureGroupController::class, 'store'])->name('store');
+        Route::get('/{group}/edit', [App\Http\Controllers\Theatre\TheatreProcedureGroupController::class, 'edit'])->name('edit');
+        Route::put('/{group}', [App\Http\Controllers\Theatre\TheatreProcedureGroupController::class, 'update'])->name('update');
+        Route::delete('/{group}', [App\Http\Controllers\Theatre\TheatreProcedureGroupController::class, 'destroy'])->name('destroy');
+    });
+
+    // 2. Procedures
+    Route::prefix('procedures')->name('procedures.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'store'])->name('store');
+        Route::get('/{procedure}/edit', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'edit'])->name('edit');
+        Route::put('/{procedure}', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'update'])->name('update');
+        Route::delete('/{procedure}', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// systemconfiguration9: Pharmacy Setup
+Route::prefix('systemconfiguration9')->name('systemconfiguration9.')->group(function () {
+    
+    // Dashboard
+    Route::get('/', [PharmacySetupController::class, 'index'])->name('index');
+
+    // 1. Frequencies (Dosage Calc)
+    Route::prefix('frequencies')->name('frequencies.')->group(function () {
+        Route::get('/', [PharmacyFrequencyController::class, 'index'])->name('index');
+        Route::get('/create', [PharmacyFrequencyController::class, 'create'])->name('create');
+        Route::post('/', [PharmacyFrequencyController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [PharmacyFrequencyController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [PharmacyFrequencyController::class, 'update'])->name('update');
+    });
+
+    // 2. Durations (e.g. 5/7, 1/52)
+    Route::prefix('durations')->name('durations.')->group(function () {
+        Route::get('/', [PharmacyDurationController::class, 'index'])->name('index');
+        Route::get('/create', [PharmacyDurationController::class, 'create'])->name('create');
+        Route::post('/', [PharmacyDurationController::class, 'store'])->name('store');
+        Route::get('/{duration}/edit', [PharmacyDurationController::class, 'edit'])->name('edit');
+        Route::put('/{duration}', [PharmacyDurationController::class, 'update'])->name('update');
+        Route::delete('/{duration}', [PharmacyDurationController::class, 'destroy'])->name('destroy');
+    });
+
+    // 3. Administration Routes (e.g. Oral, IV)
+    Route::prefix('routes')->name('routes.')->group(function () {
+        Route::get('/', [PharmacyRouteController::class, 'index'])->name('index');
+        Route::get('/create', [PharmacyRouteController::class, 'create'])->name('create');
+        Route::post('/', [PharmacyRouteController::class, 'store'])->name('store');
+        Route::get('/{routeItem}/edit', [PharmacyRouteController::class, 'edit'])->name('edit');
+        Route::put('/{routeItem}', [PharmacyRouteController::class, 'update'])->name('update');
+        Route::delete('/{routeItem}', [PharmacyRouteController::class, 'destroy'])->name('destroy');
+    });
+
+    // 4. Drug Master (Linking Inventory to Clinical)
+    Route::prefix('drugmaster')->name('drugmaster.')->group(function () {
+        Route::get('/', [PharmacyDrugMasterController::class, 'index'])->name('index');
+        Route::get('/{id}/edit', [PharmacyDrugMasterController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [PharmacyDrugMasterController::class, 'update'])->name('update');
     });
 });

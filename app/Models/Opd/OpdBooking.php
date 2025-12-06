@@ -26,6 +26,8 @@ use App\Models\MedicalRecord\MrPatientDiagnosisIcdConfirmed;
 use App\Models\MedicalRecord\MrPatientDiagnosisIcdProvisional;
 // Laboratory
 use App\Models\Laboratory\LabPrescription;
+// Radiology
+use App\Models\Radiology\RadRequest;
 
 class OpdBooking extends Model
 {
@@ -154,5 +156,13 @@ class OpdBooking extends Model
     public function labRequests()
     {
         return $this->hasMany(LabPrescription::class, 'opd_booking_id');
+    }
+
+    // ------------------------------------------------------------------
+    // Radiology Relations
+
+    public function radiologyRequests()
+    {
+        return $this->hasMany(RadRequest::class, 'opd_booking_id');
     }
 }

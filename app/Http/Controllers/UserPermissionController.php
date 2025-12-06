@@ -390,7 +390,13 @@ class UserPermissionController extends Controller
                 ['key' => 'systemconfiguration3', 'text' => 'Accounting Setup', 'icon' => 'menu_book'],
                 ['key' => 'systemconfiguration4', 'text' => 'Location Setup', 'icon' => 'location_setup'],
                 ['key' => 'systemconfiguration5', 'text' => 'Facility Setup', 'icon' => 'facility_setup'],
-                ['key' => 'systemconfiguration6', 'text' => 'Lab Setup', 'icon' => 'lab_setup'],
+                ['key' => 'systemconfiguration6', 'text' => 'Lab Setup', 'icon' => 'lab_setup'],               
+                ['key' => 'systemconfiguration7', 'text' => 'Radiology Setup', 'icon' => 'radiology_setup'],
+                ['key' => 'systemconfiguration8', 'text' => 'Theatre Setup', 'icon' => 'theatre_setup'],
+                ['key' => 'systemconfiguration9', 'text' => 'Pharmacy Setup', 'icon' => 'pharmacy_setup'],
+                ['key' => 'systemconfiguration10', 'text' => 'Blood Bank Setup', 'icon' => 'blood_bank_setup'],
+
+
             ],
             'usermanagement' => [
                 ['key' => 'usermanagement', 'text' => 'Manage Users', 'icon' => 'manage_accounts'],
