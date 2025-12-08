@@ -119,11 +119,12 @@ class OpdBooking extends Model
     public function assessmentComplains()
     {
         return $this->hasMany(MrAssessmentComplain::class, 'opd_booking_id');
-    }
+    }    
 
+    // Add these methods to your existing OpdBooking model
     public function examination()
     {
-        return $this->hasOne(MrExamination::class, 'opd_booking_id');
+        return $this->morphOne(MrExamination::class, 'examinable');
     }
 
     // ------------------------------------------------------------------

@@ -11,41 +11,75 @@ return new class extends Migration
         Schema::create('mr_examinations', function (Blueprint $table) {
             $table->id();
 
-            // Link to Booking
-            $table->foreignId('opd_booking_id')->constrained('opd_bookings')->restrictOnDelete();
-            
-            // General Exam
-            $table->string('glascowcomascore', 255)->nullable();
-            $table->string('generalcondition', 255)->nullable();
-            $table->integer('pallor')->default(0); 
-            $table->integer('juandice')->default(0);
-            $table->string('oedema', 50)->nullable();
-            $table->integer('rash')->default(0);
-            $table->integer('nutritionalstatus')->default(0);
-            $table->integer('neckstiffness')->default(0);
-            $table->integer('oralthrushsores')->default(0);
-            $table->integer('fingerclubbing')->default(0);
-            
-            // Lymph
-            $table->string('lymphadenopathy', 50)->nullable();
-            $table->string('lymphadenopathyother', 255)->nullable();
+            // ---------------------------------------------------------
+            // POLYMORPHIC RELATIONS
+            // ---------------------------------------------------------
+            // Creates 'examinable_id' (bigint) and 'examinable_type' (string)
+            // Links to: App\Models\Opd\OpdBooking OR App\Models\Ipd\IpdWardRound
+            $table->morphs('examinable');
 
-            // Systems
-            $table->text('otherrelevantfinding')->nullable();
-            $table->text('respirationremark')->nullable();
-            $table->integer('cardiovascularremark')->default(0);
-            $table->string('murmurs', 50)->nullable();
+            // ---------------------------------------------------------
+            // GENERAL APPEARANCE & VITALS CONTEXT
+            // ---------------------------------------------------------
+            $table->string('general_condition', 255)->nullable()->comment('e.g. Sick looking, stable');
+            $table->string('glasgow_coma_score', 50)->nullable()->comment('e.g. 15/15');
             
-            // Detailed System Text
-            $table->text('perabdomen')->nullable();
-            $table->text('centralnervoussystem')->nullable();
-            $table->text('localexamination')->nullable();
-            $table->text('heent')->nullable();
-            $table->text('cadiovascularsystem')->nullable();
-            $table->text('genitourinarysystem')->nullable();
-            $table->text('integumentarysystem')->nullable();
-            $table->text('rushremark')->nullable();
-            $table->text('muscularskeletal')->nullable();           
+            // ---------------------------------------------------------
+            // CLINICAL SIGNS (0 = Absent, 1+ = Severity or Present)
+            // ---------------------------------------------------------
+            $table->integer('pallor')->default(0); 
+            $table->integer('jaundice')->default(0);
+            $table->integer('cyanosis')->default(0); // Added common missing field
+            $table->integer('rash')->default(0);
+            $table->integer('neck_stiffness')->default(0);
+            $table->integer('finger_clubbing')->default(0);
+            $table->integer('oral_thrush')->default(0);
+            
+            // Oedema is often specific (Pedal, Sacral, Anasarca)
+            $table->string('oedema', 100)->nullable(); 
+            
+            // Nutritional (e.g., Wasted, Obese, Normal) or Integer score
+            $table->string('nutritional_status', 100)->nullable(); 
+
+            // Lymph Nodes
+            // Stores checked items e.g., "Cervical,Axillary"
+            $table->string('lymphadenopathy_locations', 255)->nullable(); 
+            $table->text('lymphadenopathy_notes')->nullable();
+
+            // ---------------------------------------------------------
+            // SYSTEMIC EXAMINATION (Text Blocks)
+            // ---------------------------------------------------------
+            
+            // CVS (Cardiovascular)
+            $table->text('cvs_examination')->nullable(); // Legacy: cadiovascularsystem
+            $table->string('murmurs', 100)->nullable();
+            
+            // RS (Respiratory)
+            $table->text('rs_examination')->nullable(); // Legacy: respirationremark
+            
+            // CNS (Central Nervous System)
+            $table->text('cns_examination')->nullable(); // Legacy: centralnervoussystem
+            
+            // PA (Per Abdomen / GI)
+            $table->text('abdomen_examination')->nullable(); // Legacy: perabdomen
+            
+            // HEENT (Head, Eyes, Ears, Nose, Throat)
+            $table->text('heent_examination')->nullable(); // Legacy: heent
+            
+            // GU (Genitourinary)
+            $table->text('gu_examination')->nullable(); // Legacy: genitourinarysystem
+            
+            // MSS (Musculoskeletal)
+            $table->text('mss_examination')->nullable(); // Legacy: muscularskeletal
+            
+            // Skin / Integumentary
+            $table->text('skin_examination')->nullable(); // Legacy: integumentarysystem
+            
+            // Local / Specific Exam
+            $table->text('local_examination')->nullable();
+            
+            // Catch-all
+            $table->text('other_findings')->nullable();
 
             $table->timestamps();
         });

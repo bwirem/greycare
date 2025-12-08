@@ -11,14 +11,12 @@ return new class extends Migration
         Schema::create('mr_assessment_complains', function (Blueprint $table) {
             $table->id();
             
-            // Link to Booking
-            $table->foreignId('opd_booking_id')->constrained('opd_bookings')->restrictOnDelete();
-
-            // Optional: Link to the specific assessment parent above
-            $table->foreignId('mr_assessment_id')->nullable()->constrained('mr_assessments')->nullOnDelete();
+            // Link to PARENT Assessment (Normalization Fix)
+            $table->foreignId('mr_assessment_id')->constrained('mr_assessments')->cascadeOnDelete();
                        
-            $table->string('srno', 255)->default('0');
-            $table->text('cheifcomplain')->nullable();
+            // Standardized Columns
+            $table->integer('sort_order')->default(0); // Replaces 'srno'
+            $table->text('chief_complaint')->nullable(); // Fixed spelling
             $table->text('duration')->nullable();
 
             $table->timestamps();

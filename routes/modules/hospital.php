@@ -6,6 +6,9 @@ use App\Http\Controllers\Hospital\Opd\OpdAppointmentController;
 
 use App\Http\Controllers\Hospital\Clinical\NursingController;
 
+use App\Http\Controllers\Hospital\Doctor\DoctorOpdController;
+use App\Http\Controllers\Hospital\Doctor\DoctorIpdController;   
+
 /*
 |--------------------------------------------------------------------------
 | Hospital / Clinical Routes
@@ -77,4 +80,31 @@ Route::prefix('nursing0')->name('nursing0.')->group(function () {
     // Save Action
     Route::post('/{booking}', [NursingController::class, 'store'])->name('store');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Doctor Module Routes
+|--------------------------------------------------------------------------
+*/
+
+// OPD Module (doctor0)
+Route::prefix('doctor0')->name('doctor0.')->group(function () {
+    Route::get('/', [DoctorOpdController::class, 'index'])->name('index');
+    Route::get('/{booking}/consult', [DoctorOpdController::class, 'create'])->name('create');
+    Route::post('/{booking}', [DoctorOpdController::class, 'store'])->name('store');
+});
+
+// IPD Module (doctor1)
+Route::prefix('doctor1')->name('doctor1.')->group(function () {
+    Route::get('/', [DoctorIpdController::class, 'index'])->name('index');
+    Route::get('/{admission}/round', [DoctorIpdController::class, 'create'])->name('create');
+    Route::post('/{admission}', [DoctorIpdController::class, 'store'])->name('store');
+});
+
+// --- doctor2: Prescriptions (Standalone) ---
+// Usually handled inside the visit, but this route is for refills/direct scripts
+Route::prefix('doctor2')->name('prescriptions.')->group(function () {
+    Route::get('/', [DoctorOpdController::class, 'prescriptionIndex'])->name('index');
+});
+
 

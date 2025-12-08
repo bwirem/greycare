@@ -10,13 +10,13 @@ return new class extends Migration
     {
         Schema::create('mr_assessments', function (Blueprint $table) {
             $table->id();
-
-            // Link to Booking
-            $table->foreignId('opd_booking_id')->constrained('opd_bookings')->restrictOnDelete();
-
-            $table->text('systematicexamination')->nullable();
-            $table->boolean('newcomplain')->default(0);
-
+            
+            // Link to Ward Round (Correct)
+            $table->foreignId('ipd_ward_round_id')->constrained('ipd_ward_rounds')->cascadeOnDelete();
+            
+            $table->text('systematic_examination')->nullable();
+            $table->boolean('has_new_complaint')->default(0);
+            
             $table->timestamps();
         });
     }
