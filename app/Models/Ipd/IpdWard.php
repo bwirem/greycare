@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class IpdWard extends Model
 {
-    protected $guarded = ['id'];
+    // FIX: Use empty array to match OpdTreatmentPoint and bypass schema check
+    protected $guarded = [];
 
     public function rooms(): HasMany
     {
-        return $this->hasMany(IpdRoom::class);
+        return $this->hasMany(IpdRoom::class, 'ward_id');
     }
 }

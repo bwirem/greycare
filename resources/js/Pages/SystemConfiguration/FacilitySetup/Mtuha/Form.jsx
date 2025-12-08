@@ -8,7 +8,6 @@ export default function MtuhaForm({ type, diagnosis = null, groups }) {
         name: diagnosis?.name || '',
         code: diagnosis?.code || '',
         dxt_diagnoses_group_id: diagnosis?.dxt_diagnoses_group_id || '',
-        subgroup: diagnosis?.subgroup || '',
         maptocode: diagnosis?.maptocode || '',
     });
 
@@ -25,13 +24,26 @@ export default function MtuhaForm({ type, diagnosis = null, groups }) {
         <form onSubmit={submit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Diagnosis Name *</label>
-                    <input type="text" value={data.name} onChange={e => setData('name', e.target.value)} className="w-full border rounded p-2" required />
+                    <label className="block text-sm font-medium text-gray-700">MTUHA Disease Name *</label>
+                    <input 
+                        type="text" 
+                        value={data.name} 
+                        onChange={e => setData('name', e.target.value)} 
+                        className="w-full border rounded p-2" 
+                        placeholder="e.g. Malaria, Severe/Complicated"
+                        required 
+                    />
                     {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Code</label>
-                    <input type="text" value={data.code} onChange={e => setData('code', e.target.value)} className="w-full border rounded p-2" />
+                    <label className="block text-sm font-medium text-gray-700">MTUHA Code</label>
+                    <input 
+                        type="text" 
+                        value={data.code} 
+                        onChange={e => setData('code', e.target.value)} 
+                        className="w-full border rounded p-2" 
+                        placeholder="e.g. 01"
+                    />
                     {errors.code && <p className="text-red-500 text-xs">{errors.code}</p>}
                 </div>
             </div>
@@ -45,8 +57,15 @@ export default function MtuhaForm({ type, diagnosis = null, groups }) {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">ICD-10 Mapping Code</label>
-                    <input type="text" value={data.maptocode} onChange={e => setData('maptocode', e.target.value)} className="w-full border rounded p-2" placeholder="Map to International Standard" />
+                    <label className="block text-sm font-medium text-gray-700">ICD-10 Mapping Code(s)</label>
+                    <input 
+                        type="text" 
+                        value={data.maptocode} 
+                        onChange={e => setData('maptocode', e.target.value)} 
+                        className="w-full border rounded p-2" 
+                        placeholder="e.g. B50.0, B50.8, B50.9" 
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Accepts single codes (A41.9), ranges (B77-B83), or lists (A09, A08)</p>
                 </div>
             </div>
 

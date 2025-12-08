@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class IpdBed extends Model
 {
-    protected $guarded = ['id'];
+    // FIX: Use empty array
+    protected $guarded = [];
 
     public function room(): BelongsTo
     {
-        return $this->belongsTo(IpdRoom::class);
+        return $this->belongsTo(IpdRoom::class, 'room_id');
     }
 }

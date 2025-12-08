@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\MedicalRecord\MrPatientDiagnosisConfirmed;
 use App\Models\MedicalRecord\MrPatientDiagnosisProvisional;
 
-class DxtDiagnosesIpd extends Model
+class DxtDiagnosesIcd extends Model
 {
-    protected $table = 'dxt_diagnoses_ipd';
+    protected $table = 'dxt_diagnoses_icd';
     protected $guarded = [];
 
     public function group()

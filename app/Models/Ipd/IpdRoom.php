@@ -8,15 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class IpdRoom extends Model
 {
-    protected $guarded = ['id'];
+    // FIX: Use empty array
+    protected $guarded = [];
 
     public function ward(): BelongsTo
     {
-        return $this->belongsTo(IpdWard::class);
+        return $this->belongsTo(IpdWard::class, 'ward_id');
     }
 
     public function beds(): HasMany
     {
-        return $this->hasMany(IpdBed::class);
+        return $this->hasMany(IpdBed::class, 'room_id');
     }
 }

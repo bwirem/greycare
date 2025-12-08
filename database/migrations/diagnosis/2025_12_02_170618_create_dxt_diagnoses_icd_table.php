@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('dxt_diagnoses_icd', function (Blueprint $table) {
             $table->id();
-            table->string('name'); // Legacy 'description'
+            $table->string('name'); // Legacy 'description'
+            $table->string('code')->unique();
+            $table->text('notes')->nullable();
             
             // Link to Groups
             $table->foreignId('dxt_diagnoses_group_id')

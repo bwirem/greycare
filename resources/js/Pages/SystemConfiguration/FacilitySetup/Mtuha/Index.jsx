@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { Head, Link, router, useForm } from "@inertiajs/react";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import AuthenticatedLayout from "@/Layouts/SystemAndUserLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faPlus, faEdit, faTrash, faHome, faFileMedical } from "@fortawesome/free-solid-svg-icons";
+// ADD faCloudUploadAlt
+import { faSearch, faPlus, faEdit, faTrash, faHome, faCloudUploadAlt } from "@fortawesome/free-solid-svg-icons";
 import Modal from '@/Components/CustomModal';
 import Pagination from "@/Components/Pagination";
 import { toast } from 'react-toastify';
 
 export default function MtuhaIndex({ auth, diagnoses, type, pageTitle, success, filters }) {
+    // ... existing hooks (useForm, useState, useEffect) ...
     const { data: searchData, setData: setSearchData } = useForm({ search: filters.search || "" });
     const [modalState, setModalState] = useState({ isOpen: false, idToDelete: null });
 
     useEffect(() => { if (success) toast.success(success); }, [success]);
 
+    // ... existing handleSearch, handleDelete ...
     const handleSearch = (e) => {
         setSearchData("search", e.target.value);
         router.get(route("systemconfiguration5.mtuha.index", type), 
@@ -28,7 +31,6 @@ export default function MtuhaIndex({ auth, diagnoses, type, pageTitle, success, 
         });
     };
 
-    // Tab Configuration
     const tabs = [
         { id: 'opd', label: 'OPD' },
         { id: 'ipd', label: 'IPD' },
@@ -75,8 +77,13 @@ export default function MtuhaIndex({ auth, diagnoses, type, pageTitle, success, 
                                 />
                             </div>
                             <div className="flex gap-2">
+                                {/* IMPORT BUTTON ADDED HERE */}
+                                <Link href={route("systemconfiguration5.mtuha.import.show", type)} className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 flex items-center shadow">
+                                    <FontAwesomeIcon icon={faCloudUploadAlt} className="mr-2" /> Import
+                                </Link>
+
                                 <Link href={route("systemconfiguration5.mtuha.create", type)} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center shadow">
-                                    <FontAwesomeIcon icon={faPlus} className="mr-2" /> Add Diagnosis
+                                    <FontAwesomeIcon icon={faPlus} className="mr-2" /> Add New
                                 </Link>
                                 <Link href={route("systemconfiguration5.index")} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center shadow">
                                     <FontAwesomeIcon icon={faHome} className="mr-2" /> Home
@@ -86,7 +93,8 @@ export default function MtuhaIndex({ auth, diagnoses, type, pageTitle, success, 
 
                         {/* Table */}
                         <div className="overflow-x-auto border rounded-lg">
-                            <table className="min-w-full divide-y divide-gray-200">
+                           {/* ... (Table content remains the same) ... */}
+                           <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diagnosis Name</th>

@@ -30,6 +30,12 @@ use App\Http\Controllers\LOCWardController;
 use App\Http\Controllers\LOCStreetController;
 // Facility Controllers
 use App\Http\Controllers\FacilityOptionController;
+
+// Diagnosis Controllers
+use App\Http\Controllers\Diagnosis\DxtDiagnosesGroupController;
+use App\Http\Controllers\Diagnosis\DxtDiagnosesIcdController;
+use App\Http\Controllers\Diagnosis\MtuhaDiagnosesController;
+
 // Laboratory Controllers
 use App\Http\Controllers\Laboratory\LabNatureOfSampleController;
 use App\Http\Controllers\Laboratory\LabRejectionReasonController;
@@ -54,10 +60,18 @@ use App\Http\Controllers\Hospital\Patient\PatientBillingGroupController;
 use App\Http\Controllers\Hospital\Patient\PatientBillingSubgroupController;
 use App\Http\Controllers\Hospital\Opd\OpdTreatmentPointController;
 
+// IPD Controllers  
+use App\Http\Controllers\Hospital\Ipd\IpdWardController;
+use App\Http\Controllers\Hospital\Ipd\IpdRoomController;
+
+
 // Blood Bank Controllers
 use App\Http\Controllers\BloodBank\BloodBankSetupController;
 use App\Http\Controllers\BloodBank\BbComponentTypeController;
 use App\Http\Controllers\BloodBank\BbDeferralReasonController;
+
+
+
 
 // Models
 use App\Models\FacilityOption;
@@ -354,47 +368,78 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
         Route::delete('/{point}', [OpdTreatmentPointController::class, 'destroy'])->name('destroy');
     });
 
-   // 5. Wards (IPD)
+    // Inside existing systemconfiguration5 group...
+
+    // 5. Wards (IPD)
     Route::prefix('wards')->name('wards.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Ipd\IpdWardController::class, 'index'])->name('index');
-        Route::get('/create', [App\Http\Controllers\Ipd\IpdWardController::class, 'create'])->name('create');
-        Route::post('/', [App\Http\Controllers\Ipd\IpdWardController::class, 'store'])->name('store');
-        Route::get('/{ward}/edit', [App\Http\Controllers\Ipd\IpdWardController::class, 'edit'])->name('edit');
-        Route::put('/{ward}', [App\Http\Controllers\Ipd\IpdWardController::class, 'update'])->name('update');
-        Route::delete('/{ward}', [App\Http\Controllers\Ipd\IpdWardController::class, 'destroy'])->name('destroy');
+        Route::get('/', [IpdWardController::class, 'index'])->name('index');
+        Route::get('/create', [IpdWardController::class, 'create'])->name('create');
+        Route::post('/', [IpdWardController::class, 'store'])->name('store');
+        Route::get('/{ward}/edit', [IpdWardController::class, 'edit'])->name('edit');
+        Route::put('/{ward}', [IpdWardController::class, 'update'])->name('update');
+        Route::delete('/{ward}', [IpdWardController::class, 'destroy'])->name('destroy');
     });
 
     // 6. Rooms & Beds
     Route::prefix('rooms')->name('rooms.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Ipd\IpdRoomController::class, 'index'])->name('index');
-        // Add CRUD...
+        Route::get('/', [IpdRoomController::class, 'index'])->name('index');
+        Route::get('/create', [IpdRoomController::class, 'create'])->name('create');
+        Route::post('/', [IpdRoomController::class, 'store'])->name('store');
+        Route::get('/{room}/edit', [IpdRoomController::class, 'edit'])->name('edit');
+        Route::put('/{room}', [IpdRoomController::class, 'update'])->name('update');
+        Route::delete('/{room}', [IpdRoomController::class, 'destroy'])->name('destroy');
+
+        // Bed Management Routes (Nested in Rooms)
+        Route::post('/{room}/beds', [IpdRoomController::class, 'storeBed'])->name('beds.store');
+        Route::delete('/beds/{bed}', [IpdRoomController::class, 'destroyBed'])->name('beds.destroy');
     });
 
     // 7. Diagnosis Groups
     Route::prefix('diagnosisgroups')->name('diagnosisgroups.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Diagnosis\DxtDiagnosesGroupController::class, 'index'])->name('index');
-        // Add CRUD...
+        Route::get('/', [DxtDiagnosesGroupController::class, 'index'])->name('index');
+        Route::get('/create', [DxtDiagnosesGroupController::class, 'create'])->name('create');
+        Route::post('/', [DxtDiagnosesGroupController::class, 'store'])->name('store');
+        Route::get('/{group}/edit', [DxtDiagnosesGroupController::class, 'edit'])->name('edit');
+        Route::put('/{group}', [DxtDiagnosesGroupController::class, 'update'])->name('update');
+        Route::delete('/{group}', [DxtDiagnosesGroupController::class, 'destroy'])->name('destroy');
     });
 
     // 8. ICD Diagnoses
     Route::prefix('diagnoses')->name('diagnoses.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Diagnosis\DxtDiagnosesIcdController::class, 'index'])->name('index');
-        // Add CRUD...
+         // --- Import Routes ---
+        Route::get('/import', [DxtDiagnosesIcdController::class, 'showImportForm'])->name('import.show');
+        Route::post('/import', [DxtDiagnosesIcdController::class, 'import'])->name('import.store');
+        Route::get('/template', [DxtDiagnosesIcdController::class, 'downloadTemplate'])->name('template');
+
+        Route::get('/', [DxtDiagnosesIcdController::class, 'index'])->name('index');
+        Route::get('/create', [DxtDiagnosesIcdController::class, 'create'])->name('create');
+        Route::post('/', [DxtDiagnosesIcdController::class, 'store'])->name('store');
+        Route::get('/{diagnosis}/edit', [DxtDiagnosesIcdController::class, 'edit'])->name('edit');
+        Route::put('/{diagnosis}', [DxtDiagnosesIcdController::class, 'update'])->name('update');
+        Route::delete('/{diagnosis}', [DxtDiagnosesIcdController::class, 'destroy'])->name('destroy');
     });
 
     // Mtuha Diagnoses (Dynamic Type)
     // URL Example: /systemconfiguration5/mtuha/opd
     Route::prefix('mtuha')->name('mtuha.')->group(function () {
+
+        // --- Import Routes (Place BEFORE /{type} index) ---
+        Route::get('/{type}/import', [MtuhaDiagnosesController::class, 'showImportForm'])
+            ->name('import.show');
+        Route::post('/{type}/import', [MtuhaDiagnosesController::class, 'import'])
+            ->name('import.store');
+        Route::get('/{type}/template', [MtuhaDiagnosesController::class, 'downloadTemplate'])
+            ->name('template');
         
-        Route::get('/{type}', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'index'])
+        Route::get('/{type}', [MtuhaDiagnosesController::class, 'index'])
             ->where('type', 'opd|ipd|dental|eyes') // Security constraint
             ->name('index');
             
-        Route::get('/{type}/create', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'create'])->name('create');
-        Route::post('/{type}', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'store'])->name('store');
-        Route::get('/{type}/{id}/edit', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'edit'])->name('edit');
-        Route::put('/{type}/{id}', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'update'])->name('update');
-        Route::delete('/{type}/{id}', [App\Http\Controllers\Diagnosis\MtuhaDiagnosesController::class, 'destroy'])->name('destroy');
+        Route::get('/{type}/create', [MtuhaDiagnosesController::class, 'create'])->name('create');
+        Route::post('/{type}', [MtuhaDiagnosesController::class, 'store'])->name('store');
+        Route::get('/{type}/{id}/edit', [MtuhaDiagnosesController::class, 'edit'])->name('edit');
+        Route::put('/{type}/{id}', [MtuhaDiagnosesController::class, 'update'])->name('update');
+        Route::delete('/{type}/{id}', [MtuhaDiagnosesController::class, 'destroy'])->name('destroy');
     });
 
 });

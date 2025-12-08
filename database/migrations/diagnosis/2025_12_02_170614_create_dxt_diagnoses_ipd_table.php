@@ -15,12 +15,16 @@ return new class extends Migration
             $table->id(); // Legacy 'autocode'
             
             $table->string('name'); // Legacy 'description'
+            $table->string('code')->unique();
+            $table->text('notes')->nullable();
             
             // Link to Groups
             $table->foreignId('dxt_diagnoses_group_id')
                 ->nullable()
                 ->constrained('dxt_diagnoses_groups')
                 ->nullOnDelete();
+
+            $table->string('maptocode', 100)->nullable();
             
             $table->timestamps();
         });
