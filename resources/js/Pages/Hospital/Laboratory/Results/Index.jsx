@@ -33,7 +33,7 @@ export default function ResultsIndex({ samples }) {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <Link 
-                                            href={route('laboratory.results.create', sample.id)}
+                                            href={route('laboratory1.create', sample.id)}
                                             className="bg-green-600 text-white px-3 py-1 rounded text-xs uppercase hover:bg-green-700 font-bold"
                                         >
                                             Enter Results

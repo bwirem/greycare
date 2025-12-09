@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('lab_prescription_id')->constrained('lab_prescriptions')->cascadeOnDelete();
             
             // Barcode
-            $table->string('sample_number', 50)->unique();
+            $table->string('sample_code', 50)->unique();
             
             // Sample Type
             $table->foreignId('lab_nature_of_sample_id')->nullable()->constrained('lab_nature_of_samples');
@@ -25,6 +25,8 @@ return new class extends Migration
             $table->foreignId('collected_by')->nullable()->constrained('users');
             
             $table->dateTime('accepted_at')->nullable(); // Lab Acceptance
+
+            $table->text('notes')->nullable();
             
             $table->string('status', 50)->default('Collected'); // Collected, Rejected, Accepted
 

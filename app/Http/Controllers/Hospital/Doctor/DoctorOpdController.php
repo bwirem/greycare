@@ -278,7 +278,7 @@ class DoctorOpdController extends Controller
             // 8. Finalize
             // ---------------------------------------------------------
             
-            $booking->update(['vitalsignstatus' => 'Seen']);
+            //$booking->update(['vitalsignstatus' => 'Seen']);
             $booking->update(['consultation_status' => 'Seen']);
 
 

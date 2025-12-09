@@ -9,7 +9,7 @@ export default function PrescriptionsIndex({ prescriptions, filters }) {
     const [status, setStatus] = useState(filters.status || '');
 
     const handleFilter = () => {
-        router.get(route('pharmacy.prescriptions.index'), { search, status }, { preserveState: true });
+        router.get(route('pharmacy1.index'), { search, status }, { preserveState: true });
     };
 
     return (
@@ -75,7 +75,7 @@ export default function PrescriptionsIndex({ prescriptions, filters }) {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <Link 
-                                            href={route('pharmacy.prescriptions.show', rx.id)}
+                                            href={route('pharmacy1.show', rx.id)}
                                             className="text-indigo-600 hover:text-indigo-900 text-sm font-semibold"
                                         >
                                             Details

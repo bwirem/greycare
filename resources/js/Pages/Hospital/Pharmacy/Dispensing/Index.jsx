@@ -10,7 +10,7 @@ export default function DispensingIndex({ prescriptions, filters }) {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get(route('pharmacy.dispensing.index'), { search }, { preserveState: true });
+        router.get(route('pharmacy0.index'), { search }, { preserveState: true });
     };
 
     return (
@@ -72,7 +72,7 @@ export default function DispensingIndex({ prescriptions, filters }) {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <Link 
-                                                href={route('pharmacy.dispensing.create', rx.id)}
+                                                href={route('pharmacy0.create', rx.id)}
                                                 className="bg-green-600 text-white px-3 py-1 rounded text-xs uppercase hover:bg-green-700 font-bold"
                                             >
                                                 Dispense

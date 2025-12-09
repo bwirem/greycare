@@ -15,7 +15,7 @@ export default function DispenseCreate({ prescription, current_stock }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('pharmacy.dispensing.store', prescription.id));
+        post(route('pharmacy0.store', prescription.id));
     };
 
     return (

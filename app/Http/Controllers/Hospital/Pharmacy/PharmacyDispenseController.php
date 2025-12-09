@@ -90,7 +90,7 @@ class PharmacyDispenseController extends Controller
             }
         });
 
-        return redirect()->route('pharmacy.dispensing.index')
+        return redirect()->route('pharmacy0.index')
             ->with('success', 'Drug dispensed successfully.');
     }
 }

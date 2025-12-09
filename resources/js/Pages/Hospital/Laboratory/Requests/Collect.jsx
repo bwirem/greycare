@@ -15,7 +15,7 @@ export default function CollectSample({ request, patient, panel, sample_types, r
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('laboratory.requests.store', request.id));
+        post(route('laboratory0.store', request.id));
     };
 
     return (

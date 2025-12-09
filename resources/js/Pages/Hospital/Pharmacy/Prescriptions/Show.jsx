@@ -6,7 +6,7 @@ export default function PrescriptionShow({ prescription }) {
     
     const cancelRx = () => {
         if(confirm('Are you sure you want to cancel this prescription?')) {
-            router.post(route('pharmacy.prescriptions.cancel', prescription.id));
+            router.post(route('pharmacy1.cancel', prescription.id));
         }
     };
 

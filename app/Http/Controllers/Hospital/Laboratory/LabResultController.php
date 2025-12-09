@@ -96,7 +96,7 @@ class LabResultController extends Controller
             }
         });
 
-        return redirect()->route('laboratory.results.index')
+        return redirect()->route('laboratory1.index')
             ->with('success', 'Results saved successfully.');
     }
     

@@ -24,7 +24,7 @@ export default function EnterResults({ sample, patient, panel, parameters, exist
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('laboratory.results.store', sample.id));
+        post(route('laboratory1.store', sample.id));
     };
 
     return (

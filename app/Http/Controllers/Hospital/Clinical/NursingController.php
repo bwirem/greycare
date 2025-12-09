@@ -109,7 +109,7 @@ class NursingController extends Controller
                 'temperature'      => $validated['temperature'] ?? 0,
                 'pulse'            => $validated['pulse'] ?? 0,
                 'respirationrate'  => $validated['respirationrate'] ?? 0,
-                'bloodpressure'    => $bpString,
+                'blood_pressure'    => $bpString,
                 'oxygensaturation' => $validated['oxygensaturation'] ?? 0,
                 'muac'             => $validated['muac'] ?? 0,
                 'bmi'              => $validated['bmi'] ?? 0,

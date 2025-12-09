@@ -10,7 +10,7 @@ export default function RequestsIndex({ requests, filters }) {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get(route('laboratory.requests.index'), { search }, { preserveState: true });
+        router.get(route('laboratory0.index'), { search }, { preserveState: true });
     };
 
     return (
@@ -67,7 +67,7 @@ export default function RequestsIndex({ requests, filters }) {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <Link 
-                                                href={route('laboratory.requests.create', req.id)}
+                                                href={route('laboratory0.create', req.id)}
                                                 className="bg-indigo-600 text-white px-3 py-1 rounded text-xs uppercase hover:bg-indigo-700 font-bold"
                                             >
                                                 Collect Sample

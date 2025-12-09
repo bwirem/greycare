@@ -82,7 +82,7 @@ class LabRequestController extends Controller
             $prescription->update(['status' => 'collected']);
         });
 
-        return redirect()->route('laboratory.requests.index')
+        return redirect()->route('laboratory0.index')
             ->with('success', 'Sample collected successfully. Sent to processing.');
     }
 
