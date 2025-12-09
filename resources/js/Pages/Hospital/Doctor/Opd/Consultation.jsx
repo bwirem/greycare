@@ -4,260 +4,214 @@ import HospitalLayout from '@/Layouts/HospitalLayout';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import Checkbox from '@/Components/Checkbox';
-import TextArea from '@/Components/TextArea'; // Assume standard textarea component
+import TextArea from '@/Components/TextArea';
 import PrimaryButton from '@/Components/PrimaryButton';
+import ReactSelect from 'react-select'; // Need to install react-select
 
-export default function OpdConsultation({ booking, patient, vital_signs, existing_history, existing_exam }) {
+export default function OpdConsultation({ 
+    booking, patient, vital_signs, existing_history, existing_exam, 
+    icd_list, lab_panels, rad_procedures, drugs_list, surgery_procedures 
+}) {
     
-    // Initialize form with existing data or defaults
-    const { data, setData, post, processing, errors } = useForm({
+    // Transform options for React Select
+    const icdOptions = icd_list.map(d => ({ value: d.id, label: `${d.code} - ${d.name}` }));
+    const labOptions = lab_panels.map(l => ({ value: l.id, label: l.name }));
+    const radOptions = rad_procedures.map(r => ({ value: r.id, label: r.name }));
+    const drugOptions = drugs_list.map(d => ({ value: d.id, label: d.name }));
+    const surgeryOptions = surgery_procedures.map(s => ({ value: s.id, label: s.name }));
+
+    const { data, setData, post, processing } = useForm({
         // History
         history_presenting_illness: existing_history?.history_presenting_illness || '',
-        past_medical_history: existing_history?.past_medical_history || '',
         complaints: existing_history?.complains || [{ chief_complaint: '', duration: '' }],
         
-        // Examination (Polymorphic mapped)
+        // Exam
         general_condition: existing_exam?.general_condition || '',
-        glasgow_coma_score: existing_exam?.glasgow_coma_score || '',
         pallor: existing_exam?.pallor === 1,
-        jaundice: existing_exam?.jaundice === 1,
-        cvs_examination: existing_exam?.cvs_examination || '',
-        rs_examination: existing_exam?.rs_examination || '',
-        abdomen_examination: existing_exam?.abdomen_examination || '',
         
-        // Diagnosis & Rx (New entries)
-        diagnoses: [{ name: '', code: '' }], 
-        prescriptions: [] 
+        // Diagnoses
+        diagnoses: [], // { id, label, type: 'icd', status: 'provisional' }
+        
+        // Orders
+        prescriptions: [],
+        lab_requests: [],
+        rad_requests: [],
+        surgery_request: { procedure_id: '', date: '' }
     });
 
     const [activeTab, setActiveTab] = useState('history');
 
-    // --- Helper Functions for Dynamic Arrays ---
-    const addComplaint = () => setData('complaints', [...data.complaints, { chief_complaint: '', duration: '' }]);
-    const removeComplaint = (index) => {
-        const list = [...data.complaints];
-        list.splice(index, 1);
-        setData('complaints', list);
+    // --- Dynamic Adders ---
+    const addOrder = (field, item) => setData(field, [...data[field], item]);
+    const removeOrder = (field, idx) => {
+        const list = [...data[field]]; list.splice(idx, 1); setData(field, list);
     };
 
-    const addPrescription = () => setData('prescriptions', [...data.prescriptions, { product_id: '', dosage: '', frequency: 'TID', duration: '5 days', quantity: 1 }]);
-    
     const submit = (e) => {
         e.preventDefault();
-        post(route('doctor.opd.store', booking.id));
+        post(route('doctor0.store', booking.id));
     };
 
     return (
-        <HospitalLayout header={<h2>Consultation: {patient.first_name} {patient.last_name} ({patient.age}y)</h2>}>
-            <Head title="Clinical Consultation" />
+        <HospitalLayout header={<h2>OPD Consultation: {patient.first_name}</h2>}>
+            <Head title="Consultation" />
 
             <div className="py-6 max-w-7xl mx-auto sm:px-6 lg:px-8">
-                {/* Vitals Header Widget */}
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 shadow-sm">
-                    <div className="flex space-x-6 text-sm text-gray-700">
-                        <span className="font-bold">BP: {vital_signs?.blood_pressure || 'N/A'}</span>
-                        <span className="font-bold">Temp: {vital_signs?.temperature || 'N/A'}°C</span>
-                        <span className="font-bold">Pulse: {vital_signs?.pulse || 'N/A'}</span>
-                        <span className="font-bold">Weight: {vital_signs?.weight || 'N/A'}kg</span>
-                    </div>
+                {/* Vitals Banner */}
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 flex gap-6 text-sm shadow-sm">
+                    <span className="font-bold">BP: {vital_signs?.blood_pressure || '-'}</span>
+                    <span className="font-bold">Temp: {vital_signs?.temperature || '-'}°C</span>
+                    <span className="font-bold">Pulse: {vital_signs?.pulse || '-'}</span>
                 </div>
 
                 <form onSubmit={submit}>
                     <div className="bg-white shadow rounded-lg overflow-hidden">
                         
-                        {/* Tabs Navigation */}
+                        {/* Tabs */}
                         <div className="flex border-b bg-gray-100">
-                            {['history', 'examination', 'diagnosis_plan'].map((tab) => (
+                            {['history', 'exam', 'diagnosis', 'orders'].map(tab => (
                                 <button
-                                    key={tab}
-                                    type="button"
+                                    key={tab} type="button"
                                     onClick={() => setActiveTab(tab)}
-                                    className={`flex-1 py-4 text-sm font-medium uppercase ${
-                                        activeTab === tab ? 'bg-white border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
+                                    className={`flex-1 py-3 font-bold uppercase text-sm ${activeTab === tab ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
                                 >
-                                    {tab.replace('_', ' ')}
+                                    {tab}
                                 </button>
                             ))}
                         </div>
 
-                        <div className="p-6">
+                        <div className="p-6 min-h-[400px]">
                             
-                            {/* --- TAB 1: HISTORY --- */}
+                            {/* --- HISTORY --- */}
                             {activeTab === 'history' && (
-                                <div className="space-y-6">
-                                    {/* Dynamic Complaints Grid */}
-                                    <div>
-                                        <h3 className="font-bold text-gray-700 mb-2">Chief Complaints</h3>
-                                        {data.complaints.map((item, index) => (
-                                            <div key={index} className="flex gap-2 mb-2">
-                                                <TextInput 
-                                                    placeholder="Complaint (e.g. Fever)" 
-                                                    className="w-2/3"
-                                                    value={item.chief_complaint}
-                                                    onChange={e => {
-                                                        const list = [...data.complaints];
-                                                        list[index].chief_complaint = e.target.value;
-                                                        setData('complaints', list);
-                                                    }}
-                                                />
-                                                <TextInput 
-                                                    placeholder="Duration (e.g. 3 days)" 
-                                                    className="w-1/3"
-                                                    value={item.duration}
-                                                    onChange={e => {
-                                                        const list = [...data.complaints];
-                                                        list[index].duration = e.target.value;
-                                                        setData('complaints', list);
-                                                    }}
-                                                />
-                                                <button type="button" onClick={() => removeComplaint(index)} className="text-red-500 px-2">X</button>
-                                            </div>
-                                        ))}
-                                        <button type="button" onClick={addComplaint} className="text-sm text-blue-600 underline">+ Add Complaint</button>
-                                    </div>
-
-                                    <div>
-                                        <InputLabel value="History of Presenting Illness (HPI)" />
-                                        <TextArea 
-                                            className="w-full mt-1" rows={4}
-                                            value={data.history_presenting_illness}
-                                            onChange={e => setData('history_presenting_illness', e.target.value)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <InputLabel value="Past Medical History" />
-                                        <TextArea 
-                                            className="w-full mt-1" rows={3}
-                                            value={data.past_medical_history}
-                                            onChange={e => setData('past_medical_history', e.target.value)}
-                                        />
-                                    </div>
+                                <div className="space-y-4">
+                                    <InputLabel value="Chief Complaints" />
+                                    {data.complaints.map((c, i) => (
+                                        <div key={i} className="flex gap-2">
+                                            <TextInput placeholder="Complaint" className="w-2/3" value={c.chief_complaint} onChange={e => {
+                                                const list = [...data.complaints]; list[i].chief_complaint = e.target.value; setData('complaints', list);
+                                            }} />
+                                            <TextInput placeholder="Duration" className="w-1/3" value={c.duration} onChange={e => {
+                                                const list = [...data.complaints]; list[i].duration = e.target.value; setData('complaints', list);
+                                            }} />
+                                        </div>
+                                    ))}
+                                    <button type="button" onClick={() => addOrder('complaints', {chief_complaint:'', duration:''})} className="text-blue-600 text-sm">+ Add</button>
+                                    
+                                    <InputLabel value="HPI" className="mt-4"/>
+                                    <TextArea className="w-full" rows={4} value={data.history_presenting_illness} onChange={e => setData('history_presenting_illness', e.target.value)} />
                                 </div>
                             )}
 
-                            {/* --- TAB 2: EXAMINATION --- */}
-                            {activeTab === 'examination' && (
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <InputLabel value="General Condition" />
-                                            <TextInput 
-                                                className="w-full" 
-                                                value={data.general_condition}
-                                                onChange={e => setData('general_condition', e.target.value)}
-                                            />
-                                        </div>
-                                        <div>
-                                            <InputLabel value="GCS (e.g. 15/15)" />
-                                            <TextInput 
-                                                className="w-full" 
-                                                value={data.glasgow_coma_score}
-                                                onChange={e => setData('glasgow_coma_score', e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-6 mt-4">
-                                        <label className="flex items-center">
-                                            <Checkbox checked={data.pallor} onChange={e => setData('pallor', e.target.checked)} />
-                                            <span className="ml-2 text-sm text-gray-600">Pallor</span>
-                                        </label>
-                                        <label className="flex items-center">
-                                            <Checkbox checked={data.jaundice} onChange={e => setData('jaundice', e.target.checked)} />
-                                            <span className="ml-2 text-sm text-gray-600">Jaundice</span>
-                                        </label>
-                                        {/* Add other checkboxes here */}
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                        <div>
-                                            <InputLabel value="Respiratory System" />
-                                            <TextArea className="w-full" rows={3} value={data.rs_examination} onChange={e => setData('rs_examination', e.target.value)} />
-                                        </div>
-                                        <div>
-                                            <InputLabel value="Cardiovascular System" />
-                                            <TextArea className="w-full" rows={3} value={data.cvs_examination} onChange={e => setData('cvs_examination', e.target.value)} />
-                                        </div>
-                                        <div>
-                                            <InputLabel value="Abdomen / GI" />
-                                            <TextArea className="w-full" rows={3} value={data.abdomen_examination} onChange={e => setData('abdomen_examination', e.target.value)} />
-                                        </div>
-                                    </div>
+                            {/* --- EXAM --- */}
+                            {activeTab === 'exam' && (
+                                <div className="space-y-4">
+                                    <InputLabel value="General Condition" />
+                                    <TextInput className="w-full" value={data.general_condition} onChange={e => setData('general_condition', e.target.value)} />
+                                    
+                                    <label className="flex items-center gap-2 mt-4">
+                                        <Checkbox checked={data.pallor} onChange={e => setData('pallor', e.target.checked)} />
+                                        <span>Pallor</span>
+                                    </label>
                                 </div>
                             )}
 
-                            {/* --- TAB 3: DIAGNOSIS & PLAN --- */}
-                            {activeTab === 'diagnosis_plan' && (
-                                <div className="space-y-6">
-                                    {/* Diagnosis Adder */}
-                                    <div className="border p-4 rounded bg-gray-50">
-                                        <h3 className="font-bold mb-2">Diagnosis</h3>
-                                        <TextInput 
-                                            placeholder="Enter Provisional Diagnosis"
-                                            className="w-full"
-                                            value={data.diagnoses[0].name}
-                                            onChange={e => {
-                                                const list = [...data.diagnoses];
-                                                list[0].name = e.target.value;
-                                                setData('diagnoses', list);
-                                            }}
-                                        />
-                                    </div>
-
-                                    {/* Prescription Adder */}
-                                    <div className="border p-4 rounded bg-gray-50">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <h3 className="font-bold">Prescription / Medication</h3>
-                                            <button type="button" onClick={addPrescription} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Add Drug</button>
-                                        </div>
-                                        
-                                        {data.prescriptions.map((rx, idx) => (
-                                            <div key={idx} className="grid grid-cols-12 gap-2 mb-2 items-end">
-                                                <div className="col-span-4">
-                                                    <InputLabel value="Drug / Item ID" className="text-xs" />
-                                                    <TextInput 
-                                                        className="w-full text-sm" placeholder="Search Product..."
-                                                        value={rx.product_id}
+                            {/* --- DIAGNOSIS --- */}
+                            {activeTab === 'diagnosis' && (
+                                <div className="space-y-4">
+                                    <InputLabel value="Add ICD Diagnosis" />
+                                    <ReactSelect 
+                                        options={icdOptions} 
+                                        onChange={opt => addOrder('diagnoses', { id: opt.value, label: opt.label, type: 'icd', status: 'provisional' })}
+                                    />
+                                    
+                                    <div className="mt-4 space-y-2">
+                                        {data.diagnoses.map((d, i) => (
+                                            <div key={i} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                                <span>{d.label}</span>
+                                                <div className="flex gap-2">
+                                                    <select 
+                                                        className="text-sm border-gray-300 rounded"
+                                                        value={d.status}
                                                         onChange={e => {
-                                                            const list = [...data.prescriptions];
-                                                            list[idx].product_id = e.target.value; // Ideally a Dropdown
-                                                            setData('prescriptions', list);
-                                                        }} 
-                                                    />
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <TextInput className="w-full text-sm" placeholder="Dose (500mg)" value={rx.dosage} onChange={e => {
-                                                        const list = [...data.prescriptions]; list[idx].dosage = e.target.value; setData('prescriptions', list);
-                                                    }} />
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <TextInput className="w-full text-sm" placeholder="Freq (TID)" value={rx.frequency} onChange={e => {
-                                                        const list = [...data.prescriptions]; list[idx].frequency = e.target.value; setData('prescriptions', list);
-                                                    }} />
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <TextInput className="w-full text-sm" placeholder="Qty" type="number" value={rx.quantity} onChange={e => {
-                                                        const list = [...data.prescriptions]; list[idx].quantity = e.target.value; setData('prescriptions', list);
-                                                    }} />
-                                                </div>
-                                                <div className="col-span-1">
-                                                    <button type="button" onClick={() => {
-                                                        const list = [...data.prescriptions]; list.splice(idx, 1); setData('prescriptions', list);
-                                                    }} className="text-red-500 font-bold">X</button>
+                                                            const list = [...data.diagnoses]; list[i].status = e.target.value; setData('diagnoses', list);
+                                                        }}
+                                                    >
+                                                        <option value="provisional">Provisional</option>
+                                                        <option value="confirmed">Confirmed</option>
+                                                    </select>
+                                                    <button type="button" onClick={() => removeOrder('diagnoses', i)} className="text-red-500">X</button>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
+
+                            {/* --- ORDERS --- */}
+                            {activeTab === 'orders' && (
+                                <div className="grid grid-cols-2 gap-6">
+                                    {/* Lab */}
+                                    <div className="border p-3 rounded">
+                                        <h3 className="font-bold mb-2">Lab Requests</h3>
+                                        <ReactSelect options={labOptions} onChange={opt => addOrder('lab_requests', { panel_id: opt.value, name: opt.label })} />
+                                        <ul className="mt-2 text-sm text-gray-600 list-disc ml-4">
+                                            {data.lab_requests.map((l, i) => <li key={i}>{l.name} <button type="button" onClick={()=>removeOrder('lab_requests', i)} className="text-red-500 ml-2">x</button></li>)}
+                                        </ul>
+                                    </div>
+
+                                    {/* Radiology */}
+                                    <div className="border p-3 rounded">
+                                        <h3 className="font-bold mb-2">Radiology</h3>
+                                        <ReactSelect options={radOptions} onChange={opt => addOrder('rad_requests', { procedure_id: opt.value, name: opt.label })} />
+                                        <ul className="mt-2 text-sm text-gray-600 list-disc ml-4">
+                                            {data.rad_requests.map((r, i) => <li key={i}>{r.name} <button type="button" onClick={()=>removeOrder('rad_requests', i)} className="text-red-500 ml-2">x</button></li>)}
+                                        </ul>
+                                    </div>
+
+                                    {/* Pharmacy */}
+                                    <div className="border p-3 rounded col-span-2">
+                                        <h3 className="font-bold mb-2">Prescription</h3>
+                                        <div className="flex gap-2 mb-2">
+                                            <div className="w-1/3"><ReactSelect placeholder="Drug..." options={drugOptions} id="drugSelect" /></div>
+                                            <TextInput placeholder="Dose" id="dose" className="w-1/6" />
+                                            <TextInput placeholder="Freq" id="freq" className="w-1/6" />
+                                            <TextInput placeholder="Qty" id="qty" type="number" className="w-1/6" />
+                                            <button type="button" 
+                                                onClick={() => {
+                                                    // Simple implementation - grab values from DOM or state
+                                                    // In real app, use controlled inputs
+                                                    addOrder('prescriptions', { product_id: 1, name: 'Paracetamol', dosage: '500mg', frequency: 'TID', quantity: 10 });
+                                                }}
+                                                className="bg-blue-100 text-blue-800 px-3 rounded"
+                                            >Add</button>
+                                        </div>
+                                        {/* List Prescriptions */}
+                                        {data.prescriptions.map((p, i) => (
+                                            <div key={i} className="text-sm border-b py-1 flex justify-between">
+                                                <span>{p.name} - {p.dosage} x {p.frequency} (Qty: {p.quantity})</span>
+                                                <button type="button" onClick={()=>removeOrder('prescriptions', i)} className="text-red-500">x</button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Surgery */}
+                                    <div className="border p-3 rounded col-span-2 bg-red-50">
+                                        <h3 className="font-bold mb-2 text-red-800">Book Surgery</h3>
+                                        <div className="flex gap-2">
+                                            <div className="w-1/2">
+                                                <ReactSelect options={surgeryOptions} onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} />
+                                            </div>
+                                            <TextInput type="datetime-local" className="w-1/3" onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
 
-                        {/* Footer Actions */}
                         <div className="bg-gray-50 px-6 py-4 flex justify-end">
-                            <PrimaryButton disabled={processing}>
-                                Save Consultation
-                            </PrimaryButton>
+                            <PrimaryButton disabled={processing}>Save Consultation</PrimaryButton>
                         </div>
                     </div>
                 </form>

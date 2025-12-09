@@ -16,7 +16,10 @@ import {
 
     // Mortuary & Pharmacy
     faCross, faBookDead, faHandshake,
-    faCapsules, faPrescriptionBottle,   
+    faCapsules, faPrescriptionBottle,
+
+    // Additional Icons
+    faExchangeAlt,  
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -32,7 +35,7 @@ const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-20
 const iconMap = {
     home: faHome,
     outpatient: faClipboardList,
-    inpatient: faProcedures,
+    inpatient: faProcedures,    
     nursing: faUserNurse,
     doctor: faUserMd,
     theatre: faHeartbeat,
@@ -46,10 +49,13 @@ const iconMap = {
     mortuary: faCross,
     dashboard: faStethoscope,
     clipboard_list: faClipboardList,
+
     file_signature: faFileSignature,
     ambulance: faAmbulance,
     bed: faBed,
     door_open: faDoorOpen,
+    exchange_alt: faExchangeAlt,
+
     thermometer: faThermometerHalf,
     pills: faPills,
     notes_medical: faNotesMedical,

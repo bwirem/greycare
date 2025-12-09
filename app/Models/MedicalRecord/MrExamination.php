@@ -9,9 +9,8 @@ class MrExamination extends Model
 {
     use HasFactory;
 
-    protected $table = 'mr_examinations';
-    
-    protected $guarded = ['id'];
+    protected $table = 'mr_examinations';   
+    protected $guarded = []; // Allow all fields
 
     // Optional: Cast integers to boolean if you treat them as Checkboxes in React
     protected $casts = [

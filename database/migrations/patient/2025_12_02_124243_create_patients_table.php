@@ -26,7 +26,9 @@ return new class extends Migration
 
             // Registration info
             $table->dateTime('regdate');
-            $table->string('patientsource')->nullable();                    
+            $table->string('patientsource')->nullable();  
+            
+            $table->boolean('is_admitted')->default(false);
 
             $table->timestamps();
         });

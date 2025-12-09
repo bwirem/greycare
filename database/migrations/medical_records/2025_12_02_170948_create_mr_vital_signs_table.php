@@ -25,7 +25,7 @@ return new class extends Migration
             $table->double('temperature', 16, 2)->default(0.00);
             $table->double('pulse', 16, 2)->default(0.00);
             $table->double('respirationrate', 16, 2)->default(0.00);
-            $table->string('bloodpressure', 50)->nullable();
+            $table->string('blood_pressure', 50)->nullable();
             $table->double('bmi', 16, 4)->default(0.0000); 
             $table->double('muac', 16, 2)->default(0.00);
             $table->double('oxygensaturation', 16, 2)->default(0.00);

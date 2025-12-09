@@ -70,6 +70,8 @@ return new class extends Migration
             $table->string('DoctorName', 255)->nullable(); 
 
             $table->string('vitalsignstatus', 50)->default('Pending')->index(); 
+            $table->string('consultation_status', 50)->default('Pending')->index();
+
 
             // User
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();

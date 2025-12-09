@@ -1,7 +1,7 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
-import HospitalLayout from '@/Layouts/HospitalLayout'; // Ensure you have this or use AuthenticatedLayout
-import Pagination from '@/Components/Pagination'; // Generic pagination component
+import HospitalLayout from '@/Layouts/HospitalLayout';
+import Pagination from '@/Components/Pagination';
 
 export default function DoctorOpdIndex({ queue }) {
     return (
@@ -39,8 +39,9 @@ export default function DoctorOpdIndex({ queue }) {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {booking.latest_vital_sign ? (
-                                                        <span className={booking.latest_vital_sign.blood_pressure.startsWith('14') ? 'text-red-600 font-bold' : ''}>
-                                                            BP: {booking.latest_vital_sign.blood_pressure} | P: {booking.latest_vital_sign.pulse}
+                                                        // FIX: Safely handle null blood_pressure before calling startsWith
+                                                        <span className={(booking.latest_vital_sign.blood_pressure || '').startsWith('14') ? 'text-red-600 font-bold' : ''}>
+                                                            BP: {booking.latest_vital_sign.blood_pressure || '-'} | P: {booking.latest_vital_sign.pulse || '-'}
                                                         </span>
                                                     ) : (
                                                         <span className="text-yellow-600 italic">Pending</span>
@@ -48,7 +49,7 @@ export default function DoctorOpdIndex({ queue }) {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <Link 
-                                                        href={route('doctor.opd.create', booking.id)} 
+                                                        href={route('doctor0.create', booking.id)} 
                                                         className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-md"
                                                     >
                                                         Consult

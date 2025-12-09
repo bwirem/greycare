@@ -15,7 +15,11 @@ class Patient extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $guarded = [];
+    protected $guarded = [];   
+
+    protected $casts = [
+        'is_admitted' => 'boolean',
+    ];
 
     /**
      * Get actual Medical/Billing Visits (OPD Bookings)

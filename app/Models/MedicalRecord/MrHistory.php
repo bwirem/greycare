@@ -14,4 +14,12 @@ class MrHistory extends Model
     {
         return $this->belongsTo(OpdBooking::class, 'opd_booking_id');
     }
+
+    /**
+     * Relationship to Complaints (Child Table)
+     */
+    public function complains()
+    {
+        return $this->hasMany(MrHistoryComplain::class, 'mr_history_id');
+    }
 }

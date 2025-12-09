@@ -27,7 +27,7 @@ export default function DoctorIpdIndex({ admissions }) {
                                 <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                                     <div>
                                         <span className="block text-gray-500 text-xs">Bed No</span>
-                                        <span className="font-medium">{adm.bed?.bed_number || 'Unassigned'}</span>
+                                        <span className="font-medium">{adm.bed?.name || 'Unassigned'}</span>
                                     </div>
                                     <div>
                                         <span className="block text-gray-500 text-xs">Admitted On</span>
@@ -37,7 +37,7 @@ export default function DoctorIpdIndex({ admissions }) {
 
                                 <div className="mt-6 flex justify-end">
                                     <Link 
-                                        href={route('doctor.ipd.create', adm.id)}
+                                        href={route('doctor1.create', adm.id)}
                                         className="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700"
                                     >
                                         Conduct Round

@@ -14,4 +14,9 @@ class MrHistoryComplain extends Model
     {
         return $this->belongsTo(OpdBooking::class, 'opd_booking_id');
     }
+
+    public function history()
+    {
+        return $this->belongsTo(MrHistory::class, 'mr_history_id');
+    }
 }

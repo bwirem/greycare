@@ -45,4 +45,23 @@ class IpdAdmission extends Model
     {
         return $this->belongsTo(IpdBed::class, 'bed_id');
     }
+
+    // --- ADD THESE MISSING RELATIONSHIPS ---
+
+    /**
+     * Link to the Ward Rounds (Doctor Visits)
+     */
+    public function wardRounds()
+    {
+        // Must match the Model name 'IpdWardRound' exactly
+        return $this->hasMany(IpdWardRound::class, 'ipd_admission_id')->orderBy('round_date', 'desc');
+    }
+    
+    /**
+     * Helper to get the most recent round
+     */
+    public function latestRound()
+    {
+        return $this->hasOne(IpdWardRound::class, 'ipd_admission_id')->latestOfMany('round_date');
+    }
 }

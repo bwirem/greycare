@@ -29,6 +29,8 @@ use App\Models\Laboratory\LabPrescription;
 // Radiology
 use App\Models\Radiology\RadRequest;
 
+use App\Models\Pharmacy\PharmacyPrescription; // Ensure this is imported
+
 class OpdBooking extends Model
 {
     protected $table = 'opd_bookings';
@@ -165,5 +167,12 @@ class OpdBooking extends Model
     public function radiologyRequests()
     {
         return $this->hasMany(RadRequest::class, 'opd_booking_id');
+    }
+
+    // ------------------------------------------------------------------
+    // Pharmacy Relations
+    public function pharmacyRequests()
+    {
+        return $this->hasMany(PharmacyPrescription::class, 'opd_booking_id');
     }
 }
