@@ -10,12 +10,12 @@ export default function RadRequestsIndex({ requests, filters }) {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get(route('radiology.requests.index'), { search }, { preserveState: true });
+        router.get(route('radiology0.index'), { search }, { preserveState: true });
     };
 
     const markCaptured = (id) => {
         if(confirm("Confirm that the image has been taken?")) {
-            router.post(route('radiology.requests.process', id));
+            router.post(route('radiology0.process', id));
         }
     };
 

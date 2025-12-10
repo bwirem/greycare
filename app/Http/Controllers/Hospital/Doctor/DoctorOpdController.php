@@ -221,6 +221,7 @@ class DoctorOpdController extends Controller
             // ---------------------------------------------------------
             // 5. Radiology Requests
             // ---------------------------------------------------------
+         
             if ($request->has('rad_requests')) {
                 foreach ($request->rad_requests as $rad) {
                     RadRequest::create([
@@ -228,11 +229,13 @@ class DoctorOpdController extends Controller
                         'patientcode' => $booking->patientcode,
                         'requested_by' => Auth::id(),
                         'rad_procedure_id' => $rad['procedure_id'],
-                        'status' => 'ordered'
+                        'status' => 'ordered', // <--- MAKE SURE THIS COMMA IS HERE
+                        
+                        // Generate Accession Number
+                        'accession_number' => 'RAD-' . date('Ymd') . '-' . strtoupper(uniqid()), 
                     ]);
                 }
             }
-
             // ---------------------------------------------------------
             // 6. Pharmacy (Prescriptions)
             // ---------------------------------------------------------

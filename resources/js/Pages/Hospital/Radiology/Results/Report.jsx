@@ -16,7 +16,7 @@ export default function ReportEditor({ request_data, patient, procedure, existin
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('radiology.results.store', request_data.id));
+        post(route('radiology1.store', request_data.id));
     };
 
     return (

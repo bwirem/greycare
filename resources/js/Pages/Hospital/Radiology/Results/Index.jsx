@@ -40,7 +40,7 @@ export default function RadResultsIndex({ studies }) {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <Link 
-                                            href={route('radiology.results.create', study.id)}
+                                            href={route('radiology1.create', study.id)}
                                             className="bg-indigo-600 text-white px-3 py-1 rounded text-xs uppercase hover:bg-indigo-700 font-bold"
                                         >
                                             Write Report

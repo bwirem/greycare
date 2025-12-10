@@ -210,7 +210,7 @@ Route::prefix('laboratory1')->name('laboratory1.')->group(function () {
 */
 
 // --- radiology0: Imaging Requests ---
-Route::prefix('radiology0')->name('requests.')->group(function () {
+Route::prefix('radiology0')->name('radiology0.')->group(function () {
     // Queue of requests waiting for imaging
     Route::get('/', [RadRequestController::class, 'index'])->name('index');
     
@@ -222,7 +222,7 @@ Route::prefix('radiology0')->name('requests.')->group(function () {
 });
 
 // --- radiology1: Imaging Results (Reporting) ---
-Route::prefix('radiology1')->name('results.')->group(function () {
+Route::prefix('radiology1')->name('radiology1.')->group(function () {
     // List of studies waiting for reporting
     Route::get('/', [RadResultController::class, 'index'])->name('index');
     
