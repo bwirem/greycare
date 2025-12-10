@@ -31,4 +31,13 @@ class RadRequest extends Model
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
+
+    /**
+     * Get the report associated with this request.
+     */
+    public function report()
+    {
+        // One Request has One Report
+        return $this->hasOne(RadReport::class, 'rad_request_id');
+    }
 }

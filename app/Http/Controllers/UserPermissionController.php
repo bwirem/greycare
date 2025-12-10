@@ -292,7 +292,8 @@ class UserPermissionController extends Controller
             ],
             'blood-bank' => [
                 ['key' => 'bloodbank0', 'text' => 'Donor Management', 'icon' => 'hand_holding_heart'],
-                ['key' => 'bloodbank1', 'text' => 'Blood Inventory', 'icon' => 'vial'],                
+                ['key' => 'bloodbank1', 'text' => 'Blood Inventory', 'icon' => 'vial'],   
+                ['key' => 'bloodbank2', 'text' => 'Transfusion Records', 'icon' => 'syringe'],             
             ],
             'radiology' => [
                 ['key' => 'radiology0', 'text' => 'Imaging Requests', 'icon' => 'x_ray'],

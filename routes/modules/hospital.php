@@ -37,6 +37,7 @@ use App\Http\Controllers\Hospital\Theatre\TheatrePostOpController;
 // Blood Bank Controllers
 use App\Http\Controllers\BloodBank\BbDonorController;
 use App\Http\Controllers\BloodBank\BbInventoryController;
+use App\Http\Controllers\BloodBank\BbCrossmatchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -214,11 +215,11 @@ Route::prefix('radiology0')->name('radiology0.')->group(function () {
     // Queue of requests waiting for imaging
     Route::get('/', [RadRequestController::class, 'index'])->name('index');
     
-    // Mark request as "Image Taken" / Process
-    Route::post('/{request}/process', [RadRequestController::class, 'process'])->name('process');
+    // Mark radRequest as "Image Taken" / Process
+    Route::post('/{radRequest}/process', [RadRequestController::class, 'process'])->name('process');
     
     // Reject Request
-    Route::post('/{request}/reject', [RadRequestController::class, 'reject'])->name('reject');
+    Route::post('/{radRequest}/reject', [RadRequestController::class, 'reject'])->name('reject');
 });
 
 // --- radiology1: Imaging Results (Reporting) ---
@@ -230,7 +231,7 @@ Route::prefix('radiology1')->name('radiology1.')->group(function () {
     Route::get('/{request}/report', [RadResultController::class, 'create'])->name('create');
     
     // Save Report
-    Route::post('/{request}', [RadResultController::class, 'store'])->name('store');
+    Route::post('/{radRequest}', [RadResultController::class, 'store'])->name('store');
     
     // View Final Report
     Route::get('/{report}/view', [RadResultController::class, 'show'])->name('show');
@@ -343,6 +344,19 @@ Route::prefix('bloodbank1')->name('bloodbank1.')->group(function () {
     
     // Discard / Update Status of a Bag
     Route::post('/{bag}/discard', [BbInventoryController::class, 'discard'])->name('discard');
+});
+
+
+// --- bloodbank2: Crossmatching & Issuing ---
+Route::prefix('bloodbank2')->name('bloodbank2.')->group(function () {
+    // Queue of pending requests from Doctors
+    Route::get('/', [BbCrossmatchController::class, 'index'])->name('index');
+    
+    // The Crossmatch/Issue Form
+    Route::get('/{request}/process', [BbCrossmatchController::class, 'create'])->name('create');
+    
+    // Save the Crossmatch Result & Issue Bag
+    Route::post('/{request}', [BbCrossmatchController::class, 'store'])->name('store');
 });
 
 

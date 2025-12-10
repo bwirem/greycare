@@ -11,9 +11,9 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
     // Initialize Form State with Existing Data
     const { data, setData, put, processing, errors } = useForm({
         // Patient Details
-        firstname: booking.patient?.firstname || '',
-        surname: booking.patient?.surname || '',
-        othernames: booking.patient?.othernames || '',
+        first_name: booking.patient?.first_name || '',
+        last_name: booking.patient?.last_name || '',
+        middle_name: booking.patient?.middle_name || '',
         contact: booking.patient?.contact || '', // Assuming contact exists on patient model
         
         // Visit Details
@@ -61,12 +61,12 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
                                 <label className="block text-sm font-medium text-gray-700">Surname *</label>
                                 <input
                                     type="text"
-                                    value={data.surname}
-                                    onChange={e => setData('surname', e.target.value)}
+                                    value={data.last_name}
+                                    onChange={e => setData('last_name', e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                     required
                                 />
-                                {errors.surname && <div className="text-red-500 text-xs mt-1">{errors.surname}</div>}
+                                {errors.last_name && <div className="text-red-500 text-xs mt-1">{errors.last_name}</div>}
                             </div>
 
                             {/* First Name */}
@@ -74,12 +74,12 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
                                 <label className="block text-sm font-medium text-gray-700">First Name *</label>
                                 <input
                                     type="text"
-                                    value={data.firstname}
-                                    onChange={e => setData('firstname', e.target.value)}
+                                    value={data.first_name}
+                                    onChange={e => setData('first_name', e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                     required
                                 />
-                                {errors.firstname && <div className="text-red-500 text-xs mt-1">{errors.firstname}</div>}
+                                {errors.first_name && <div className="text-red-500 text-xs mt-1">{errors.first_name}</div>}
                             </div>
 
                             {/* Other Names */}
@@ -87,8 +87,8 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
                                 <label className="block text-sm font-medium text-gray-700">Other Names</label>
                                 <input
                                     type="text"
-                                    value={data.othernames}
-                                    onChange={e => setData('othernames', e.target.value)}
+                                    value={data.middle_name}
+                                    onChange={e => setData('middle_name', e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                 />
                             </div>
@@ -107,7 +107,7 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
                                 <label className="block text-sm font-medium text-gray-500">Date of Birth</label>
                                 <input
                                     type="text"
-                                    value={booking.patient?.birthdate || ''}
+                                    value={booking.patient?.date_of_birth || ''}
                                     disabled
                                     className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 sm:text-sm cursor-not-allowed"
                                 />

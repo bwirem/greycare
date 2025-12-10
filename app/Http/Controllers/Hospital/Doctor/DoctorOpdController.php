@@ -10,41 +10,34 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Carbon\Carbon;
 
-// --- Core Models ---
+// Core Models
 use App\Models\Opd\OpdBooking;
-use App\Models\Patient\Patient;
-
-// --- Medical Record Models ---
-use App\Models\MedicalRecord\MrHistory;
-use App\Models\MedicalRecord\MrExamination;
 use App\Models\MedicalRecord\MrPatientDiagnosisConfirmed;
 use App\Models\MedicalRecord\MrPatientDiagnosisProvisional;
 
-// --- Diagnosis Master Models ---
+// Service Models
 use App\Models\Diagnosis\DxtDiagnosesIcd;
-use App\Models\Diagnosis\DxtDiagnosesOpd; // Fallback if using local list
-
-// --- Service Models ---
+use App\Models\Diagnosis\DxtDiagnosesOpd;
 use App\Models\Laboratory\LabPrescription;
 use App\Models\Laboratory\LabPanel;
 use App\Models\Radiology\RadRequest;
 use App\Models\Radiology\RadProcedure;
+
 use App\Models\Pharmacy\PharmacyPrescription;
-use App\Models\SIV_Product; // Drugs
+use App\Models\Pharmacy\PharmacyFrequency;
+use App\Models\Pharmacy\PharmacyDuration;
+use App\Models\SIV_Product;
+
 use App\Models\Theatre\TheatreBooking;
 use App\Models\Theatre\TheatreProcedure;
 
 class DoctorOpdController extends Controller
 {
-    /**
-     * 1. The Queue: List patients waiting for consultation.
-     */
     public function index()
     {
         $queue = OpdBooking::with(['patient', 'latestVitalSign'])
             ->whereDate('created_at', today())
-            // ->where('status', '!=', 'completed') // Optional: Hide completed
-            ->where('consultation_status', 'pending')
+            //->where('consultation_status', 'Pending') // Optional: Hide if seen
             ->orderBy('created_at', 'asc')
             ->paginate(20);
 
@@ -53,22 +46,29 @@ class DoctorOpdController extends Controller
         ]);
     }
 
-    /**
-     * 2. The Form: Load clinical data and dropdown options.
-     */
     public function create(OpdBooking $booking)
     {
-        // Eager load everything to support "Edit/Resume" mode
+        // LOAD RELATIONSHIPS WITH RESULTS
         $booking->load([
             'patient',
             'latestVitalSign',
             'history.complains',
             'examination',
-            'diagnosesConfirmed', // You might need .diagnosis polymorphic load
+            
+            // Diagnoses
+            'diagnosesConfirmed', 
             'diagnosesProvisional',
+
+            // Lab: Load Panel AND Results (Nested)
             'labRequests.panel',
+            'labRequests.sample.results.parameter', 
+
+            // Radiology: Load Procedure AND Report
             'radiologyRequests.procedure',
-            'pharmacyRequests.product' // Assuming relation exists
+            'radiologyRequests.report',
+
+            // Pharmacy: Load Product
+            'prescriptions.product' 
         ]);
 
         return Inertia::render('Hospital/Doctor/Opd/Consultation', [
@@ -76,38 +76,42 @@ class DoctorOpdController extends Controller
             'patient' => $booking->patient,
             'vital_signs' => $booking->latestVitalSign,
             
-            // Pre-fill form if data exists
+            // Data for "View/Edit" Mode
             'existing_history' => $booking->history,
             'existing_exam' => $booking->examination,
             
-            // Dropdown Data (Optimized Selects)
-            // In a large production app, these should be API calls, not passed to view
-            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(200)->get(), 
+            // Existing Orders (For the "Previous Orders" UI)
+            'ordered_labs' => $booking->labRequests,
+            'ordered_rads' => $booking->radiologyRequests,
+            'ordered_meds' => $booking->prescriptions,
+
+            // Dropdown Data
+            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(100)->get(), 
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
             'rad_procedures' => RadProcedure::select('id', 'name')->orderBy('name')->get(),
             'surgery_procedures' => TheatreProcedure::select('id', 'name')->orderBy('name')->get(),
-            'drugs_list' => SIV_Product::select('id', 'name')->orderBy('name')->get(),
+
+            // UPDATE THIS LINE: Add 'code' to the select
+            'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')
+                ->where('is_active', true)
+                ->orderBy('days', 'asc') // Better UX to sort by length
+                ->get(),
+                
+            'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')
+                ->get(),
+            
+            // Ensure drugs list includes info if needed (though usually calculated on basic units)           
+            'drugs_list' => SIV_Product::select('id', 'name', 'costprice')->orderBy('name')->get(),
         ]);
     }
 
-    /**
-     * 3. The Save: Transactional save of all clinical data.
-     */
     public function store(Request $request, OpdBooking $booking)
     {
-        // A. Validation
         $request->validate([
-            // History
             'history_presenting_illness' => 'nullable|string',
             'complaints' => 'nullable|array',
-            
-            // Exam
             'general_condition' => 'nullable|string',
-            
-            // Diagnosis
             'diagnoses' => 'nullable|array',
-            
-            // Orders
             'prescriptions' => 'nullable|array',
             'lab_requests' => 'nullable|array',
             'rad_requests' => 'nullable|array',
@@ -117,23 +121,16 @@ class DoctorOpdController extends Controller
         try {
             DB::beginTransaction();
 
-            // ---------------------------------------------------------
-            // 1. History & Complaints
-            // ---------------------------------------------------------
+            // 1. History
             $history = $booking->history()->updateOrCreate(
                 ['opd_booking_id' => $booking->id],
-                [
-                    'history_presenting_illness' => $request->history_presenting_illness,
-                    'past_medical_history' => $request->past_medical_history ?? null,
-                    'social_and_family_history' => null // Add to frontend if needed
-                ]
+                ['history_presenting_illness' => $request->history_presenting_illness]
             );
 
-            // Sync Complaints: Delete old, add new
             if ($request->has('complaints')) {
                 $history->complains()->delete();
                 foreach ($request->complaints as $idx => $comp) {
-                    if (!empty($comp['chief_complaint'])) {
+                    if(!empty($comp['chief_complaint'])) {
                         $history->complains()->create([
                             'chief_complaint' => $comp['chief_complaint'],
                             'duration' => $comp['duration'] ?? null,
@@ -143,177 +140,127 @@ class DoctorOpdController extends Controller
                 }
             }
 
-            // ---------------------------------------------------------
-            // 2. Physical Examination (Polymorphic)
-            // ---------------------------------------------------------
+            // 2. Examination
             $booking->examination()->updateOrCreate(
-                [
-                    'examinable_id' => $booking->id,
-                    'examinable_type' => OpdBooking::class
-                ],
+                ['examinable_id' => $booking->id, 'examinable_type' => OpdBooking::class],
                 [
                     'general_condition' => $request->general_condition,
                     'glasgow_coma_score' => $request->glasgow_coma_score ?? null,
-                    'pallor' => $request->boolean('pallor') ? 1 : 0,
-                    'jaundice' => $request->boolean('jaundice') ? 1 : 0,
-                    // Default integers to 0 to avoid SQL errors
-                    'cyanosis' => 0, 
-                    'rash' => 0,
-                    'neck_stiffness' => 0,
-                    'finger_clubbing' => 0,
-                    'oral_thrush' => 0,
-                    // Systemic
+                    'pallor' => $request->boolean('pallor'),
+                    'jaundice' => $request->boolean('jaundice'),
                     'cvs_examination' => $request->cvs_examination ?? null,
                     'rs_examination' => $request->rs_examination ?? null,
                     'abdomen_examination' => $request->abdomen_examination ?? null,
                 ]
             );
 
-            // ---------------------------------------------------------
             // 3. Diagnoses
-            // ---------------------------------------------------------
             if ($request->has('diagnoses')) {
                 foreach ($request->diagnoses as $diag) {
-                    // Determine Model Type based on frontend 'type'
-                    $modelType = ($diag['type'] === 'icd') 
-                        ? DxtDiagnosesIcd::class 
-                        : DxtDiagnosesOpd::class; // Or your local list model
-
+                    $modelType = ($diag['type'] === 'icd') ? DxtDiagnosesIcd::class : DxtDiagnosesOpd::class;
                     $data = [
                         'opd_booking_id' => $booking->id,
                         'patientcode' => $booking->patientcode,
                         'user_id' => Auth::id(),
                         'diagnosis_id' => $diag['id'],
                         'diagnosis_type' => $modelType,
-                        // 'remarks' => $diag['label'] // Optional
                     ];
 
                     if ($diag['status'] === 'confirmed') {
-                        // Avoid duplicates if re-saving
-                        MrPatientDiagnosisConfirmed::firstOrCreate(
-                            ['opd_booking_id' => $booking->id, 'diagnosis_id' => $diag['id']],
-                            $data
-                        );
+                        MrPatientDiagnosisConfirmed::firstOrCreate($data);
                     } else {
-                        MrPatientDiagnosisProvisional::firstOrCreate(
-                            ['opd_booking_id' => $booking->id, 'diagnosis_id' => $diag['id']],
-                            $data
-                        );
+                        MrPatientDiagnosisProvisional::firstOrCreate($data);
                     }
                 }
             }
 
-            // ---------------------------------------------------------
-            // 4. Lab Requests
-            // ---------------------------------------------------------
+            // 4. Lab Orders (Only create NEW ones)
             if ($request->has('lab_requests')) {
                 foreach ($request->lab_requests as $lab) {
-                    LabPrescription::create([
-                        'opd_booking_id' => $booking->id,
-                        'patientcode' => $booking->patientcode,
-                        'doctor_user_id' => Auth::id(),
-                        'lab_panel_id' => $lab['panel_id'],
-                        'status' => 'ordered'
-                    ]);
+                    // Check if already ordered to prevent duplicates on multi-save
+                    // This simple check assumes panel_id + booking_id uniqueness for a session
+                    $exists = LabPrescription::where('opd_booking_id', $booking->id)
+                        ->where('lab_panel_id', $lab['panel_id'])->exists();
+                    
+                    if(!$exists) {
+                        LabPrescription::create([
+                            'opd_booking_id' => $booking->id,
+                            'patientcode' => $booking->patientcode,
+                            'doctor_user_id' => Auth::id(),
+                            'lab_panel_id' => $lab['panel_id'],
+                            'status' => 'ordered'
+                        ]);
+                    }
                 }
             }
 
-            // ---------------------------------------------------------
-            // 5. Radiology Requests
-            // ---------------------------------------------------------
-         
+            // 5. Radiology Orders
             if ($request->has('rad_requests')) {
                 foreach ($request->rad_requests as $rad) {
-                    RadRequest::create([
-                        'opd_booking_id' => $booking->id,
-                        'patientcode' => $booking->patientcode,
-                        'requested_by' => Auth::id(),
-                        'rad_procedure_id' => $rad['procedure_id'],
-                        'status' => 'ordered', // <--- MAKE SURE THIS COMMA IS HERE
-                        
-                        // Generate Accession Number
-                        'accession_number' => 'RAD-' . date('Ymd') . '-' . strtoupper(uniqid()), 
-                    ]);
+                    $exists = RadRequest::where('opd_booking_id', $booking->id)
+                        ->where('rad_procedure_id', $rad['procedure_id'])->exists();
+
+                    if(!$exists) {
+                        RadRequest::create([
+                            'opd_booking_id' => $booking->id,
+                            'patientcode' => $booking->patientcode,
+                            'requested_by' => Auth::id(),
+                            'rad_procedure_id' => $rad['procedure_id'],
+                            'status' => 'ordered',
+                            'accession_number' => 'RAD-' . date('YmdHis') . '-' . rand(100,999)
+                        ]);
+                    }
                 }
             }
-            // ---------------------------------------------------------
-            // 6. Pharmacy (Prescriptions)
-            // ---------------------------------------------------------
+
+            // 6. Pharmacy
             if ($request->has('prescriptions')) {
                 foreach ($request->prescriptions as $rx) {
-                    PharmacyPrescription::create([
-                        'opd_booking_id' => $booking->id,
-                        'patientcode' => $booking->patientcode,
-                        'doctor_user_id' => Auth::id(),
-                        'product_id' => $rx['product_id'],
-                        'dosage' => $rx['dosage'],
-                        'frequency' => $rx['frequency'],
-                        'duration' => $rx['duration'] ?? '1 week', // fallback
-                        // Ensure 'quantity' from JSON maps to 'quantity_prescribed' in DB
-                        'quantity_prescribed' => $rx['quantity'], 
-                        'status' => 'Prescribed'
-                    ]);
+                    // Simple check based on product_id
+                    $exists = PharmacyPrescription::where('opd_booking_id', $booking->id)
+                        ->where('product_id', $rx['product_id'])
+                        ->where('status', 'Prescribed')->exists();
+
+                    if(!$exists) {
+                        PharmacyPrescription::create([
+                            'opd_booking_id' => $booking->id,
+                            'patientcode' => $booking->patientcode,
+                            'doctor_user_id' => Auth::id(),
+                            'product_id' => $rx['product_id'],
+                            'dosage' => $rx['dosage'],
+                            'frequency' => $rx['frequency'],
+                            'duration' => $rx['duration'] ?? '5 days',
+                            'quantity_prescribed' => $rx['quantity'], 
+                            'status' => 'Prescribed'
+                        ]);
+                    }
                 }
             }
 
-            // ---------------------------------------------------------
-            // 7. Surgery Booking
-            // ---------------------------------------------------------
-            if (
-                $request->has('surgery_request') && 
-                !empty($request->surgery_request['procedure_id']) &&
-                !empty($request->surgery_request['date'])
-            ) {
-                // Parse date string "2025-12-27T18:23"
-                $surgeryDate = Carbon::parse($request->surgery_request['date']);
-
-                TheatreBooking::create([
+            // 7. Surgery
+            if (!empty($request->surgery_request['procedure_id']) && !empty($request->surgery_request['date'])) {
+                $surgDate = Carbon::parse($request->surgery_request['date']);
+                TheatreBooking::firstOrCreate([
                     'opd_booking_id' => $booking->id,
+                    'theatre_procedure_id' => $request->surgery_request['procedure_id']
+                ], [
                     'patientcode' => $booking->patientcode,
                     'doctor_user_id' => Auth::id(),
-                    'theatre_procedure_id' => $request->surgery_request['procedure_id'],
-                    'scheduled_at' => $surgeryDate,
+                    'scheduled_at' => $surgDate,
                     'status' => 'Scheduled'
                 ]);
             }
 
-            // ---------------------------------------------------------
-            // 8. Finalize
-            // ---------------------------------------------------------
-            
-            //$booking->update(['vitalsignstatus' => 'Seen']);
+            // 8. Update Status
             $booking->update(['consultation_status' => 'Seen']);
 
-
             DB::commit();
-
-            return redirect()->route('doctor0.index')
-                ->with('success', 'Consultation data saved successfully.');
+            return redirect()->back()->with('success', 'Consultation saved successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            // Log the actual error for debugging
-            Log::error('OPD Consultation Save Error: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
-
-            return back()->withErrors(['error' => 'System Error: ' . $e->getMessage()]);
+            Log::error('OPD Save Error: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error: ' . $e->getMessage()]);
         }
-    }
-
-    /**
-     * 4. Patient History (Optional: View past visits)
-     */
-    public function history(Patient $patient)
-    {
-        $patient->load([
-            'opdBookings.history',
-            'opdBookings.diagnosesConfirmed.diagnosis',
-            'ipdAdmissions.wardRounds'
-        ]);
-
-        return Inertia::render('Hospital/Doctor/Shared/PatientHistory', [
-            'patient' => $patient
-        ]);
     }
 }

@@ -36,6 +36,9 @@ return new class extends Migration
             $table->foreignId('requested_by')->constrained('users'); // Referring Doctor
             $table->foreignId('technician_id')->nullable()->constrained('users'); // Who took the scan
 
+            // Report
+            $table->text('rejection_reason')->nullable();
+            
             // Timestamps
             $table->dateTime('scheduled_at')->nullable();
             $table->dateTime('performed_at')->nullable();

@@ -32,10 +32,10 @@ class NursingController extends Controller
                 'visit_number' => $booking->visit_number,
                 'file_number'  => $booking->patient?->code ?? 'N/A',
                 'patient_name' => $booking->patient 
-                                    ? $booking->patient->firstname . ' ' . $booking->patient->surname 
+                                    ? $booking->patient->first_name . ' ' . $booking->patient->last_name 
                                     : 'Unknown',
-                'age'          => $booking->patient?->birthdate 
-                                    ? Carbon::parse($booking->patient->birthdate)->age 
+                'age'          => $booking->patient?->date_of_birth 
+                                    ? Carbon::parse($booking->patient->date_of_birth)->age 
                                     : 0,
                 'gender'       => $booking->patient?->gender ?? '-',
                 'clinic'       => $booking->treatmentPoint?->name ?? 'General',
@@ -60,9 +60,9 @@ class NursingController extends Controller
             'booking' => [
                 'id' => $booking->id,
                 'visit_number' => $booking->visit_number,
-                'patient_name' => $booking->patient->firstname . ' ' . $booking->patient->surname,
+                'patient_name' => $booking->patient->first_name . ' ' . $booking->patient->last_name,
                 'file_number'  => $booking->patient->code,
-                'age'          => Carbon::parse($booking->patient->birthdate)->age,
+                'age'          => Carbon::parse($booking->patient->date_of_birth)->age,
                 'gender'       => $booking->patient->gender,
             ]
         ]);

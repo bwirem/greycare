@@ -36,11 +36,11 @@ class OpdRegistrationController extends Controller
                 
                 'file_number'  => $booking->patient?->code ?? 'N/A',
                 'patient_name' => $booking->patient 
-                                    ? $booking->patient->firstname . ' ' . $booking->patient->surname 
+                                    ? $booking->patient->first_name . ' ' . $booking->patient->last_name 
                                     : 'Unknown',
                 
-                'age'          => $booking->patient?->birthdate 
-                                    ? \Carbon\Carbon::parse($booking->patient->birthdate)->age 
+                'age'          => $booking->patient?->date_of_birth 
+                                    ? \Carbon\Carbon::parse($booking->patient->date_of_birth)->age 
                                     : 0,
                 
                 'gender'       => $booking->patient?->gender ?? '-',
@@ -86,13 +86,13 @@ class OpdRegistrationController extends Controller
         }
 
         $patients = Patient::where('code', 'like', "%{$query}%")
-            ->orWhere('firstname', 'like', "%{$query}%")
-            ->orWhere('surname', 'like', "%{$query}%")
+            ->orWhere('first_name', 'like', "%{$query}%")
+            ->orWhere('last_name', 'like', "%{$query}%")
             ->orWhere('national_id', 'like', "%{$query}%")
             // Assuming you have a phone column, otherwise remove this
             // ->orWhere('phone', 'like', "%{$query}%") 
             ->limit(10)
-            ->get(['code', 'firstname', 'surname', 'othernames', 'gender', 'birthdate', 'national_id']);
+            ->get(['code', 'first_name', 'last_name', 'middle_name', 'gender', 'date_of_birth', 'national_id']);
 
         return response()->json($patients);
     }
@@ -118,10 +118,10 @@ class OpdRegistrationController extends Controller
         // Only validate patient details if it is a NEW patient
         if (!$isRevisit) {
             $rules = array_merge($rules, [
-                'firstname'     => 'required|string|max:255',
-                'surname'       => 'required|string|max:255',
+                'first_name'     => 'required|string|max:255',
+                'last_name'       => 'required|string|max:255',
                 'gender'        => 'required|string|in:Male,Female',
-                'birthdate'     => 'required|date',
+                'date_of_birth'     => 'required|date',
                 'national_id'    => 'nullable|string|max:50|unique:patients,national_id',
             ]);
         }
@@ -147,11 +147,11 @@ class OpdRegistrationController extends Controller
 
                 Patient::create([
                     'code'          => $patientCode,
-                    'firstname'     => $validated['firstname'],
-                    'surname'       => $validated['surname'],
-                    'othernames'    => $request->othernames,
+                    'first_name'     => $validated['first_name'],
+                    'last_name'       => $validated['last_name'],
+                    'middle_name'    => $request->middle_name,
                     'gender'        => $validated['gender'],
-                    'birthdate'     => $validated['birthdate'],
+                    'date_of_birth'     => $validated['date_of_birth'],
                     'national_id'    => $validated['national_id'],
                     'regdate'       => now(),
                 ]);
@@ -256,8 +256,8 @@ class OpdRegistrationController extends Controller
         // Validate
         $validated = $request->validate([
             // Allow basic patient edits
-            'firstname'     => 'required|string|max:255',
-            'surname'       => 'required|string|max:255',
+            'first_name'     => 'required|string|max:255',
+            'last_name'       => 'required|string|max:255',
             'contact'       => 'nullable|string|max:50',
             
             // Allow booking edits
@@ -269,8 +269,8 @@ class OpdRegistrationController extends Controller
         DB::transaction(function () use ($validated, $booking, $patient) {
             // 1. Update Patient
             $patient->update([
-                'firstname' => $validated['firstname'],
-                'surname'   => $validated['surname'],
+                'first_name' => $validated['first_name'],
+                'last_name'   => $validated['last_name'],
                 // Update contact if column exists
             ]);
 

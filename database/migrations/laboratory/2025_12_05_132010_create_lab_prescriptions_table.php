@@ -13,6 +13,7 @@ return new class extends Migration
             
             // Link to OPD Visit
             $table->foreignId('opd_booking_id')->nullable()->constrained('opd_bookings')->restrictOnDelete();
+            $table->foreignId('ipd_admission_id')->nullable()->constrained('ipd_admissions')->restrictOnDelete();
             // Link to Patient
             $table->string('patientcode', 50)->nullable()->index();
             

@@ -171,7 +171,7 @@ class OpdBooking extends Model
 
     // ------------------------------------------------------------------
     // Pharmacy Relations
-    public function pharmacyRequests()
+    public function prescriptions()
     {
         return $this->hasMany(PharmacyPrescription::class, 'opd_booking_id');
     }

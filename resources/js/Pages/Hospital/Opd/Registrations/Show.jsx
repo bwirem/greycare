@@ -59,7 +59,7 @@ export default function OpdShow({ auth, booking }) {
                         </div>
                         <div className="p-6">
                             <div className="text-xl font-bold text-gray-800 mb-1">
-                                {booking.patient?.firstname} {booking.patient?.othernames} {booking.patient?.surname}
+                                {booking.patient?.first_name} {booking.patient?.middle_name} {booking.patient?.last_name}
                             </div>
                             <div className="text-sm text-gray-500 mb-4 font-mono">
                                 File No: {booking.patientcode}
@@ -72,11 +72,11 @@ export default function OpdShow({ auth, booking }) {
                                 </div>
                                 <div>
                                     <dt className="text-xs text-gray-500">Date of Birth</dt>
-                                    <dd className="text-sm font-medium text-gray-900">{booking.patient?.birthdate}</dd>
+                                    <dd className="text-sm font-medium text-gray-900">{booking.patient?.date_of_birth}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-xs text-gray-500">National ID</dt>
-                                    <dd className="text-sm font-medium text-gray-900">{booking.patient?.nationalid || '-'}</dd>
+                                    <dd className="text-sm font-medium text-gray-900">{booking.patient?.national_id || '-'}</dd>
                                 </div>
                             </dl>
                         </div>

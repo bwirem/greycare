@@ -44,7 +44,7 @@ class RadRequestController extends Controller
         
         $radRequest->update([
             'status' => 'captured', // Ready for reporting
-            'performed_by' => Auth::id(),
+            'technician_id' => Auth::id(),
             'performed_at' => now(),
             // 'accession_number' => ... (If integrating with PACS)
         ]);
@@ -62,7 +62,7 @@ class RadRequestController extends Controller
         $radRequest->update([
             'status' => 'rejected',
             'rejection_reason' => $request->reason,
-            'rejected_by' => Auth::id()
+            'technician_id' => Auth::id(),
         ]);
 
         return redirect()->back()->with('success', 'Request rejected.');

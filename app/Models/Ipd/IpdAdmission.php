@@ -7,6 +7,13 @@ use App\Models\Patient\Patient;
 use App\Models\Opd\OpdBooking;
 use App\Models\User;
 
+// Laboratory
+use App\Models\Laboratory\LabPrescription;
+// Radiology
+use App\Models\Radiology\RadRequest;//
+use App\Models\Pharmacy\PharmacyPrescription; // Ensure this is i
+use App\Models\BloodBank\BbIssueRequest;
+
 class IpdAdmission extends Model
 {
     protected $table = 'ipd_admissions';
@@ -63,5 +70,38 @@ class IpdAdmission extends Model
     public function latestRound()
     {
         return $this->hasOne(IpdWardRound::class, 'ipd_admission_id')->latestOfMany('round_date');
+    }
+
+   
+    /**
+     * Laboratory Orders linked to this admission
+     */
+    public function labRequests()
+    {
+        return $this->hasMany(LabPrescription::class, 'ipd_admission_id');
+    }
+
+    /**
+     * Radiology Orders linked to this admission
+     */
+    public function radiologyRequests()
+    {
+        return $this->hasMany(RadRequest::class, 'ipd_admission_id');
+    }
+
+    /**
+     * Pharmacy Prescriptions linked to this admission
+     */
+    public function prescriptions()
+    {
+        return $this->hasMany(PharmacyPrescription::class, 'ipd_admission_id');
+    }
+
+    /**
+     * Blood Bank Requests linked to this admission
+     */
+    public function bloodRequests() // Note: In controller sometimes referred to as bloodIssueRequests check usage
+    {
+        return $this->hasMany(BbIssueRequest::class, 'ipd_admission_id');
     }
 }

@@ -70,9 +70,9 @@ class RadResultController extends Controller
                 [
                     'findings' => $validated['findings'],
                     'impression' => $validated['impression'],
-                    'recommendation' => $validated['recommendation'],
+                    'suggestion' => $validated['recommendation'],
                     'radiologist_id' => Auth::id(),
-                    'report_date' => now(),
+                    'reported_at' => now(), 
                     'status' => $validated['is_final'] ? 'final' : 'draft'
                 ]
             );
@@ -85,7 +85,7 @@ class RadResultController extends Controller
             }
         });
 
-        return redirect()->route('radiology.results.index')
+        return redirect()->route('radiology1.index')
             ->with('success', $validated['is_final'] ? 'Report finalized.' : 'Draft saved.');
     }
 

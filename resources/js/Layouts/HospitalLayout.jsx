@@ -17,7 +17,7 @@ import {
     // Mortuary & Pharmacy
     faCross, faBookDead, faHandshake,
     faCapsules, faPrescriptionBottle,
-
+    
     // Additional Icons
     faExchangeAlt,  
 } from "@fortawesome/free-solid-svg-icons";
@@ -69,6 +69,8 @@ const iconMap = {
     hands_helping: faHandsHelping,
     vials: faVials,
     vial: faVial,
+    tint: faTint, // <--- Add this line
+
     poll: faPoll,
     hand_holding_heart: faHandHoldingHeart,
     x_ray: faXRay,

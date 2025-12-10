@@ -22,11 +22,11 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
         existing_patient_code: '', 
 
         // Patient Details
-        firstname: '',
-        surname: '',
-        othernames: '',
+        first_name: '',
+        last_name: '',
+        middle_name: '',
         gender: '',
-        birthdate: '',
+        date_of_birth: '',
         national_id: '',
         
         // Visit Details
@@ -80,11 +80,11 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
         setData(values => ({
             ...values,
             existing_patient_code: patient.code,
-            firstname: patient.firstname,
-            surname: patient.surname,
-            othernames: patient.othernames || '',
+            first_name: patient.first_name,
+            last_name: patient.last_name,
+            middle_name: patient.middle_name || '',
             gender: patient.gender,
-            birthdate: patient.birthdate,
+            date_of_birth: patient.date_of_birth,
             national_id: patient.national_id || '',
         }));
     };
@@ -155,14 +155,14 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
                                 >
                                     <div className="flex justify-between">
                                         <span className="font-bold text-gray-800">
-                                            {patient.firstname} {patient.surname}
+                                            {patient.first_name} {patient.last_name}
                                         </span>
                                         <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600">
                                             {patient.code}
                                         </span>
                                     </div>
                                     <div className="text-xs text-gray-500 mt-1">
-                                        {patient.gender} | Born: {patient.birthdate} | ID: {patient.national_id}
+                                        {patient.gender} | Born: {patient.date_of_birth} | ID: {patient.national_id}
                                     </div>
                                 </div>
                             ))}
@@ -190,13 +190,13 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
                                 <label className="block text-sm font-medium text-gray-700">Surname *</label>
                                 <input
                                     type="text"
-                                    value={data.surname}
-                                    onChange={e => setData('surname', e.target.value)}
+                                    value={data.last_name}
+                                    onChange={e => setData('last_name', e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-500"
                                     required
                                     disabled={isRevisit}
                                 />
-                                {errors.surname && <div className="text-red-500 text-xs mt-1">{errors.surname}</div>}
+                                {errors.last_name && <div className="text-red-500 text-xs mt-1">{errors.last_name}</div>}
                             </div>
 
                             {/* First Name */}
@@ -204,13 +204,13 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
                                 <label className="block text-sm font-medium text-gray-700">First Name *</label>
                                 <input
                                     type="text"
-                                    value={data.firstname}
-                                    onChange={e => setData('firstname', e.target.value)}
+                                    value={data.first_name}
+                                    onChange={e => setData('first_name', e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-500"
                                     required
                                     disabled={isRevisit}
                                 />
-                                {errors.firstname && <div className="text-red-500 text-xs mt-1">{errors.firstname}</div>}
+                                {errors.first_name && <div className="text-red-500 text-xs mt-1">{errors.first_name}</div>}
                             </div>
 
                             {/* Other Names */}
@@ -218,8 +218,8 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
                                 <label className="block text-sm font-medium text-gray-700">Other Names</label>
                                 <input
                                     type="text"
-                                    value={data.othernames}
-                                    onChange={e => setData('othernames', e.target.value)}
+                                    value={data.middle_name}
+                                    onChange={e => setData('middle_name', e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-500"
                                     disabled={isRevisit}
                                 />
@@ -247,13 +247,13 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
                                 <label className="block text-sm font-medium text-gray-700">Date of Birth *</label>
                                 <input
                                     type="date"
-                                    value={data.birthdate}
-                                    onChange={e => setData('birthdate', e.target.value)}
+                                    value={data.date_of_birth}
+                                    onChange={e => setData('date_of_birth', e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-500"
                                     required
                                     disabled={isRevisit}
                                 />
-                                {errors.birthdate && <div className="text-red-500 text-xs mt-1">{errors.birthdate}</div>}
+                                {errors.date_of_birth && <div className="text-red-500 text-xs mt-1">{errors.date_of_birth}</div>}
                             </div>
 
                             {/* National ID */}
