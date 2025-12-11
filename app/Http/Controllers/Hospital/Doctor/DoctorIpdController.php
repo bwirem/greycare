@@ -86,9 +86,15 @@ class DoctorIpdController extends Controller
             'drugs_list' => SIV_Product::select('id', 'name', 'costprice')->orderBy('name')->get(),
             'bb_components' => BbComponentType::select('id', 'name')->get(),
             
-            // Calculation Helpers
+            // Pharmacy related
             'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')->get(),
-            'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')->where('is_active', true)->orderBy('days')->get(),
+            'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')->where('is_active', true)->get(),
+            
+            // Ensure drugs list includes info if needed (though usually calculated on basic units)           
+            'drugs_list' => SIV_Product::with('drugDetails') 
+            ->select('id', 'name', 'costprice') 
+            ->orderBy('name')
+            ->get(),
         ]);
     }
 

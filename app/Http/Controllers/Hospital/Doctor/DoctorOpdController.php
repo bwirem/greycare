@@ -91,17 +91,15 @@ class DoctorOpdController extends Controller
             'rad_procedures' => RadProcedure::select('id', 'name')->orderBy('name')->get(),
             'surgery_procedures' => TheatreProcedure::select('id', 'name')->orderBy('name')->get(),
 
-            // UPDATE THIS LINE: Add 'code' to the select
-            'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')
-                ->where('is_active', true)
-                ->orderBy('days', 'asc') // Better UX to sort by length
-                ->get(),
-                
-            'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')
-                ->get(),
+            'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')->get(),
+            'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')->where('is_active', true)->get(),
             
             // Ensure drugs list includes info if needed (though usually calculated on basic units)           
-            'drugs_list' => SIV_Product::select('id', 'name', 'costprice')->orderBy('name')->get(),
+            'drugs_list' => SIV_Product::with('drugDetails') 
+            ->select('id', 'name', 'costprice') 
+            ->orderBy('name')
+            ->get(),
+
         ]);
     }
 
@@ -109,7 +107,11 @@ class DoctorOpdController extends Controller
     {
         $request->validate([
             'history_presenting_illness' => 'nullable|string',
+            'past_medical_history' => 'nullable|string',         
+            'social_and_family_history' => 'nullable|string', 
+            'review_of_other_systems' => 'nullable|string',  
             'complaints' => 'nullable|array',
+            
             'general_condition' => 'nullable|string',
             'diagnoses' => 'nullable|array',
             'prescriptions' => 'nullable|array',
@@ -124,7 +126,11 @@ class DoctorOpdController extends Controller
             // 1. History
             $history = $booking->history()->updateOrCreate(
                 ['opd_booking_id' => $booking->id],
-                ['history_presenting_illness' => $request->history_presenting_illness]
+                ['history_presenting_illness' => $request->history_presenting_illness,
+                'past_medical_history' => $request->past_medical_history,
+                'social_and_family_history' => $request->social_and_family_history,
+                'review_of_other_systems' => $request->review_of_other_systems
+                ]
             );
 
             if ($request->has('complaints')) {

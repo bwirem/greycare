@@ -30,7 +30,7 @@ class OpdAppointmentController extends Controller
                 return [
                     'id'        => $apt->id,
                     'title'     => $apt->patient 
-                                    ? $apt->patient->firstname . ' ' . $apt->patient->surname 
+                                    ? $apt->patient->first_name . ' ' . $apt->patient->last_name 
                                     : 'Unknown Patient',
                     'start'     => Carbon::parse($apt->appointment_date->format('Y-m-d') . ' ' . $apt->start_time),
                     'end'       => Carbon::parse($apt->appointment_date->format('Y-m-d') . ' ' . ($apt->end_time ?? '23:59')),

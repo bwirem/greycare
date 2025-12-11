@@ -63,9 +63,9 @@ export default function AppointmentIndex({ events, clinics, doctors }) {
     };
 
     const selectPatient = (p) => {
-        setData(d => ({ ...d, patient_code: p.code, patient_name: `${p.firstname} ${p.surname}` }));
+        setData(d => ({ ...d, patient_code: p.code, patient_name: `${p.first_name} ${p.last_name}` }));
         setPatientResults([]);
-        setPatientSearch(`${p.firstname} ${p.surname}`);
+        setPatientSearch(`${p.first_name} ${p.last_name}`);
     };
 
     const submitCreate = (e) => {
@@ -143,7 +143,7 @@ export default function AppointmentIndex({ events, clinics, doctors }) {
                                 <div className="absolute z-50 bg-white border shadow-lg w-full max-h-40 overflow-y-auto mt-1 rounded">
                                     {patientResults.map(p => (
                                         <div key={p.code} onClick={() => selectPatient(p)} className="p-2 hover:bg-gray-100 cursor-pointer text-sm border-b last:border-0">
-                                            <span className="font-bold">{p.firstname} {p.surname}</span> <span className="text-gray-500">({p.code})</span>
+                                            <span className="font-bold">{p.first_name} {p.last_name}</span> <span className="text-gray-500">({p.code})</span>
                                         </div>
                                     ))}
                                 </div>
