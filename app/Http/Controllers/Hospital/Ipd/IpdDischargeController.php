@@ -15,19 +15,32 @@ use App\Models\Patient\Patient;
 
 class IpdDischargeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Show patients marked for discharge by doctor OR active patients
-        $admissions = IpdAdmission::with(['patient', 'ward'])
-            ->where('status', 'Admitted') // Or 'Discharge Pending' if using Doctor's workflow
-            ->paginate(15);
+       // Show Admitted AND Discharge Pending patients
+        // 'Discharge Pending' means doctor has cleared them
+        $query = IpdAdmission::with(['patient', 'ward', 'bed'])
+            ->whereIn('status', ['Admitted', 'Discharge Pending'])
+            ->orderByRaw("FIELD(status, 'Discharge Pending', 'Admitted')"); // Pending ones first
 
-        return Inertia::render('Hospital/Ipd/Discharges/Index', ['admissions' => $admissions]);
+        if ($request->search) {
+            $query->whereHas('patient', function ($q) use ($request) {
+                $q->where('first_name', 'like', "%{$request->search}%")
+                  ->orWhere('last_name', 'like', "%{$request->search}%")
+                  ->orWhere('code', 'like', "%{$request->search}%");
+                  //->orWhere('phone_number', 'like', "%{$request->search}%");
+            });
+        }
+
+        return Inertia::render('Hospital/Ipd/Discharges/Index', [
+            'admissions' => $query->paginate(15)->withQueryString(),
+            'filters' => $request->only(['search'])
+        ]);
     }
 
     public function create(IpdAdmission $admission)
     {
-        $admission->load(['patient', 'ward', 'bed']);
+        $admission->load(['patient', 'ward', 'bed','dischargeSummary']);
         
         return Inertia::render('Hospital/Ipd/Discharges/Create', [
             'admission' => $admission,

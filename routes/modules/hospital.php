@@ -156,6 +156,8 @@ Route::prefix('doctor1')->name('doctor1.')->group(function () {
     Route::get('/', [DoctorIpdController::class, 'index'])->name('index');
     Route::get('/{admission}/round', [DoctorIpdController::class, 'create'])->name('create');
     Route::post('/{admission}', [DoctorIpdController::class, 'store'])->name('store');
+    // Add this new route
+    Route::post('/{admission}/discharge-initiate', [DoctorIpdController::class, 'initiateDischarge'])->name('initiate');
 });
 
 // --- doctor2: Prescriptions (Standalone) ---

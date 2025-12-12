@@ -72,6 +72,14 @@ class IpdAdmission extends Model
         return $this->hasOne(IpdWardRound::class, 'ipd_admission_id')->latestOfMany('round_date');
     }
 
+    /**
+     * Link to the Clinical Discharge Summary (Doctor's Note)
+     */
+    public function dischargeSummary()
+    {
+        return $this->hasOne(IpdDischargeSummary::class, 'ipd_admission_id');
+    }
+
    
     /**
      * Laboratory Orders linked to this admission

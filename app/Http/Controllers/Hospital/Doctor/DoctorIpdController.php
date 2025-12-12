@@ -12,8 +12,12 @@ use Inertia\Inertia;
 // Models - IPD
 use App\Models\Ipd\IpdAdmission;
 use App\Models\Ipd\IpdWardRound;
+use App\Models\Ipd\IpdDischargeSummary;
+
 
 // Models - Services
+use App\Models\Diagnosis\DxtDiagnosesIcd;
+use App\Models\Diagnosis\DxtDiagnosesOpd;
 use App\Models\Pharmacy\PharmacyPrescription;
 use App\Models\Pharmacy\PharmacyFrequency;
 use App\Models\Pharmacy\PharmacyDuration;
@@ -59,6 +63,16 @@ class DoctorIpdController extends Controller
             'wardRounds' => function($q) {
                 $q->orderBy('round_date', 'desc')->with(['doctor', 'examination', 'assessment']);
             },
+
+            // --- NEW: Load Original OPD Consultation Data ---
+            'booking.history.complains',
+            'booking.examination',
+            'booking.diagnosesConfirmed',
+            'booking.diagnosesProvisional',
+            'booking.prescriptions.product',
+            'booking.labRequests.panel',
+            'booking.radiologyRequests.procedure',
+            'booking.user', // The OPD Doctor
             
             // Load Active Orders linked to this Admission (Cumulative view)
             'labRequests.panel', 
@@ -74,11 +88,16 @@ class DoctorIpdController extends Controller
             'admission' => $admission,
             'patient' => $admission->patient,
             'previous_rounds' => $admission->wardRounds,
+
+            // --- NEW: Pass OPD Data ---
+            'opd_consultation' => $admission->booking, 
             
             // Existing Orders for Dashboard
             'ordered_labs' => $admission->labRequests,
             'ordered_rads' => $admission->radiologyRequests,
             'ordered_meds' => $admission->prescriptions,
+
+            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(100)->get(),
 
             // Dropdowns
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
@@ -210,5 +229,48 @@ class DoctorIpdController extends Controller
             Log::error("IPD Round Error: " . $e->getMessage());
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+    }
+
+     /**
+     * 4. Initiate Discharge (Doctor's Order)
+     */
+    public function initiateDischarge(Request $request, IpdAdmission $admission)
+    {
+        $request->validate([
+            'final_diagnosis' => 'required|string',
+            'clinical_summary' => 'required|string',
+            'discharge_medications' => 'required|string',
+            'outcome' => 'required|string',
+            'follow_up_date' => 'nullable|date',
+            'follow_up_instructions' => 'nullable|string'
+        ]);
+
+        DB::transaction(function () use ($request, $admission) {
+            
+            // 1. Create Clinical Summary
+            IpdDischargeSummary::updateOrCreate(
+                ['ipd_admission_id' => $admission->id],
+                [
+                    'final_diagnosis' => $request->final_diagnosis,
+                    'clinical_summary' => $request->clinical_summary,
+                    'treatment_given' => $request->treatment_given ?? 'See Chart',
+                    'discharge_medications' => $request->discharge_medications,
+                    'outcome' => $request->outcome,
+                    'follow_up_date' => $request->follow_up_date,
+                    'follow_up_instructions' => $request->follow_up_instructions,
+                    'doctor_user_id' => Auth::id(),
+                    'summarized_at' => now()
+                ]
+            );
+
+            // 2. Update Admission Status to "Discharge Pending"
+            // This moves it to the Nurse/Billing/Discharge List
+            $admission->update([
+                'status' => 'Discharge Pending'
+            ]);
+        });
+
+        return redirect()->route('doctor1.index')
+            ->with('success', 'Discharge initiated. Patient sent to Discharge List.');
     }
 }

@@ -6,8 +6,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPills, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
-export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, rawDrugsList, frequencies, durations }) {
-    
+export default function PharmacyTab({ 
+    data, setData, drugOptions, ordered_meds, 
+    opd_meds = [], // Received from Parent
+    rawDrugsList, frequencies, durations 
+}) {
+
     const [newRx, setNewRx] = useState({
         product_id: '', product_name: '', dosage: 1, 
         frequency_id: '', duration_id: '', quantity: 0
@@ -96,16 +100,31 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
     const prescriptionsToDisplay = data.new_prescriptions || data.prescriptions || [];
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            {/* History Table */}
+        <div className="space-y-6 animate-fade-in">          
+            {/* 1. OPD MEDICATION HISTORY (NEW) */}
+            {opd_meds.length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 shadow-sm">
+                    <h4 className="font-bold text-blue-800 text-sm mb-2 uppercase tracking-wide">OPD Medications (Admission)</h4>
+                    <ul className="text-sm space-y-1">
+                        {opd_meds.map(rx => (
+                            <li key={'opd-'+rx.id} className="flex justify-between border-b border-blue-200 pb-1 last:border-0">
+                                <span>{rx.product?.name} ({rx.dosage} x {rx.frequency})</span>
+                                <span className="text-xs text-gray-500 italic">{new Date(rx.created_at).toLocaleDateString()}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {/* 2. WARD MEDICATION HISTORY */}
             {ordered_meds?.length > 0 && (
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <h4 className="font-bold text-green-800 text-sm mb-2 uppercase tracking-wide">Medication History</h4>
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200 shadow-sm">
+                    <h4 className="font-bold text-green-800 text-sm mb-2 uppercase tracking-wide">Current Ward Medications</h4>
                     <ul className="text-sm space-y-1">
                         {ordered_meds.map(rx => (
-                            <li key={rx.id} className="flex justify-between border-b border-green-200 pb-1">
+                            <li key={rx.id} className="flex justify-between border-b border-green-200 pb-1 last:border-0">
                                 <span>{rx.product?.name} ({rx.dosage} x {rx.frequency})</span>
-                                <span className="font-bold text-xs text-green-900">{rx.status}</span>
+                                <span className={`font-bold text-xs ${rx.status === 'Dispensed' ? 'text-green-700' : 'text-yellow-700'}`}>{rx.status}</span>
                             </li>
                         ))}
                     </ul>

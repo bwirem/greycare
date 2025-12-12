@@ -6,8 +6,10 @@ import Modal from '@/Components/Modal';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faClipboardList, faHistory, faFlask, faPills 
+    faClipboardList, faHistory, faFlask, faPills, faDoorOpen
 } from '@fortawesome/free-solid-svg-icons';
+
+import Discharge from './Discharge'; // Import the new component
 
 // Import Sub-Components
 import AssessmentTab from './Tabs/AssessmentTab';
@@ -17,11 +19,15 @@ import PharmacyTab from './Tabs/PharmacyTab';
 
 export default function WardRound({ 
     admission, patient, previous_rounds = [], 
+    opd_consultation = null, // <--- Receive New Prop
     ordered_labs = [], ordered_rads = [], ordered_meds = [],
     lab_panels = [], rad_procedures = [], drugs_list = [], bb_components = [],
-    pharmacy_frequencies = [], pharmacy_durations = []
+    pharmacy_frequencies = [], pharmacy_durations = [], icd_list = []
 }) {
-    
+
+    // Assuming 'icd_list' is passed or can be derived:
+    const diagnosisOptions = icd_list.map(d => ({ value: d.id, label: `${d.code} - ${d.name}` }));
+   
     // --- 1. Data Transformation for Dropdowns ---
     const options = {
         lab: lab_panels.map(l => ({ value: l.id, label: l.name })),
@@ -30,6 +36,7 @@ export default function WardRound({
         drug: drugs_list.map(d => ({ value: d.id, label: d.name }))
     };
 
+    
     // --- 2. Form State ---
     const { data, setData, post, processing, errors } = useForm({
         // Assessment
@@ -52,11 +59,20 @@ export default function WardRound({
         new_prescriptions: [] // IPD uses 'new_prescriptions'
     });
 
+    // --- EXTRACT OPD DATA ---
+    // Safely access arrays from the OPD booking relationship
+    const opd_labs = opd_consultation?.lab_requests || [];
+    const opd_rads = opd_consultation?.radiology_requests || [];
+    const opd_meds = opd_consultation?.prescriptions || [];
+
     const [activeTab, setActiveTab] = useState('assessment');
     
     // --- 3. Result Modal State ---
     const [viewResult, setViewResult] = useState(null);
     const [resultType, setResultType] = useState('');
+
+    // --- Discharge Modal State ---
+    const [showDischargeModal, setShowDischargeModal] = useState(false);
 
     // --- 4. Submit Handler with Error Checking ---
     const submit = (e) => {
@@ -158,14 +174,25 @@ export default function WardRound({
                             {/* Pass 'errors' to AssessmentTab */}
                             {activeTab === 'assessment' && <AssessmentTab data={data} setData={setData} errors={errors} />}
 
-                            {activeTab === 'history' && <RoundHistoryTab history={previous_rounds} />}
+                            {activeTab === 'history' && (
+                                <RoundHistoryTab 
+                                    history={previous_rounds} 
+                                    opdData={opd_consultation} // <--- Pass it here
+                                />
+                            )}
 
                             {activeTab === 'orders' && 
                                 <IpdOrdersTab 
                                     data={data} setData={setData} 
                                     options={options} 
+                                    // IPD Orders
                                     ordered_labs={ordered_labs} 
                                     ordered_rads={ordered_rads}
+
+                                    // OPD Orders
+                                    opd_labs={opd_labs}
+                                    opd_rads={opd_rads}
+
                                     onViewResult={(res, type) => { setResultType(type); setViewResult(res); }}
                                 />
                             }
@@ -175,7 +202,11 @@ export default function WardRound({
                                     data={data} setData={setData}
                                     drugOptions={options.drug}
                                     rawDrugsList={drugs_list}
+                                    // IPD Medications
                                     ordered_meds={ordered_meds}
+                                    // OPD Medications
+                                    opd_meds={opd_meds}
+                                    
                                     frequencies={pharmacy_frequencies}
                                     durations={pharmacy_durations}
                                 />
@@ -186,10 +217,23 @@ export default function WardRound({
                     {/* Footer */}
                     <div className="bg-gray-100 px-6 py-4 flex justify-between items-center border-t rounded-b-lg">
                         <span className="text-xs text-gray-500">Session ID: {admission.id}</span>
-                        <PrimaryButton onClick={submit} disabled={processing} className="px-8 bg-green-600 hover:bg-green-700">
-                            {processing ? 'Saving...' : 'Save Round'}
-                        </PrimaryButton>
-                    </div>
+                        <div className="flex gap-3">
+                            {/* DISCHARGE BUTTON */}
+                            <button 
+                                type="button"
+                                onClick={() => setShowDischargeModal(true)}
+                                className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded shadow-sm text-sm font-semibold flex items-center gap-2 transition-colors"
+                            >
+                                <FontAwesomeIcon icon={faDoorOpen} /> Discharge
+                            </button>
+
+                            {/* SAVE BUTTON */}
+                            <PrimaryButton onClick={submit} disabled={processing} className="px-8 bg-green-600 hover:bg-green-700">
+                                {processing ? 'Saving...' : 'Save Round'}
+                            </PrimaryButton>
+
+                        </div>
+                    </div>   
                 </div>
             </div>
 
@@ -217,6 +261,14 @@ export default function WardRound({
                     <div className="mt-4 flex justify-end"><PrimaryButton onClick={() => setViewResult(null)}>Close</PrimaryButton></div>
                 </div>
             </Modal>
+
+            {/* --- ADD DISCHARGE MODAL --- */}
+            <Discharge 
+                show={showDischargeModal}
+                onClose={() => setShowDischargeModal(false)}
+                admission={admission}
+                diagnosisOptions={diagnosisOptions} 
+            />
 
         </HospitalLayout>
     );

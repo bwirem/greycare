@@ -30,6 +30,7 @@ use App\Models\SIV_Product;
 
 use App\Models\Theatre\TheatreBooking;
 use App\Models\Theatre\TheatreProcedure;
+use App\Models\Ipd\IpdWard;
 
 class DoctorOpdController extends Controller
 {
@@ -99,6 +100,10 @@ class DoctorOpdController extends Controller
             ->select('id', 'name', 'costprice') 
             ->orderBy('name')
             ->get(),
+
+            'wards_list' => IpdWard::with(['rooms.beds' => function($q) {
+                $q->where('status', 'Free'); // Only show free beds
+            }])->get()
 
         ]);
     }
