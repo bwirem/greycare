@@ -16,13 +16,23 @@ use App\Models\Ipd\IpdDischargeSummary;
 
 
 // Models - Services
-use App\Models\Diagnosis\DxtDiagnosesIcd;
-use App\Models\Diagnosis\DxtDiagnosesOpd;
 use App\Models\Pharmacy\PharmacyPrescription;
 use App\Models\Pharmacy\PharmacyFrequency;
 use App\Models\Pharmacy\PharmacyDuration;
 use App\Models\SIV_Product;
+// Models - Diagnoses ICD
+use App\Models\MedicalRecord\MrPatientDiagnosisIcdConfirmed;
+use App\Models\MedicalRecord\MrPatientDiagnosisIcdProvisional;
+use App\Models\MedicalRecord\MrPatientDiagnosisIcdDifferential;
+// Models - Diagnoses
+use App\Models\MedicalRecord\MrPatientDiagnosisConfirmed;
+use App\Models\MedicalRecord\MrPatientDiagnosisProvisional;
+use App\Models\MedicalRecord\MrPatientDiagnosisDifferential;
+// Diagnosis Source Models
+use App\Models\Diagnosis\DxtDiagnosesIpd;
+use App\Models\Diagnosis\DxtDiagnosesIcd;
 
+// Models - Lab, Radiology, Blood Bank
 use App\Models\Laboratory\LabPrescription;
 use App\Models\Laboratory\LabPanel;
 
@@ -31,6 +41,7 @@ use App\Models\Radiology\RadProcedure;
 
 use App\Models\BloodBank\BbIssueRequest;
 use App\Models\BloodBank\BbComponentType;
+
 
 class DoctorIpdController extends Controller
 {
@@ -84,6 +95,79 @@ class DoctorIpdController extends Controller
             'prescriptions.product'
         ]);
 
+        // --- FETCH & DEDUPLICATE DIAGNOSIS HISTORY ---
+        
+        $diagHistory = collect();
+        $coveredIcdCodes = []; // Array to track codes handled by Local Diagnoses
+
+        // 1. Fetch from Database
+        // Generic/Local (Mtuha)
+        $genConf = MrPatientDiagnosisConfirmed::where('ipd_admission_id', $admission->id)
+            ->with(['diagnosis.icdMap', 'user'])->get();
+        $genProv = MrPatientDiagnosisProvisional::where('ipd_admission_id', $admission->id)
+            ->with(['diagnosis.icdMap', 'user'])->get();
+        
+        // ICD Specific
+        $icdConf = MrPatientDiagnosisIcdConfirmed::where('ipd_admission_id', $admission->id)
+            ->with(['icdDiagnosis', 'user'])->get();
+        $icdProv = MrPatientDiagnosisIcdProvisional::where('ipd_admission_id', $admission->id)
+            ->with(['icdDiagnosis', 'user'])->get();
+
+        // 2. Define Formatter Logic
+        $processRecords = function($records, $status, $source) use (&$diagHistory, &$coveredIcdCodes) {
+            foreach($records as $rec) {
+                
+                $icdCode = '-';
+                $icdName = null;
+                $localName = null;
+
+                if ($source === 'local') {
+                    // It's a Local/Mtuha Diagnosis
+                    $localName = $rec->diagnosis?->name ?? $rec->diagnosisdescription;
+                    
+                    // Get the Mapped Code
+                    $icdCode = $rec->diagnosis?->icdMap?->code ?? $rec->diagnosis?->maptocode ?? '-';
+                    $icdName = $rec->diagnosis?->icdMap?->name ?? null;
+
+                    // Add this code to 'covered' list so we don't show the duplicate ICD entry later
+                    if ($icdCode !== '-') {
+                        $coveredIcdCodes[] = $icdCode;
+                    }
+                } else {
+                    // It's a Standard ICD Diagnosis
+                    $icdCode = $rec->icdDiagnosis?->code ?? '-';
+                    $icdName = $rec->icdDiagnosis?->name ?? $rec->diagnosisdescription;
+                    
+                    // DEDUPLICATION CHECK:
+                    // If this ICD code was already added via a Local Diagnosis, SKIP it.
+                    if (in_array($icdCode, $coveredIcdCodes)) {
+                        continue; 
+                    }
+                }
+
+                $diagHistory->push([
+                    'id' => $rec->id,
+                    'created_at' => $rec->created_at,
+                    'user_name' => $rec->user?->name ?? 'Unknown',
+                    'status_label' => $status,
+                    'local_name' => $localName,
+                    'icd_code' => $icdCode,
+                    'icd_name' => $icdName,
+                ]);
+            }
+        };
+
+        // 3. Process LOCAL First (Priority)
+        $processRecords($genConf, 'Confirmed', 'local');
+        $processRecords($genProv, 'Provisional', 'local');
+
+        // 4. Process ICD Second (Filter duplicates)
+        $processRecords($icdConf, 'Confirmed', 'icd');
+        $processRecords($icdProv, 'Provisional', 'icd');
+
+        // 5. Sort
+        $sortedDiagHistory = $diagHistory->sortByDesc('created_at')->values();
+        
         return Inertia::render('Hospital/Doctor/Ipd/WardRound', [
             'admission' => $admission,
             'patient' => $admission->patient,
@@ -91,13 +175,21 @@ class DoctorIpdController extends Controller
 
             // --- NEW: Pass OPD Data ---
             'opd_consultation' => $admission->booking, 
+
+            // --- NEW PROP ---
+            'diagnosis_history' => $sortedDiagHistory,
             
             // Existing Orders for Dashboard
             'ordered_labs' => $admission->labRequests,
             'ordered_rads' => $admission->radiologyRequests,
             'ordered_meds' => $admission->prescriptions,
-
-            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(100)->get(),
+            
+            // Dropdown Data
+            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(100)->get(),    
+            'ipd_diagnoses_list' => DxtDiagnosesIpd::with('icdMap:id,name,code') // Load relation
+                ->select('id', 'name', 'maptocode') // MUST include 'maptocode' for the link to work
+                ->limit(100)
+                ->get(),                
 
             // Dropdowns
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
@@ -133,6 +225,7 @@ class DoctorIpdController extends Controller
             'rad_requests' => 'nullable|array',
             'blood_requests' => 'nullable|array',
             'new_prescriptions' => 'nullable|array',
+            'diagnoses' => 'nullable|array',
         ]);
 
         try {
@@ -218,6 +311,78 @@ class DoctorIpdController extends Controller
                         'quantity_prescribed' => $rx['quantity'],
                         'status' => 'Prescribed'
                     ]);
+                }
+            }
+           
+            // G. Save New Diagnoses
+            if ($request->has('diagnoses')) {
+
+
+                foreach ($request->diagnoses as $diag) {
+                    
+                    $status = $diag['status']; 
+                    $type = $diag['type'] ?? 'icd';
+
+                    // ---------------------------------------------------------
+                    // SCENARIO 1: Save ICD-10 Code
+                    // ---------------------------------------------------------
+                    // Always save if type is ICD
+                    if ($type === 'icd') {
+                        $modelClassIcd = match ($status) {
+                            'confirmed'    => MrPatientDiagnosisIcdConfirmed::class,
+                            'differential' => MrPatientDiagnosisIcdDifferential::class,
+                            default        => MrPatientDiagnosisIcdProvisional::class,
+                        };
+
+                        $modelClassIcd::create([
+                            'ipd_admission_id'     => $admission->id,
+                            'ipd_ward_round_id'    => $round->id,
+                            'patientcode'          => $admission->patientcode,
+                            'user_id'              => Auth::id(),
+                            'transdate'            => now(),
+                            'diagnosis_id'         => $diag['id'], // ICD ID
+                            'diagnosisdescription' => $diag['label'],
+                        ]);
+                    }
+
+                    // ---------------------------------------------------------
+                    // SCENARIO 2: Save Local Mtuha/IPD Code
+                    // ---------------------------------------------------------
+                    // Save if:
+                    // 1. User selected a Local Diagnosis directly (type != icd)
+                    // 2. OR User selected ICD but it has a linked Mtuha ID
+                    
+                    $mtuhaId = null;
+                    $sourceModel = null;
+
+                    if ($type !== 'icd') {
+                        // Direct selection of local diagnosis
+                        $mtuhaId = $diag['id'];
+                        $sourceModel = DxtDiagnosesIpd::class; // Or map based on type
+                    } elseif (!empty($diag['linked_mtuha_id'])) {
+                        // Indirect selection via ICD mapping
+                        $mtuhaId = $diag['linked_mtuha_id'];
+                        $sourceModel = DxtDiagnosesIpd::class; // Mapped ones are usually IPD
+                    }
+
+                    if ($mtuhaId) {
+                        $modelClassMtuha = match ($status) {
+                            'confirmed'    => MrPatientDiagnosisConfirmed::class,
+                            'differential' => MrPatientDiagnosisDifferential::class,
+                            default        => MrPatientDiagnosisProvisional::class,
+                        };
+
+                        $modelClassMtuha::create([
+                            'ipd_admission_id'     => $admission->id,
+                            'ipd_ward_round_id'    => $round->id,
+                            'patientcode'          => $admission->patientcode,
+                            'user_id'              => Auth::id(),
+                            'transdate'            => now(),
+                            'diagnosis_id'         => $mtuhaId, // The Mtuha ID
+                            'diagnosis_type'       => $sourceModel,
+                            'diagnosisdescription' => $diag['linked_mtuha'] ?? $diag['label'],
+                        ]);
+                    }
                 }
             }
 

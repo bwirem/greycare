@@ -4,6 +4,8 @@ namespace App\Models\MedicalRecord;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Opd\OpdBooking;
+use App\Models\Ipd\IpdAdmission;
+use App\Models\Ipd\IpdWardRound;
 use App\Models\Patient\Patient;
 use App\Models\User;
 
@@ -12,9 +14,21 @@ class MrPatientDiagnosisConfirmed extends Model
     protected $table = 'mr_patient_diagnoses_confirmed';
     protected $guarded = [];
 
+    // --- Context ---
+
     public function booking()
     {
         return $this->belongsTo(OpdBooking::class, 'opd_booking_id');
+    }
+
+    public function admission()
+    {
+        return $this->belongsTo(IpdAdmission::class, 'ipd_admission_id');
+    }
+
+    public function wardRound()
+    {
+        return $this->belongsTo(IpdWardRound::class, 'ipd_ward_round_id');
     }
 
     public function patient()
@@ -28,11 +42,19 @@ class MrPatientDiagnosisConfirmed extends Model
     }
 
     /**
-     * Polymorphic relation to master diagnosis tables.
-     * Requires 'diagnosis_id' and 'diagnosis_type'.
+     * Polymorphic Relationship to Diagnosis Master Tables.
+     * 
+     * This allows linking to:
+     * - App\Models\Diagnosis\DxtDiagnosesOpd
+     * - App\Models\Diagnosis\DxtDiagnosesIpd
+     * - App\Models\Diagnosis\DxtDiagnosesDental
+     * etc.
+     * 
+     * Laravel uses 'diagnosis_type' (model class name) and 'diagnosis_id'
+     * to find the correct record.
      */
     public function diagnosis()
     {
-        return $this->morphTo();
+        return $this->morphTo(__FUNCTION__, 'diagnosis_type', 'diagnosis_id');
     }
 }

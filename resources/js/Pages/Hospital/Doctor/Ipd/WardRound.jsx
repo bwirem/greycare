@@ -20,23 +20,51 @@ import PharmacyTab from './Tabs/PharmacyTab';
 export default function WardRound({ 
     admission, patient, previous_rounds = [], 
     opd_consultation = null, // <--- Receive New Prop
+    diagnosis_history = [], // <--- Receive Prop
     ordered_labs = [], ordered_rads = [], ordered_meds = [],
     lab_panels = [], rad_procedures = [], drugs_list = [], bb_components = [],
-    pharmacy_frequencies = [], pharmacy_durations = [], icd_list = []
+    pharmacy_frequencies = [], pharmacy_durations = [], icd_list = [], ipd_diagnoses_list = []
 }) {
-
-    // Assuming 'icd_list' is passed or can be derived:
-    const diagnosisOptions = icd_list.map(d => ({ value: d.id, label: `${d.code} - ${d.name}` }));
-   
+    
     // --- 1. Data Transformation for Dropdowns ---
     const options = {
         lab: lab_panels.map(l => ({ value: l.id, label: l.name })),
         rad: rad_procedures.map(r => ({ value: r.id, label: r.name })),
         blood: bb_components.map(b => ({ value: b.id, label: b.name })),
-        drug: drugs_list.map(d => ({ value: d.id, label: d.name }))
+        drug: drugs_list.map(d => ({ value: d.id, label: d.name })),        
     };
+  
 
+    // A. Build "Reverse Lookup" Map: ICD_ID -> { ID, Name } of Local Diagnosis
+    const icdToMtuhaMap = {};
     
+    if (ipd_diagnoses_list) {
+        ipd_diagnoses_list.forEach(localDiag => {
+            if (localDiag.icd_map?.id) {
+                // Store both ID and Name
+                icdToMtuhaMap[localDiag.icd_map.id] = {
+                    id: localDiag.id,      // <--- The missing ID
+                    name: localDiag.name   // The Label
+                };
+            }
+        });
+    }
+
+    // B. Build Options
+    const diagnosisOptions = icd_list.map(icd => {
+        const mappedLocal = icdToMtuhaMap[icd.id];
+        return {
+            value: icd.id,
+            label: `${icd.code} - ${icd.name}`,
+            type: 'icd',
+            
+            // Attach both Label and ID if mapping exists
+            mtuha_label: mappedLocal ? mappedLocal.name : null,
+            mtuha_id: mappedLocal ? mappedLocal.id : null // <--- Add this property
+        };
+    });
+     
+
     // --- 2. Form State ---
     const { data, setData, post, processing, errors } = useForm({
         // Assessment
@@ -51,6 +79,9 @@ export default function WardRound({
         cvs_examination: '',
         rs_examination: '',
         abdomen_examination: '',
+
+        // Diagnoses
+        diagnoses: [], // <--- ENSURE THIS EXISTS
 
         // Orders
         lab_requests: [],
@@ -172,12 +203,19 @@ export default function WardRound({
                         <form onSubmit={submit} className="h-full">
 
                             {/* Pass 'errors' to AssessmentTab */}
-                            {activeTab === 'assessment' && <AssessmentTab data={data} setData={setData} errors={errors} />}
+                            {activeTab === 'assessment' && 
+                                <AssessmentTab 
+                                    data={data} 
+                                    setData={setData} 
+                                    errors={errors} 
+                                    diagnosisOptions={diagnosisOptions}
+                                />}
 
                             {activeTab === 'history' && (
                                 <RoundHistoryTab 
                                     history={previous_rounds} 
                                     opdData={opd_consultation} // <--- Pass it here
+                                    diagnosisHistory={diagnosis_history}
                                 />
                             )}
 

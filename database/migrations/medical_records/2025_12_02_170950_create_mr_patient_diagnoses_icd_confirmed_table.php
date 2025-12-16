@@ -12,7 +12,10 @@ return new class extends Migration
             $table->id();
 
             // Link to Booking
-            $table->foreignId('opd_booking_id')->constrained('opd_bookings')->restrictOnDelete();
+            $table->foreignId('opd_booking_id')->nullable()->constrained('opd_bookings')->restrictOnDelete();
+            // Link to IPD Admission & Ward Round
+            $table->foreignId('ipd_admission_id')->nullable()->constrained('ipd_admissions')->restrictOnDelete();
+            $table->foreignId('ipd_ward_round_id')->nullable()->constrained('ipd_ward_rounds')->nullOnDelete();
 
             $table->string('patientcode', 50)->nullable()->index();
             

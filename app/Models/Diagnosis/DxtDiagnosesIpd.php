@@ -26,4 +26,11 @@ class DxtDiagnosesIpd extends Model
     {
         return $this->morphMany(MrPatientDiagnosisProvisional::class, 'diagnosis');
     }
+
+    // Relationship to get the ICD details
+    public function icdMap()
+    {
+        // 2nd arg: local column (maptocode), 3rd arg: target column (code in ICD table)
+        return $this->belongsTo(DxtDiagnosesIcd::class, 'maptocode', 'code');
+    }
 }

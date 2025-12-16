@@ -8,11 +8,10 @@ use App\Models\Ipd\IpdAdmission;
 use App\Models\Ipd\IpdWardRound;
 use App\Models\Patient\Patient;
 use App\Models\User;
-use App\Models\Diagnosis\DxtDiagnosesIcd;
 
-class MrPatientDiagnosisIcdConfirmed extends Model
+class MrPatientDiagnosisDifferential extends Model
 {
-    protected $table = 'mr_patient_diagnoses_icd_confirmed';
+    protected $table = 'mr_patient_diagnoses_differential';
     protected $guarded = [];
 
     // --- Context ---
@@ -22,9 +21,12 @@ class MrPatientDiagnosisIcdConfirmed extends Model
     public function patient() { return $this->belongsTo(Patient::class, 'patientcode', 'code'); }
     public function user() { return $this->belongsTo(User::class, 'user_id'); }
 
-    // --- Specific Link to ICD Master ---
-    public function icdDiagnosis()
+    /**
+     * Polymorphic relation to master diagnosis tables.
+     * Uses 'diagnosis_type' and 'diagnosis_id'.
+     */
+    public function diagnosis()
     {
-        return $this->belongsTo(DxtDiagnosesIcd::class, 'diagnosis_id');
+        return $this->morphTo(__FUNCTION__, 'diagnosis_type', 'diagnosis_id');
     }
 }

@@ -10,9 +10,9 @@ use App\Models\Patient\Patient;
 use App\Models\User;
 use App\Models\Diagnosis\DxtDiagnosesIcd;
 
-class MrPatientDiagnosisIcdConfirmed extends Model
+class MrPatientDiagnosisIcdDifferential extends Model
 {
-    protected $table = 'mr_patient_diagnoses_icd_confirmed';
+    protected $table = 'mr_patient_diagnoses_icd_differential';
     protected $guarded = [];
 
     // --- Context ---
@@ -22,7 +22,9 @@ class MrPatientDiagnosisIcdConfirmed extends Model
     public function patient() { return $this->belongsTo(Patient::class, 'patientcode', 'code'); }
     public function user() { return $this->belongsTo(User::class, 'user_id'); }
 
-    // --- Specific Link to ICD Master ---
+    /**
+     * Direct link to ICD Master table
+     */
     public function icdDiagnosis()
     {
         return $this->belongsTo(DxtDiagnosesIcd::class, 'diagnosis_id');

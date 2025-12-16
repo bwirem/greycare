@@ -27,7 +27,12 @@ export default function OpdConsultation({
     ordered_labs = [], 
     ordered_rads = [], 
     ordered_meds = [],
+
+    previous_diagnoses = [], // <--- Ensure this prop is accepted
+    // Data Lists for Dropdowns
     icd_list = [], 
+    opd_diagnoses_list = [], // Ensure Controller sends this (DxtDiagnosesOpd with icdMap)
+    // New Order Data Lists
     lab_panels = [], 
     rad_procedures = [], 
     drugs_list = [], 
@@ -36,10 +41,36 @@ export default function OpdConsultation({
     pharmacy_durations = [],
     wards_list = [] // Passed from Controller for Admission
 }) {
-    
+   
+    // 1. Build Reverse Map (ICD ID -> Mtuha Name/ID)
+    const icdToMtuhaMap = {};
+    if (opd_diagnoses_list) {
+        opd_diagnoses_list.forEach(localDiag => {
+            if (localDiag.icd_map?.id) {
+                icdToMtuhaMap[localDiag.icd_map.id] = {
+                    id: localDiag.id,
+                    name: localDiag.name
+                };
+            }
+        });
+    }
+
     // --- 1. Data Transformation for Dropdowns ---
     const options = {
-        icd: icd_list.map(d => ({ value: d.id, label: `${d.code} - ${d.name}` })),
+
+        // 2. Build ICD Options with Mapping Attached
+        icd: icd_list.map(icd => {
+            const mapped = icdToMtuhaMap[icd.id];
+            return {
+                value: icd.id,
+                label: `${icd.code} - ${icd.name}`,
+                type: 'icd',
+                // Attach mapping info
+                mtuha_label: mapped ? mapped.name : null,
+                mtuha_id: mapped ? mapped.id : null
+            };
+        }),
+
         lab: lab_panels.map(l => ({ value: l.id, label: l.name })),
         rad: rad_procedures.map(r => ({ value: r.id, label: r.name })),
         drug: drugs_list.map(d => ({ value: d.id, label: d.name })),
@@ -192,7 +223,12 @@ export default function OpdConsultation({
                             
                             {activeTab === 'exam' && <ExaminationTab data={data} setData={setData} />}
                             
-                            {activeTab === 'diagnosis' && <DiagnosisTab data={data} setData={setData} options={options.icd} />}
+                            {activeTab === 'diagnosis' && 
+                                <DiagnosisTab 
+                                    data={data} setData={setData}
+                                    options={options.icd}                                     
+                                    previous_diagnoses={previous_diagnoses} // <--- Pass it here
+                                />}
                             
                             {activeTab === 'orders' && 
                                 <OrdersTab 
