@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PatientBillingGroup extends Model
 {
-    protected $guarded = ['id'];
+    protected $guarded = [];// Allow mass assignment for all fields
 
     public function subgroups(): HasMany
     {

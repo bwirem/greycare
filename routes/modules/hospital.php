@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 // Opd Controllers
 use App\Http\Controllers\Hospital\Opd\OpdRegistrationController;
 use App\Http\Controllers\Hospital\Opd\OpdAppointmentController;
+// Authorization Controllers
+use App\Http\Controllers\Hospital\Opd\OpdAuthorizationController;
+
 // Ipd Controllers
 use App\Http\Controllers\Hospital\Ipd\IpdAdmissionController;
 use App\Http\Controllers\Hospital\Ipd\IpdDischargeController;
@@ -76,6 +79,10 @@ Route::prefix('outpatient0')->name('outpatient0.')->group(function () {
     
     // 4. View Details
     Route::get('/{id}', [OpdRegistrationController::class, 'show'])->name('show');    
+
+    // --- Authorization Routes ---
+    Route::get('/authorization/verify-card', [OpdAuthorizationController::class, 'verifyCard'])->name('auth.verify');
+    Route::post('/authorization/request', [OpdAuthorizationController::class, 'requestAuthorization'])->name('auth.request');
 });
 
 

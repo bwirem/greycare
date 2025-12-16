@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // Added useEffect
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -8,13 +8,29 @@ import {
 
 export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups, doctors }) {
     
-    // Initialize Form State with Existing Data
+    // Helper to calculate age from DOB
+    const calculateAge = (dob) => {
+        if (!dob) return '';
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age >= 0 ? age : 0;
+    };
+
+    // Initialize Form State
     const { data, setData, put, processing, errors } = useForm({
         // Patient Details
         first_name: booking.patient?.first_name || '',
         last_name: booking.patient?.last_name || '',
         middle_name: booking.patient?.middle_name || '',
-        contact: booking.patient?.contact || '', // Assuming contact exists on patient model
+        
+        // NEW: Date of Birth & Age
+        date_of_birth: booking.patient?.date_of_birth || '',
+        age: calculateAge(booking.patient?.date_of_birth),
         
         // Visit Details
         treatmentpoint_id: booking.treatmentpoint_id || '',
@@ -25,9 +41,35 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
         schemeid: booking.schemeid || '',
     });
 
+    // --- 1. AGE <-> DOB CALCULATION LOGIC ---
+
+    // Calculate DOB when Age changes
+    const handleAgeChange = (e) => {
+        const age = e.target.value;
+        let newDob = data.date_of_birth;
+
+        if (age && !isNaN(age)) {
+            const today = new Date();
+            const birthYear = today.getFullYear() - parseInt(age);
+            // Estimate DOB to today's month/day
+            const estimatedDob = new Date(birthYear, today.getMonth(), today.getDate());
+            newDob = estimatedDob.toISOString().split('T')[0];
+        } else if (age === '') {
+            newDob = '';
+        }
+
+        setData(prev => ({ ...prev, age: age, date_of_birth: newDob }));
+    };
+
+    // Calculate Age when DOB changes
+    const handleDobChange = (e) => {
+        const dob = e.target.value;
+        const newAge = calculateAge(dob);
+        setData(prev => ({ ...prev, date_of_birth: dob, age: newAge }));
+    };
+
     const submit = (e) => {
         e.preventDefault();
-        // Use PUT for updates
         put(route('outpatient0.update', booking.id));
     };
 
@@ -56,6 +98,7 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
                         </div>
                         
                         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                            
                             {/* Surname */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Surname *</label>
@@ -93,7 +136,34 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
                                 />
                             </div>
 
-                            {/* Read Only Fields */}
+                            {/* --- AGE & DOB ROW (Updated) --- */}
+                            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Age (Years)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="120"
+                                        value={data.age}
+                                        onChange={handleAgeChange} // Triggers calculation
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                        placeholder="e.g. 25"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Date of Birth *</label>
+                                    <input
+                                        type="date"
+                                        value={data.date_of_birth}
+                                        onChange={handleDobChange} // Triggers calculation
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                        required
+                                    />
+                                    {errors.date_of_birth && <div className="text-red-500 text-xs mt-1">{errors.date_of_birth}</div>}
+                                </div>
+                            </div>
+
+                            {/* Gender (Read Only) */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-500">Gender</label>
                                 <input
@@ -103,21 +173,11 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
                                     className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 sm:text-sm cursor-not-allowed"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-500">Date of Birth</label>
-                                <input
-                                    type="text"
-                                    value={booking.patient?.date_of_birth || ''}
-                                    disabled
-                                    className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 sm:text-sm cursor-not-allowed"
-                                />
-                            </div>
                         </div>
                     </div>
 
-                    {/* --- Section 2: Visit & Billing --- */}
+                    {/* --- Section 2: Visit & Billing (Keep existing logic) --- */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        
                         {/* Visit Details */}
                         <div className="bg-white shadow-sm rounded-lg">
                             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center">

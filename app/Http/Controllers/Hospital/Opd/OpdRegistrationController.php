@@ -16,6 +16,7 @@ use App\Models\Opd\OpdTreatmentPoint;
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\MedicalRecord\MrVitalSign;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class OpdRegistrationController extends Controller
 {
@@ -100,22 +101,25 @@ class OpdRegistrationController extends Controller
     /**
      * Store a newly created registration (New OR Revisit).
      */
-    public function store(Request $request)
-    {
-        // 1. Determine Validation Rules
+   public function store(Request $request)
+    {     
+
         $isRevisit = $request->filled('existing_patient_code');
 
         $rules = [
-            // Visit Info
             'treatmentpoint_id' => 'required|exists:opd_treatmentpoints,id',
             'doctor_user_id'    => 'nullable|exists:users,id', 
             'billinggroup_id'   => 'required|exists:patient_billing_groups,id',
-            'schemeid'          => 'nullable|string|max:50',
+            
+            // // --- ADDED VALIDATION FOR INSURANCE FIELDS ---
+            //'schemeid'                 => 'nullable|string|max:50',
+            'authorizationno'          => 'nullable|string|max:50',
+            'billinggroupmembershipno' => 'nullable|string|max:100', // Card No
+            
             'weight'            => 'nullable|numeric',
             'temp'              => 'nullable|numeric',
         ];
-
-        // Only validate patient details if it is a NEW patient
+       
         if (!$isRevisit) {
             $rules = array_merge($rules, [
                 'first_name'     => 'required|string|max:255',
@@ -126,25 +130,16 @@ class OpdRegistrationController extends Controller
             ]);
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules);     
 
         try {
             DB::beginTransaction();
 
-            // ---------------------------------------------------
-            // 2. Handle Patient (Find or Create)
-            // ---------------------------------------------------
+            // 1. Handle Patient (Same as before)
             if ($isRevisit) {
-                // REVISIT: Use existing code
                 $patientCode = $request->existing_patient_code;
-                
-                // Optional: Update patient details if provided (e.g. phone number changed)
-                // $patient = Patient::find($patientCode);
-                // $patient->update([...]);
             } else {
-                // NEW: Generate code and create
                 $patientCode = 'PF-' . date('y') . '-' . strtoupper(Str::random(6)); 
-
                 Patient::create([
                     'code'          => $patientCode,
                     'first_name'     => $validated['first_name'],
@@ -152,43 +147,41 @@ class OpdRegistrationController extends Controller
                     'middle_name'    => $request->middle_name,
                     'gender'        => $validated['gender'],
                     'date_of_birth'     => $validated['date_of_birth'],
-                    'national_id'    => $validated['national_id'],
+                    'national_id'    => $validated['national_id'] ?? null,
                     'regdate'       => now(),
                 ]);
             }
 
-            // ---------------------------------------------------
-            // 3. Prepare Snapshots
-            // ---------------------------------------------------
+            // 2. Prepare Snapshots
             $clinicName = OpdTreatmentPoint::find($validated['treatmentpoint_id'])->name;
-            
             $doctorName = null;
             if ($request->filled('doctor_user_id')) {
                 $doctorName = User::find($request->doctor_user_id)?->name;
             }
-
+            
             $hasVitals = !empty($validated['weight']) || !empty($validated['temp']);
             $vitalsStatus = $hasVitals ? 'Closed' : 'Pending';
 
-            // ---------------------------------------------------
-            // 4. Create OPD Booking
-            // ---------------------------------------------------
+            // 3. Create OPD Booking
             $booking = OpdBooking::create([
                 'bookdate'           => now(),
-                'patientcode'        => $patientCode, // Use the determined code
+                'patientcode'        => $patientCode,
                 'treatmentpoint_id'  => $validated['treatmentpoint_id'],
                 'billinggroup_id'    => $validated['billinggroup_id'],
                 'doctor_user_id'     => $validated['doctor_user_id'],
                 'user_id'            => auth()->id(),
                 'wheretaken'         => $clinicName,
                 'DoctorName'         => $doctorName,
-                'schemeid'           => $validated['schemeid'],
                 'vitalsignstatus'    => $vitalsStatus,
+                'consultation_status'=> 'Pending',
+
+                // --- SAVE INSURANCE DETAILS ---
+                'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null, // Card No
+                'authorizationno'          => $validated['authorizationno'] ?? null,          // Auth No
+                'schemeid'                 => $request->schemeid ?? null,//$validated['schemeid'] ?? null,                 // Scheme Code
             ]);
 
-            // ---------------------------------------------------
-            // 5. Create Vital Sign Record
-            // ---------------------------------------------------
+            // 4. Create Vitals (Same as before)
             if ($hasVitals) {
                 MrVitalSign::create([
                     'opd_booking_id' => $booking->id,
@@ -201,18 +194,13 @@ class OpdRegistrationController extends Controller
             }
 
             DB::commit();
-
-            return redirect()->route('outpatient0.index')
-                ->with('success', 'Registration Successful. File No: ' . $patientCode);
+            return redirect()->route('outpatient0.index')->with('success', 'Registration Successful. File: ' . $patientCode);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Registration failed: ' . $e->getMessage()]);
         }
-
-        
     }
-
     // ... existing index, create, store methods ...
 
     /**
@@ -258,6 +246,8 @@ class OpdRegistrationController extends Controller
             // Allow basic patient edits
             'first_name'     => 'required|string|max:255',
             'last_name'       => 'required|string|max:255',
+            'middle_name'     => 'nullable|string|max:255',
+            'date_of_birth'   => 'nullable|date',
             'contact'       => 'nullable|string|max:50',
             
             // Allow booking edits
@@ -271,6 +261,8 @@ class OpdRegistrationController extends Controller
             $patient->update([
                 'first_name' => $validated['first_name'],
                 'last_name'   => $validated['last_name'],
+                'middle_name' => $validated['middle_name'],
+                'date_of_birth' => $validated['date_of_birth'],
                 // Update contact if column exists
             ]);
 

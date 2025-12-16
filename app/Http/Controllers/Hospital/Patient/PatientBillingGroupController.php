@@ -33,7 +33,7 @@ class PatientBillingGroupController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:50',
+            //'code' => 'nullable|string|max:50',
             'pricecategory' => 'nullable|string|max:50',
             // Configuration Flags (Integers/Booleans based on your migration)
             'hasid' => 'boolean',
@@ -43,6 +43,9 @@ class PatientBillingGroupController extends Controller
             'isdefault' => 'boolean',
             'isexemption' => 'boolean',
             'inactive' => 'boolean',
+            'url' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
+            'password' => 'nullable|string|max:255',
         ]);
 
         PatientBillingGroup::create($validated);
@@ -65,7 +68,7 @@ class PatientBillingGroupController extends Controller
         
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:50',
+            //'code' => 'nullable|string|max:50',
             'pricecategory' => 'nullable|string|max:50',
             'hasid' => 'boolean',
             'hasceiling' => 'boolean',
@@ -74,6 +77,9 @@ class PatientBillingGroupController extends Controller
             'isdefault' => 'boolean',
             'isexemption' => 'boolean',
             'inactive' => 'boolean',
+            'url' => 'nullable|string|max:255',
+            'username' => 'nullable|string|max:255',
+            'password' => 'nullable|string|max:255',
         ]);
 
         $group->update($validated);
