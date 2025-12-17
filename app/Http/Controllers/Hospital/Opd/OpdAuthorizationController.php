@@ -22,7 +22,7 @@ class OpdAuthorizationController extends Controller
 
         $group = PatientBillingGroup::find($request->group_id);
 
-        if (!$group || !$group->url) {
+        if (!$group || !$group->verification_url) {
             return response()->json(['error' => 'API URL is missing settings.'], 400);
         }
 
@@ -31,7 +31,7 @@ class OpdAuthorizationController extends Controller
             if (!$token) return response()->json(['error' => 'Auth Failed: No Token'], 401);
 
             // Construct URL
-            $baseUrl = rtrim($group->url, '/');
+            $baseUrl = rtrim($group->verification_url, '/');
             if (!str_ends_with($baseUrl, 'breeze')) $baseUrl .= '/breeze';
             $endpoint = $baseUrl . '/verification/GetCardDetails';
 
@@ -73,7 +73,7 @@ class OpdAuthorizationController extends Controller
                 return response()->json(['error' => 'Authentication Failed: Could not get Token'], 401);
             }
             
-            $baseUrl = rtrim($group->url, '/');
+            $baseUrl = rtrim($group->verification_url, '/');
             if (!str_ends_with($baseUrl, 'breeze')) {
                 $baseUrl .= '/breeze';
             }
@@ -127,7 +127,7 @@ class OpdAuthorizationController extends Controller
     private function getToken($group)
     {
         // Token URL is typically at root, not inside /breeze
-        $baseUrl = rtrim($group->url, '/');
+        $baseUrl = rtrim($group->verification_url, '/');
         $baseUrl = preg_replace('/\/breeze$/', '', $baseUrl); // Remove /breeze if present
         $tokenUrl = $baseUrl . '/Token';
 

@@ -3,9 +3,15 @@
 namespace App\Http\Controllers\Hospital\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Models\Patient\PatientBillingGroup;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+
+// Models
+use App\Models\Patient\PatientBillingGroup;
+use App\Models\Billing\BlsNhifPackage; // Ensure you created this model in previous steps
 
 class PatientBillingGroupController extends Controller
 {
@@ -19,8 +25,9 @@ class PatientBillingGroupController extends Controller
         }
 
         return Inertia::render('SystemConfiguration/FacilitySetup/BillingGroups/Index', [
-            'groups' => $query->latest()->paginate(10),
+            'groups' => $query->latest()->paginate(10)->withQueryString(),
             'filters' => $request->only(['search']),
+            'success' => session('success'),
         ]);
     }
 
@@ -32,9 +39,9 @@ class PatientBillingGroupController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',          
+            'name' => 'required|string|max:255',
+            //'code' => 'nullable|string|max:50',
             'pricecategory' => 'nullable|string|max:50',
-            // Configuration Flags (Integers/Booleans based on your migration)
             'hasid' => 'boolean',
             'hasceiling' => 'boolean',
             'ceilingamount' => 'nullable|numeric',
@@ -42,12 +49,12 @@ class PatientBillingGroupController extends Controller
             'isdefault' => 'boolean',
             'isexemption' => 'boolean',
             'inactive' => 'boolean',
-            // API Credentials
-            'verification_url' => 'nullable|string|max:255',
-            'claims_url' => 'nullable|string|max:255',
-            'facility_code' => 'nullable|string|max:50',
+            // API Config           
             'username' => 'nullable|string|max:255',
             'password' => 'nullable|string|max:255',
+            'facility_code' => 'nullable|string|max:50',
+            'verification_url' => 'nullable|string|max:255',
+            'claims_url' => 'nullable|string|max:255',
         ]);
 
         PatientBillingGroup::create($validated);
@@ -69,7 +76,8 @@ class PatientBillingGroupController extends Controller
         $group = PatientBillingGroup::findOrFail($id);
         
         $validated = $request->validate([
-            'name' => 'required|string|max:255',           
+            'name' => 'required|string|max:255',
+            //'code' => 'nullable|string|max:50',
             'pricecategory' => 'nullable|string|max:50',
             'hasid' => 'boolean',
             'hasceiling' => 'boolean',
@@ -78,12 +86,12 @@ class PatientBillingGroupController extends Controller
             'isdefault' => 'boolean',
             'isexemption' => 'boolean',
             'inactive' => 'boolean',
-            // API Credentials
-            'verification_url' => 'nullable|string|max:255',
-            'claims_url' => 'nullable|string|max:255',
-            'facility_code' => 'nullable|string|max:50',
+            // API Config
             'username' => 'nullable|string|max:255',
             'password' => 'nullable|string|max:255',
+            'facility_code' => 'nullable|string|max:50',
+            'verification_url' => 'nullable|string|max:255',
+            'claims_url' => 'nullable|string|max:255',
         ]);
 
         $group->update($validated);
@@ -96,6 +104,8 @@ class PatientBillingGroupController extends Controller
     {
         try {
             $group = PatientBillingGroup::findOrFail($id);
+            // Optional: delete associated packages first
+            BlsNhifPackage::where('billing_group_id', $group->id)->delete();
             $group->delete();
             return redirect()->back()->with('success', 'Billing Group deleted.');
         } catch (\Exception $e) {
@@ -103,72 +113,162 @@ class PatientBillingGroupController extends Controller
         }
     }
 
-     /**
-     * Load Packages from NHIF (Replicates your PHP script)
+    /**
+     * Load Packages from NHIF API
+     */
+    /**
+     * Load Packages from NHIF API
      */
     public function loadPackages(Request $request, PatientBillingGroup $group)
     {
+        // 1. INCREASE EXECUTION TIME
+        // Allow script to run for up to 5 minutes (300 seconds)
+        set_time_limit(300); 
+
+        // Validation
         if (!$group->facility_code || !$group->username || !$group->password) {
-            return back()->withErrors(['error' => 'Missing Facility Code or Credentials.']);
+            return back()->withErrors(['error' => 'Missing Facility Code, Username, or Password.']);
+        }
+        if (empty($group->claims_url) && empty($group->url)) {
+            return back()->withErrors(['error' => 'No API URL configured.']);
         }
 
-        // 1. Determine Endpoints
-        // Your script uses a different URL for claims/packages than verification
-        // Default to the one saved in 'claims_url', or fallback to 'url' logic if not set
-        $baseUrl = rtrim($group->claims_url ?? $group->url, '/'); 
+        // URL Setup
+        $claimsBaseUrl = rtrim($group->claims_url ?? $group->url, '/');
+        $claimsRootUrl = preg_replace('/\/api\/v1\/?$/', '', $claimsBaseUrl);
         
-        // Token Endpoint (Usually common)
-        // Logic: http://test.nhif.or.tz/claimsserver/Token
-        // Remove 'api/v1' if present to find root
-        $rootUrl = preg_replace('/\/api\/v1\/?$/', '', $baseUrl);
-        $tokenUrl = $rootUrl . '/Token';
-        
-        // Service Endpoint: http://test.nhif.or.tz/claimsserver/api/v1/
-        $serviceUrl = $rootUrl . '/api/v1/';
+        $serviceUrl = $claimsRootUrl;
+        if (!str_ends_with($serviceUrl, '/api/v1')) {
+             $serviceUrl .= '/api/v1';
+        }
+
+        // Token URLs
+        $primaryTokenUrl = $claimsRootUrl . '/Token';
+        $verificationBaseUrl = rtrim($group->url, '/');
+        $verificationRootUrl = preg_replace('/\/breeze\/?$/', '', $verificationBaseUrl);
+        $fallbackTokenUrl = $verificationRootUrl . '/Token';
+
+        $token = null;
 
         try {
-            // 2. Get Token
-            $tokenResponse = Http::asForm()->withoutVerifying()->post($tokenUrl, [
-                'grant_type' => 'password',
-                'username' => $group->username,
-                'password' => $group->password,
-            ]);
+            // Authenticate
+            Log::info("NHIF Package Load: Trying Token URL: $primaryTokenUrl");
+            $token = $this->fetchToken($primaryTokenUrl, $group);
 
-            if ($tokenResponse->failed()) {
-                return back()->withErrors(['error' => 'Authentication Failed: ' . $tokenResponse->body()]);
+            if (!$token && $primaryTokenUrl !== $fallbackTokenUrl) {
+                Log::warning("Primary Token failed. Trying Fallback: $fallbackTokenUrl");
+                $token = $this->fetchToken($fallbackTokenUrl, $group);
             }
-            $token = $tokenResponse->json()['access_token'];
 
-            // 3. Fetch Packages
-            // Replicates: Packages/GetPricePackageWithExcludedServices?FacilityCode=...
-            $endpoint = $serviceUrl . 'Packages/GetPricePackageWithExcludedServices';
-            
-            // Increase timeout for large package lists (your script had 90s)
+            if (!$token) {
+                return back()->withErrors(['error' => 'Authentication Failed. Check logs.']);
+            }
+
+            // Fetch Packages
+            $endpoint = $serviceUrl . '/Packages/GetPricePackageWithExcludedServices';
+            Log::info("NHIF Fetching Packages from: $endpoint");
+
             $response = Http::withToken($token)
-                ->timeout(120) 
                 ->withoutVerifying()
+                ->timeout(180) // 3 minutes HTTP timeout
                 ->get($endpoint, [
                     'FacilityCode' => $group->facility_code
                 ]);
 
             if ($response->successful()) {
-                $packages = $response->json();
+                $data = $response->json();
+                $packages = $data['PricePackage'] ?? $data; 
+
+                if (!is_array($packages)) {
+                    return back()->withErrors(['error' => 'Invalid data format from NHIF.']);
+                }
+
+                // --- OPTIMIZED BATCH INSERT ---
+                DB::transaction(function () use ($group, $packages) {
+                    // 1. Wipe existing
+                    BlsNhifPackage::where('billing_group_id', $group->id)->delete();
+
+                    // 2. Prepare Chunks
+                    // Inserting 5000 records one by one takes ~30s. Batching takes ~2s.
+                    $chunks = array_chunk($packages, 500); 
+                    $now = now();
+
+                    foreach ($chunks as $chunk) {
+                        $insertData = [];
+                        foreach ($chunk as $pkg) {
+                            $insertData[] = [
+                                'billing_group_id' => $group->id,
+                                'item_code'        => $pkg['ItemCode'],
+                                'item_name'        => $pkg['ItemName'],
+                                'package_id'       => $pkg['PackageID'],
+                                'scheme_id'        => $pkg['SchemeID'] ?? null,
+                                'unit_price'       => $pkg['UnitPrice'],
+                                'is_restricted'    => $pkg['IsRestricted'] ?? false,
+                                'created_at'       => $now,
+                                'updated_at'       => $now,
+                            ];
+                        }
+                        // Bulk Insert
+                        BlsNhifPackage::insert($insertData);
+                    }
+                });
                 
-                // TODO: Save $packages to your 'bill_items' or 'price_list' table here.
-                // Example logic:
-                // foreach($packages as $pkg) {
-                //      BillItem::updateOrCreate(['code' => $pkg['ItemCode']], ['price' => $pkg['Amount'] ...]);
-                // }
-                
-                $count = count($packages);
-                return back()->with('success', "Successfully loaded {$count} packages from NHIF.");
+                return back()->with('success', "Loaded " . count($packages) . " packages successfully.");
             }
 
-            return back()->withErrors(['error' => 'Failed to fetch packages: ' . $response->body()]);
+            return back()->withErrors(['error' => "Fetch Failed: " . $response->status()]);
 
         } catch (\Exception $e) {
-            Log::error("NHIF Package Load Error: " . $e->getMessage());
+            Log::error("NHIF Error: " . $e->getMessage());
             return back()->withErrors(['error' => 'System Error: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Helper to perform the Token POST request
+     */
+    private function fetchToken($url, $group)
+    {
+        try {
+            $response = Http::asForm()
+                ->withoutVerifying()
+                ->timeout(20)
+                ->post($url, [
+                    'grant_type' => 'password',
+                    'username' => $group->username,
+                    'password' => $group->password,
+                ]);
+
+            if ($response->successful()) {
+                return $response->json()['access_token'] ?? null;
+            }
+            
+            Log::error("NHIF Token Error [{$url}]: " . $response->status() . " - " . $response->body());
+            return null;
+        } catch (\Exception $e) {
+            Log::error("NHIF Token Exception [{$url}]: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * View Loaded Packages
+     */
+    public function viewPackages(Request $request, PatientBillingGroup $group)
+    {
+        $query = BlsNhifPackage::where('billing_group_id', $group->id);
+
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('item_name', 'like', "%{$request->search}%")
+                  ->orWhere('item_code', 'like', "%{$request->search}%");
+            });
+        }
+
+        return Inertia::render('SystemConfiguration/FacilitySetup/BillingGroups/Packages', [
+            'group' => $group,
+            'packages' => $query->paginate(20)->withQueryString(),
+            'filters' => $request->only(['search'])
+        ]);
     }
 }

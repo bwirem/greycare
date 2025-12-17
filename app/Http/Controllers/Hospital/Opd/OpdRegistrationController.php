@@ -102,8 +102,7 @@ class OpdRegistrationController extends Controller
      * Store a newly created registration (New OR Revisit).
      */
    public function store(Request $request)
-    {     
-
+    {  
         $isRevisit = $request->filled('existing_patient_code');
 
         $rules = [
@@ -118,7 +117,7 @@ class OpdRegistrationController extends Controller
             
             'weight'            => 'nullable|numeric',
             'temp'              => 'nullable|numeric',
-        ];
+        ];     
        
         if (!$isRevisit) {
             $rules = array_merge($rules, [
@@ -127,8 +126,11 @@ class OpdRegistrationController extends Controller
                 'gender'        => 'required|string|in:Male,Female',
                 'date_of_birth'     => 'required|date',
                 'national_id'    => 'nullable|string|max:50|unique:patients,national_id',
+                'phone_number'  => 'required|string|max:50',
             ]);
         }
+
+      
 
         $validated = $request->validate($rules);     
 
@@ -139,7 +141,9 @@ class OpdRegistrationController extends Controller
             if ($isRevisit) {
                 $patientCode = $request->existing_patient_code;
             } else {
+
                 $patientCode = 'PF-' . date('y') . '-' . strtoupper(Str::random(6)); 
+              
                 Patient::create([
                     'code'          => $patientCode,
                     'first_name'     => $validated['first_name'],
@@ -148,8 +152,9 @@ class OpdRegistrationController extends Controller
                     'gender'        => $validated['gender'],
                     'date_of_birth'     => $validated['date_of_birth'],
                     'national_id'    => $validated['national_id'] ?? null,
-                    'regdate'       => now(),
+                    'phone_number'  => $validated['phone_number'], 
                 ]);
+               
             }
 
             // 2. Prepare Snapshots

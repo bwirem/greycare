@@ -37,6 +37,7 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
         date_of_birth: '',
         age: '', // Calculated field for display/input
         national_id: '',
+        phone_number: '',
         
         // Visit Details (Filled in Booking Modal)
         treatmentpoint_id: '',
@@ -137,6 +138,7 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
             date_of_birth: patient.date_of_birth,
             age: age,
             national_id: patient.national_id || '',
+            phone_number: patient.phone_number || '',
         }));
     };
 
@@ -172,7 +174,8 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
             gender: values.gender || authData.patient_details.gender,
             date_of_birth: values.date_of_birth || authData.patient_details.date_of_birth,
             age: values.age || apiAge,
-            national_id: values.national_id || authData.patient_details.national_id
+            national_id: values.national_id || authData.patient_details.national_id,
+            phone_number: values.phone_number || authData.patient_details.phone_number
         }));
     };
 
@@ -375,16 +378,30 @@ export default function OpdCreate({ auth, treatmentPoints, billingGroups, doctor
                                 </div>
                             </div>
 
-                            {/* National ID */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">National ID / Passport</label>
-                                <input
-                                    type="text"
-                                    value={data.national_id}
-                                    onChange={e => setData('national_id', e.target.value)}
-                                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                                    disabled={isRevisit}
-                                />
+                            {/* National ID and Phone Number */}
+                            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">National ID / Passport</label>
+                                    <input
+                                        type="text"
+                                        value={data.national_id}
+                                        onChange={e => setData('national_id', e.target.value)}
+                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                                        disabled={isRevisit}
+                                    />
+                                </div>                               
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                    <input
+                                        type="text"
+                                        value={data.phone_number}
+                                        onChange={e => setData('phone_number', e.target.value)}
+                                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                                        required
+                                        disabled={isRevisit}
+                                    />
+                                    {errors.phone_number && <div className="text-red-500 text-xs mt-1">{errors.phone_number}</div>}
+                                </div>
                             </div>
                         </div>
                     </div>

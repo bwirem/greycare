@@ -10,9 +10,10 @@ use Illuminate\Support\Facades\DB;
 // --- Imported Models ---
 use App\Models\BILSale;             // Sales
 use App\Models\PROPurchase;         // Procurement
-use App\Models\SPR_Supplier;        // Suppliers
-use App\Models\SIV_Store;           // Stores
-use App\Models\SIV_Product;         // Products
+
+use App\Models\Inventory\SPR_Supplier;        // Suppliers
+use App\Models\Inventory\SIV_Store;           // Stores
+use App\Models\Inventory\SIV_Product;         // Products
 use App\Models\User;                // Users/HR
 
 class DashboardController extends Controller

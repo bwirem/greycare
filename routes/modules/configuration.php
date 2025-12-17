@@ -3,22 +3,22 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 // Billing Controllers
-use App\Http\Controllers\BLSItemGroupController;
-use App\Http\Controllers\BLSItemController;
-use App\Http\Controllers\BLSCurrencyController;
-use App\Http\Controllers\BLSPaymentTypeController;
-use App\Http\Controllers\BLSPriceCategoryController;
-use App\Http\Controllers\BLSCustomerController;
+use App\Http\Controllers\Billing\BLSItemGroupController;
+use App\Http\Controllers\Billing\BLSItemController;
+use App\Http\Controllers\Billing\BLSCurrencyController;
+use App\Http\Controllers\Billing\BLSPaymentTypeController;
+use App\Http\Controllers\Billing\BLSPriceCategoryController;
+use App\Http\Controllers\Billing\BLSCustomerController;
 // Expense Controllers
 use App\Http\Controllers\SEXPItemGroupController;
 use App\Http\Controllers\SEXPItemController;
 // Inventory Controllers
-use App\Http\Controllers\SIV_StoreController;
-use App\Http\Controllers\SIV_ProductCategoryController;
-use App\Http\Controllers\SIV_ProductController;
-use App\Http\Controllers\SIV_PackagingController;
-use App\Http\Controllers\SIV_AdjustmentReasonController;
-use App\Http\Controllers\SPR_SupplierController;
+use App\Http\Controllers\Inventory\SIV_StoreController;
+use App\Http\Controllers\Inventory\SIV_ProductCategoryController;
+use App\Http\Controllers\Inventory\SIV_ProductController;
+use App\Http\Controllers\Inventory\SIV_PackagingController;
+use App\Http\Controllers\Inventory\SIV_AdjustmentReasonController;
+use App\Http\Controllers\Inventory\SPR_SupplierController;
 // Account Controllers
 use App\Http\Controllers\ChartOfAccountController;
 use App\Http\Controllers\ChartOfAccountMappingController;
@@ -79,11 +79,36 @@ use App\Models\Patient\PatientBillingGroup;
 use App\Models\Patient\PatientBillingSubgroup;
 use App\Models\Opd\OpdTreatmentPoint;
 
+use App\Models\Inventory\SIV_Store; 
+use App\Models\Inventory\SIV_ProductCategory;
+use App\Models\Inventory\SIV_Packaging; 
+use App\Models\Inventory\SIV_Product;
+use App\Models\Inventory\SIV_AdjustmentReason;
+use App\Models\Inventory\SPR_Supplier; 
+
+use App\Models\Billing\BLSCurrency;       
+use App\Models\Billing\BLSPaymentType;    
+use App\Models\Billing\BLSPriceCategory; 
+use App\Models\Billing\BLSItemGroup;      
+use App\Models\Billing\BLSItem;           
+use App\Models\Billing\BLSCustomer;      
 
 
 // systemconfiguration0: Billing Setup
 Route::prefix('systemconfiguration0')->name('systemconfiguration0.')->group(function () {
-    Route::get('/', function () { return Inertia::render('SystemConfiguration/BillingSetup/Index'); })->name('index');
+   
+    // Billing Setup Index Route
+    Route::get('/', function () {
+        return Inertia::render('SystemConfiguration/BillingSetup/Index', [
+            'currencyCount'      => BLSCurrency::count(),
+            'paymentTypeCount'   => BLSPaymentType::count(),
+            'priceCategoryCount' => BLSPriceCategory::count(),
+            'itemGroupCount'     => BLSItemGroup::count(),
+            'billingItemCount'   => BLSItem::count(),
+            'customerCount'      => BLSCustomer::count(),
+        ]);
+    })->name('index');
+
 
     Route::prefix('currencies')->name('currencies.')->group(function () {
         Route::get('/', [BLSCurrencyController::class, 'index'])->name('index');
@@ -171,7 +196,18 @@ Route::prefix('systemconfiguration1')->name('systemconfiguration1.')->group(func
 
 // systemconfiguration2: Inventory Setup
 Route::prefix('systemconfiguration2')->name('systemconfiguration2.')->group(function () {
-    Route::get('/', function () { return Inertia::render('SystemConfiguration/InventorySetup/Index'); })->name('index');
+   
+    // Main index route
+    Route::get('/', function () {
+        return Inertia::render('SystemConfiguration/InventorySetup/Index', [ // Note: Your vars look like Inventory, not Expenses
+            'storeCount' => SIV_Store::count(),
+            'productCategoryCount' => SIV_ProductCategory::count(),
+            'productUnitCount' => SIV_Packaging::count(),
+            'productRegisterCount' => SIV_Product::count(),
+            'adjustmentReasonCount' => SIV_AdjustmentReason::count(),
+            'supplierCount' => SPR_Supplier::count(),
+        ]);
+    })->name('index');
 
     Route::prefix('stores')->name('stores.')->group(function () {
         Route::get('/', [SIV_StoreController::class, 'index'])->name('index'); 
@@ -347,6 +383,7 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
         Route::put('/{group}', [PatientBillingGroupController::class, 'update'])->name('update');
         Route::delete('/{group}', [PatientBillingGroupController::class, 'destroy'])->name('destroy');      
         Route::post('/{group}/load-packages', [PatientBillingGroupController::class, 'loadPackages'])->name('load_packages');
+        Route::get('/{group}/packages', [PatientBillingGroupController::class, 'viewPackages'])->name('packages');
     });    
 
     // 3. Billing Subgroups

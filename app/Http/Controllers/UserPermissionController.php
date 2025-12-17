@@ -408,13 +408,32 @@ class UserPermissionController extends Controller
     /**
      * Get the function access data.
      */
+    // Backend (PHP - UserPermissionController.php) - getFunctionAccess method
     private function getFunctionAccess(string $key): array
     {
-        return [
+        // Default function access (basic permissions)
+        $defaultFunctionAccess = [
             'create' => false,
             'read' => false,
             'update' => false,
             'delete' => false,
         ];
+
+        if ($key === 'systemconfiguration2') {
+            return array_merge($defaultFunctionAccess, [                
+                'allow_price' => false,                
+            ]);
+        }
+
+        // // Add loan-specific permissions only for 'loan1'
+        if ($key === 'billing3') {
+            return [
+                'read' => false,
+                'void' => false,                            
+            ];
+        }else{
+            return $defaultFunctionAccess; // Return default for other keys
+        }
+        
     }
 }

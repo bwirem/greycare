@@ -13,7 +13,20 @@ return new class extends Migration
     {
         Schema::create('facilityoptions', function (Blueprint $table) {
             $table->id();
-            $table->string('name');             
+            $table->string('name');   
+            $table->string('address')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('email')->nullable();
+            $table->string('website')->nullable();
+            $table->string('tin')->nullable(); // Tax Identification Number
+            $table->string('vrn')->nullable(); // VAT Registration Number
+            $table->string('logo_path')->nullable(); 
+
+            $table->integer('affectstockatcashier')->nullable()->default(1);
+            $table->integer('doubleentryissuing')->nullable()->default(1);
+            $table->integer('allownegativestock')->nullable()->default(0);
+            
+            $table->integer('show_register_button')->default(1);
             $table->timestamps();          
         });
     }

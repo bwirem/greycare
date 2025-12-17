@@ -23,7 +23,8 @@ class AppServiceProvider extends ServiceProvider
         Vite::prefetch(concurrency: 3);
         // This tells Laravel to ALSO look in these folders
         $this->loadMigrationsFrom([
-            database_path('migrations/patient'),
+            // Healthcare modules
+            database_path('migrations/patient'),  
             database_path('migrations/opd_department'),
             database_path('migrations/ipd_department'),
             database_path('migrations/diagnosis'),
@@ -33,6 +34,13 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/theatre'),  
             database_path('migrations/pharmacy'),
             database_path('migrations/bloodbank'),
+            // Administrative modules
+            database_path('migrations/billing'),
+            database_path('migrations/expenses'),
+            database_path('migrations/inventory'),
+            database_path('migrations/procurement'),          
+            database_path('migrations/accounting')           
+
         ]);
     }
 }
