@@ -92,6 +92,19 @@ export default function GroupIndex({ auth, groups, success, filters }) {
                                                 }
                                             </td>
                                             <td className="px-6 py-4 text-center space-x-4">
+                                                {/* NEW BUTTON: Only for Insurance Groups */}
+                                                {group.isinsurance && (
+                                                    <Link
+                                                        href={route('systemconfiguration5.billinggroups.load_packages', group.id)}
+                                                        method="post"
+                                                        as="button"
+                                                        className="text-green-600 hover:text-green-900 flex items-center gap-1"
+                                                        title="Download Price Packages"
+                                                        onStart={() => confirm("This might take a minute. Continue?")}
+                                                    >
+                                                        <FontAwesomeIcon icon={faCloudDownloadAlt} /> Load Pkgs
+                                                    </Link>
+                                                )}
                                                 <Link href={route("systemconfiguration5.billinggroups.edit", item.id)} className="text-blue-600 hover:text-blue-900">
                                                     <FontAwesomeIcon icon={faEdit} />
                                                 </Link>

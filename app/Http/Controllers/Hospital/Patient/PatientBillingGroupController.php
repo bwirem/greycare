@@ -32,8 +32,7 @@ class PatientBillingGroupController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            //'code' => 'nullable|string|max:50',
+            'name' => 'required|string|max:255',          
             'pricecategory' => 'nullable|string|max:50',
             // Configuration Flags (Integers/Booleans based on your migration)
             'hasid' => 'boolean',
@@ -43,7 +42,10 @@ class PatientBillingGroupController extends Controller
             'isdefault' => 'boolean',
             'isexemption' => 'boolean',
             'inactive' => 'boolean',
-            'url' => 'nullable|string|max:255',
+            // API Credentials
+            'verification_url' => 'nullable|string|max:255',
+            'claims_url' => 'nullable|string|max:255',
+            'facility_code' => 'nullable|string|max:50',
             'username' => 'nullable|string|max:255',
             'password' => 'nullable|string|max:255',
         ]);
@@ -67,8 +69,7 @@ class PatientBillingGroupController extends Controller
         $group = PatientBillingGroup::findOrFail($id);
         
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            //'code' => 'nullable|string|max:50',
+            'name' => 'required|string|max:255',           
             'pricecategory' => 'nullable|string|max:50',
             'hasid' => 'boolean',
             'hasceiling' => 'boolean',
@@ -77,7 +78,10 @@ class PatientBillingGroupController extends Controller
             'isdefault' => 'boolean',
             'isexemption' => 'boolean',
             'inactive' => 'boolean',
-            'url' => 'nullable|string|max:255',
+            // API Credentials
+            'verification_url' => 'nullable|string|max:255',
+            'claims_url' => 'nullable|string|max:255',
+            'facility_code' => 'nullable|string|max:50',
             'username' => 'nullable|string|max:255',
             'password' => 'nullable|string|max:255',
         ]);
@@ -96,6 +100,75 @@ class PatientBillingGroupController extends Controller
             return redirect()->back()->with('success', 'Billing Group deleted.');
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Cannot delete group. It might be linked to patients.']);
+        }
+    }
+
+     /**
+     * Load Packages from NHIF (Replicates your PHP script)
+     */
+    public function loadPackages(Request $request, PatientBillingGroup $group)
+    {
+        if (!$group->facility_code || !$group->username || !$group->password) {
+            return back()->withErrors(['error' => 'Missing Facility Code or Credentials.']);
+        }
+
+        // 1. Determine Endpoints
+        // Your script uses a different URL for claims/packages than verification
+        // Default to the one saved in 'claims_url', or fallback to 'url' logic if not set
+        $baseUrl = rtrim($group->claims_url ?? $group->url, '/'); 
+        
+        // Token Endpoint (Usually common)
+        // Logic: http://test.nhif.or.tz/claimsserver/Token
+        // Remove 'api/v1' if present to find root
+        $rootUrl = preg_replace('/\/api\/v1\/?$/', '', $baseUrl);
+        $tokenUrl = $rootUrl . '/Token';
+        
+        // Service Endpoint: http://test.nhif.or.tz/claimsserver/api/v1/
+        $serviceUrl = $rootUrl . '/api/v1/';
+
+        try {
+            // 2. Get Token
+            $tokenResponse = Http::asForm()->withoutVerifying()->post($tokenUrl, [
+                'grant_type' => 'password',
+                'username' => $group->username,
+                'password' => $group->password,
+            ]);
+
+            if ($tokenResponse->failed()) {
+                return back()->withErrors(['error' => 'Authentication Failed: ' . $tokenResponse->body()]);
+            }
+            $token = $tokenResponse->json()['access_token'];
+
+            // 3. Fetch Packages
+            // Replicates: Packages/GetPricePackageWithExcludedServices?FacilityCode=...
+            $endpoint = $serviceUrl . 'Packages/GetPricePackageWithExcludedServices';
+            
+            // Increase timeout for large package lists (your script had 90s)
+            $response = Http::withToken($token)
+                ->timeout(120) 
+                ->withoutVerifying()
+                ->get($endpoint, [
+                    'FacilityCode' => $group->facility_code
+                ]);
+
+            if ($response->successful()) {
+                $packages = $response->json();
+                
+                // TODO: Save $packages to your 'bill_items' or 'price_list' table here.
+                // Example logic:
+                // foreach($packages as $pkg) {
+                //      BillItem::updateOrCreate(['code' => $pkg['ItemCode']], ['price' => $pkg['Amount'] ...]);
+                // }
+                
+                $count = count($packages);
+                return back()->with('success', "Successfully loaded {$count} packages from NHIF.");
+            }
+
+            return back()->withErrors(['error' => 'Failed to fetch packages: ' . $response->body()]);
+
+        } catch (\Exception $e) {
+            Log::error("NHIF Package Load Error: " . $e->getMessage());
+            return back()->withErrors(['error' => 'System Error: ' . $e->getMessage()]);
         }
     }
 }

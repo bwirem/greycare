@@ -345,8 +345,9 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
         Route::post('/', [PatientBillingGroupController::class, 'store'])->name('store');
         Route::get('/{group}/edit', [PatientBillingGroupController::class, 'edit'])->name('edit');
         Route::put('/{group}', [PatientBillingGroupController::class, 'update'])->name('update');
-        Route::delete('/{group}', [PatientBillingGroupController::class, 'destroy'])->name('destroy');
-    });
+        Route::delete('/{group}', [PatientBillingGroupController::class, 'destroy'])->name('destroy');      
+        Route::post('/{group}/load-packages', [PatientBillingGroupController::class, 'loadPackages'])->name('load_packages');
+    });    
 
     // 3. Billing Subgroups
     Route::prefix('billingsubgroups')->name('billingsubgroups.')->group(function () {

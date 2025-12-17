@@ -19,7 +19,9 @@ export default function GroupForm({ group = null }) {
         inactive: group ? Boolean(group.inactive) : false,
 
         // API Credentials (New)
-        url: group?.url || '',
+        facility_code: group?.facility_code || '',
+        verification_url: group?.verification_url || '',
+        claims_url: group?.claims_url || '',
         username: group?.username || '',
         password: group?.password || '',
     });
@@ -123,15 +125,34 @@ export default function GroupForm({ group = null }) {
                     <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-2">
                         <FontAwesomeIcon icon={faLink} /> External API Configuration
                     </h3>
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1 gap-6">                       
+                        <div>
+                            <label className="block text-sm font-medium text-blue-900">Facility Code (NHIF)</label>
+                            <input 
+                                type="text" 
+                                value={data.facility_code} 
+                                onChange={e => setData('facility_code', e.target.value)} 
+                                className="w-full border-blue-300 rounded-md shadow-sm" 
+                            />
+                        </div>                        
                         <div>
                             <label className="block text-sm font-medium text-blue-900">API Base URL</label>
                             <input 
                                 type="text" 
-                                value={data.url} 
-                                onChange={e => setData('url', e.target.value)} 
+                                value={data.verification_url} 
+                                onChange={e => setData('verification_url', e.target.value)} 
                                 className="w-full border-blue-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" 
                                 placeholder="http://196.13.105.15/nhifservice/"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-blue-900">Claims/Package URL</label>
+                            <input 
+                                type="text" 
+                                value={data.claims_url} 
+                                onChange={e => setData('claims_url', e.target.value)} 
+                                className="w-full border-blue-300 rounded-md shadow-sm" 
+                                placeholder="http://test.nhif.or.tz/claimsserver/"
                             />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

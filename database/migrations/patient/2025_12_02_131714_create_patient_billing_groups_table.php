@@ -33,8 +33,10 @@ return new class extends Migration
             $table->integer('isexemption')->default(0);
             $table->integer('inactive')->default(0);
 
-            // API Configuration
-            $table->string('url', 255)->nullable(); // API Base URL
+            // API Configuration           
+            $table->string('facility_code', 50)->nullable();
+            $table->string('verification_url', 255)->nullable(); // API Base URL           
+            $table->string('claims_url', 255)->nullable(); 
             $table->string('username', 100)->nullable();
             $table->string('password', 100)->nullable();    
           
