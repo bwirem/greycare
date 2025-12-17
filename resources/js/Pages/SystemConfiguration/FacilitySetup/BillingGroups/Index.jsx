@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/SystemAndUserLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faPlus, faEdit, faTrash, faHome, faCheck, faTimes, faShieldAlt } from "@fortawesome/free-solid-svg-icons";
+import { faSearch, faPlus, faEdit, faTrash, faHome, faCheck, faTimes, faShieldAlt,faCloudDownloadAlt } from "@fortawesome/free-solid-svg-icons";
 import Modal from '@/Components/CustomModal';
 import Pagination from "@/Components/Pagination";
 import { toast } from 'react-toastify';
@@ -93,9 +93,9 @@ export default function GroupIndex({ auth, groups, success, filters }) {
                                             </td>
                                             <td className="px-6 py-4 text-center space-x-4">
                                                 {/* NEW BUTTON: Only for Insurance Groups */}
-                                                {group.isinsurance && (
+                                                {item.isinsurance && (
                                                     <Link
-                                                        href={route('systemconfiguration5.billinggroups.load_packages', group.id)}
+                                                        href={route('systemconfiguration5.billinggroups.load_packages', item.id)}
                                                         method="post"
                                                         as="button"
                                                         className="text-green-600 hover:text-green-900 flex items-center gap-1"
