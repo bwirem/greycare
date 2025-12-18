@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 // Import all necessary Models and Enums for the voiding process
-use App\Models\{
+use App\Models\Billing\{
     BILSale,
     BILReceipt,
     BILInvoice,

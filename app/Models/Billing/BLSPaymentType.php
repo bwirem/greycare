@@ -5,6 +5,8 @@ namespace App\Models\Billing;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use App\Models\ChartOfAccount;
+
 class BLSPaymentType extends Model
 {
     /**

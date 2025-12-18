@@ -3,7 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\UserGroup;
-use App\Models\SIV_Store;
+use App\Models\Inventory\SIV_Store;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;

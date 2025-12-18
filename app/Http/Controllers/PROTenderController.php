@@ -7,7 +7,7 @@ use App\Models\PROTenderItem;
 use App\Models\PROTenderQuotation;
 
 use App\Models\PROPurchase;
-use App\Models\FacilityOption;
+use App\Models\Facility\FacilityOption;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

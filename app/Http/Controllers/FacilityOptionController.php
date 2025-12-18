@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FacilityOption;
-use App\Models\ChartOfAccount;
-use App\Models\BLSCustomer;
+use App\Models\Facility\FacilityOption;
+use App\Models\Accounting\ChartOfAccount;
+use App\Models\Billing\BLSCustomer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage; // Import Storage
 

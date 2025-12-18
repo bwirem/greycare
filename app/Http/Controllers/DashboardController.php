@@ -8,8 +8,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 // --- Imported Models ---
-use App\Models\BILSale;             // Sales
-use App\Models\PROPurchase;         // Procurement
+use App\Models\Billing\BILSale;             // Sales
+use App\Models\Procurement\PROPurchase;         // Procurement
 
 use App\Models\Inventory\SPR_Supplier;        // Suppliers
 use App\Models\Inventory\SIV_Store;           // Stores

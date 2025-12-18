@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\BILProductControl;
-use App\Models\BILProductCostLog;
-use App\Models\BILProductExpiryDates;
-use App\Models\BILProductTransactions;
-use App\Models\BILPhysicalStockBalance;
-use App\Models\IVPhysicalInventory;
-use App\Models\SIV_Product;
+use App\Models\Inventory\IVProductControl;
+use App\Models\Inventory\IVProductCostLog;
+use App\Models\Inventory\IVProductExpiryDates;
+use App\Models\Inventory\IVProductTransactions;
+use App\Models\Inventory\IVPhysicalStockBalance;
+use App\Models\Inventory\IVPhysicalInventory;
+use App\Models\Inventory\SIV_Product;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +25,7 @@ class PhysicalInventoryService
      * 2. Calculates the difference (delta) between expected and counted stock.
      * 3. Creates adjustment transactions for the deltas.
      * 4. Updates product costs.
-     * 5. Resets the master stock level (BILProductControl) to the counted quantity.
+     * 5. Resets the master stock level (IVProductControl) to the counted quantity.
      * 6. Creates a historical snapshot of the stock balance.
      *
      * @param IVPhysicalInventory $inventory
@@ -52,7 +52,7 @@ class PhysicalInventoryService
 
             // --- 2. Clear existing expiry dates for these products in this store ---
             // This prepares for a clean slate based on the new count.
-            BILProductExpiryDates::where('store_id', $storeId)
+            IVProductExpiryDates::where('store_id', $storeId)
                 ->whereIn('product_id', $productIds)
                 ->delete();
 
@@ -71,7 +71,7 @@ class PhysicalInventoryService
                 // --- 3. Create new expiry date records from the count ---
                 // (Assuming your physical count includes expiry date information)
                 if ($item->expirydate && $countedQty > 0) {
-                    BILProductExpiryDates::create([
+                    IVProductExpiryDates::create([
                         'store_id' => $storeId,
                         'product_id' => $product->id,
                         'expirydate' => $item->expirydate,
@@ -83,7 +83,7 @@ class PhysicalInventoryService
                 // --- 4. Handle Discrepancies (Delta) by creating transactions ---
                 $deltaQty = $countedQty - $expectedQty;
                 if ($deltaQty != 0) {
-                    BILProductTransactions::create([
+                    IVProductTransactions::create([
                         'transdate' => $transDate,
                         'sourcecode' => 'PHYSINV',
                         'sourcedescription' => $inventory->description ?: 'Physical Inventory Adjustment',
@@ -104,7 +104,7 @@ class PhysicalInventoryService
                         'averagecost' => $transPrice, // Simplified logic based on original code
                     ]);
 
-                    BILProductCostLog::create([
+                    IVProductCostLog::create([
                         'sysdate' => now(),
                         'transdate' => $transDate,
                         'product_id' => $product->id,
@@ -113,22 +113,22 @@ class PhysicalInventoryService
                 }
             }
 
-            // --- 6. Set the final, authoritative stock quantity in BILProductControl ---
+            // --- 6. Set the final, authoritative stock quantity in IVProductControl ---
             foreach ($productControlQuantities as $productId => $totalCountedQty) {
-                BILProductControl::updateOrCreate(
+                IVProductControl::updateOrCreate(
                     ['product_id' => $productId],
                     ['qty_' . $storeId => $totalCountedQty]
                 );
             }
 
             // --- 7. Update the historical physical stock balance snapshot ---
-            BILPhysicalStockBalance::where('transdate', $transDate)
+            IVPhysicalStockBalance::where('transdate', $transDate)
                 ->where('store_id', $storeId)
                 ->whereIn('product_id', $productIds)
                 ->delete();
 
             foreach ($productControlQuantities as $productId => $totalCountedQty) {
-                BILPhysicalStockBalance::create([
+                IVPhysicalStockBalance::create([
                     'transdate' => $transDate,
                     'store_id' => $storeId,
                     'product_id' => $productId,

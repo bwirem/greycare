@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/FinanceLayout';
 import { Head, usePage } from '@inertiajs/react';
 import ItemForm from './ItemForm';
 import { ToastContainer, toast } from 'react-toastify';

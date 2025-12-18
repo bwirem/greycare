@@ -2,12 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\BilOrderController;
-use App\Http\Controllers\BilPostController;
-use App\Http\Controllers\BilPayController;
-use App\Http\Controllers\BilSalesHistoryController;
-use App\Http\Controllers\BilRepaymentHistoryController;
-use App\Http\Controllers\BilVoidHistoryController;
+use App\Http\Controllers\Billing\BilOrderController;
+use App\Http\Controllers\Billing\BilPostController;
+use App\Http\Controllers\Billing\BilPayController;
+use App\Http\Controllers\Billing\BilSalesHistoryController;
+use App\Http\Controllers\Billing\BilRepaymentHistoryController;
+use App\Http\Controllers\Billing\BilVoidHistoryController;
 
 // Main Hub
 Route::prefix('billing')->name('billing.')->group(function () {
@@ -58,6 +58,8 @@ Route::prefix('billing2')->name('billing2.')->group(function () {
     Route::get('/{debtor}/edit', [BilPayController::class, 'edit'])->name('edit');
     Route::post('/pay', [BilPayController::class, 'pay'])->name('pay');
     Route::put('/pay/{debtor}', [BilPayController::class, 'pay'])->name('pay_update');
+    // --- ADD THIS LINE ---
+    Route::get('/receipt-preview', [BilPayController::class, 'receiptPreview'])->name('receipt_preview');
 });
 
 // billing3: Sales History

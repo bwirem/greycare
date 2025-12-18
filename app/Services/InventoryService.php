@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\BILProductControl;
-use App\Models\BILProductExpiryDates;
-use App\Models\BILProductTransactions;
-use App\Models\IVIssue;
-use App\Models\IVReceive;
-use App\Models\SIV_Store;
+use App\Models\Inventory\IVProductControl;
+use App\Models\Inventory\IVProductExpiryDates;
+use App\Models\Inventory\IVProductTransactions;
+use App\Models\Inventory\IVIssue;
+use App\Models\Inventory\IVReceive;
+use App\Models\Inventory\SIV_Store;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -131,7 +131,7 @@ class InventoryService
     private function updateStockLevelsOnIssue(int $storeId, array $item, ?string $expiryDate): void
     {
         if ($expiryDate) {
-            $productExpiry = BILProductExpiryDates::where('store_id', $storeId)
+            $productExpiry = IVProductExpiryDates::where('store_id', $storeId)
                 ->where('product_id', $item['product_id'])
                 ->where('expirydate', $expiryDate)
                 ->first();
@@ -144,14 +144,14 @@ class InventoryService
             }
         }
 
-        $productControl = BILProductControl::firstOrCreate(['product_id' => $item['product_id']]);
+        $productControl = IVProductControl::firstOrCreate(['product_id' => $item['product_id']]);
         $productControl->decrement('qty_' . $storeId, $item['quantity']);
     }
     
     private function updateStockLevelsOnReceive(int $storeId, array $item, ?string $expiryDate): void
     {
         if ($expiryDate) {
-            BILProductExpiryDates::updateOrCreate(
+            IVProductExpiryDates::updateOrCreate(
                 [
                     'store_id' => $storeId,
                     'product_id' => $item['product_id'],
@@ -161,7 +161,7 @@ class InventoryService
             );
         }
 
-        $productControl = BILProductControl::firstOrCreate(['product_id' => $item['product_id']]);
+        $productControl = IVProductControl::firstOrCreate(['product_id' => $item['product_id']]);
         $productControl->increment('qty_' . $storeId, $item['quantity']);
     }
 
@@ -198,7 +198,7 @@ class InventoryService
             $transactionData['qtyin_' . $toStoreId] = $item['quantity'];
         }
 
-        BILProductTransactions::create($transactionData);
+        IVProductTransactions::create($transactionData);
     }
 
     public function createReceiveRecord(

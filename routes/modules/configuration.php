@@ -74,7 +74,7 @@ use App\Http\Controllers\BloodBank\BbDeferralReasonController;
 
 
 // Models
-use App\Models\FacilityOption;
+use App\Models\Facility\FacilityOption;
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\Patient\PatientBillingSubgroup;
 use App\Models\Opd\OpdTreatmentPoint;
@@ -155,7 +155,10 @@ Route::prefix('systemconfiguration0')->name('systemconfiguration0.')->group(func
         Route::put('/{item}', [BLSItemController::class, 'update'])->name('update'); 
         Route::get('/search', [BLSItemController::class, 'search'])->name('search'); 
         Route::delete('/{item}', [BLSItemController::class, 'destroy'])->name('destroy');
+        
         Route::patch('/{item}/update-prices', [BLSItemController::class, 'updatePrices'])->name('update-prices');
+        Route::get('/{item}/availability', [BLSItemController::class, 'checkAvailability'])->name('availability');
+
     });
 
     Route::prefix('customers')->name('customers.')->group(function () {
