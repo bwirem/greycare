@@ -3,7 +3,7 @@
 namespace App\Models\Pharmacy;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\SIV_Product; 
+use App\Models\Inventory\SIV_Product; 
 
 class PharmacyDrugDetail extends Model
 {

@@ -10,8 +10,8 @@ use App\Http\Controllers\Billing\BLSPaymentTypeController;
 use App\Http\Controllers\Billing\BLSPriceCategoryController;
 use App\Http\Controllers\Billing\BLSCustomerController;
 // Expense Controllers
-use App\Http\Controllers\SEXPItemGroupController;
-use App\Http\Controllers\SEXPItemController;
+use App\Http\Controllers\Expenses\SEXPItemGroupController;
+use App\Http\Controllers\Expenses\SEXPItemController;
 // Inventory Controllers
 use App\Http\Controllers\Inventory\SIV_StoreController;
 use App\Http\Controllers\Inventory\SIV_ProductCategoryController;
@@ -20,16 +20,16 @@ use App\Http\Controllers\Inventory\SIV_PackagingController;
 use App\Http\Controllers\Inventory\SIV_AdjustmentReasonController;
 use App\Http\Controllers\Inventory\SPR_SupplierController;
 // Account Controllers
-use App\Http\Controllers\ChartOfAccountController;
-use App\Http\Controllers\ChartOfAccountMappingController;
+use App\Http\Controllers\Accounting\ChartOfAccountController;
+use App\Http\Controllers\Accounting\ChartOfAccountMappingController;
 // Location Controllers
-use App\Http\Controllers\LOCCountryController;
-use App\Http\Controllers\LOCRegionController;
-use App\Http\Controllers\LOCDistrictController;
-use App\Http\Controllers\LOCWardController;
-use App\Http\Controllers\LOCStreetController;
+use App\Http\Controllers\Facility\LOCCountryController;
+use App\Http\Controllers\Facility\LOCRegionController;
+use App\Http\Controllers\Facility\LOCDistrictController;
+use App\Http\Controllers\Facility\LOCWardController;
+use App\Http\Controllers\Facility\LOCStreetController;
 // Facility Controllers
-use App\Http\Controllers\FacilityOptionController;
+use App\Http\Controllers\Facility\FacilityOptionController;
 
 // Diagnosis Controllers
 use App\Http\Controllers\Diagnosis\DxtDiagnosesGroupController;

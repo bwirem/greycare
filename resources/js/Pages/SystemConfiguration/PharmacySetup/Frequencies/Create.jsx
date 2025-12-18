@@ -1,5 +1,5 @@
 import React from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head } from '@inertiajs/react';
 import FrequencyForm from './FrequencyForm';
 

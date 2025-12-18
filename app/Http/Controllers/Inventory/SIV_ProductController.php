@@ -12,17 +12,17 @@ use App\Models\Billing\BLSItem;
 use App\Models\Billing\BLSItemGroup; 
 use App\Models\Billing\BLSPriceCategory;
 
-use App\Models\BILProductCostLog;
-use App\Models\IVIssueItem;
-use App\Models\IVReceiveItem;
-use App\Models\IVNormalAdjustmentItem;
-use App\Models\IVPhysicalInventoryItem;
-use App\Models\IVRequistionItem;
+use App\Models\Inventory\IVProductCostLog;
+use App\Models\Inventory\IVIssueItem;
+use App\Models\Inventory\IVReceiveItem;
+use App\Models\Inventory\IVNormalAdjustmentItem;
+use App\Models\Inventory\IVPhysicalInventoryItem;
+use App\Models\Inventory\IVRequistionItem;
 
-use App\Models\BILInvoiceItem;
-use App\Models\BILOrderItem;
-use App\Models\BILReceiptItem;
-use App\Models\BILSaleItem;
+use App\Models\Billing\BILInvoiceItem;
+use App\Models\Billing\BILOrderItem;
+use App\Models\Billing\BILReceiptItem;
+use App\Models\Billing\BILSaleItem;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -168,7 +168,7 @@ class SIV_ProductController extends Controller
             // Create the product
             $product = SIV_Product::create($validated);      
             
-            BILProductCostLog::create([
+            IVProductCostLog::create([
                 'sysdate' => now(),
                 'transdate' => now(), 
                 'product_id' => $product->id,
@@ -260,7 +260,7 @@ class SIV_ProductController extends Controller
             $product->update($validated);
             
             if ($costPriceHasChanged) {
-                BILProductCostLog::create([
+                IVProductCostLog::create([
                     'sysdate' => now(),
                     'transdate' => now(), 
                     'product_id' => $product->id,
@@ -488,7 +488,7 @@ class SIV_ProductController extends Controller
                 $product->save();
 
                 // 3. Log the change
-                BILProductCostLog::create([
+                IVProductCostLog::create([
                     'sysdate' => now(),
                     'transdate' => now(),
                     'product_id' => $product->id,

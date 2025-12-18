@@ -2,9 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\ExpPostController;
-use App\Http\Controllers\ExpApprovalController;
-use App\Http\Controllers\ExpHistoryController;
+use App\Http\Controllers\Expenses\ExpPostController;
+use App\Http\Controllers\Expenses\ExpApprovalController;
+use App\Http\Controllers\Expenses\ExpHistoryController;
 
 // Main Hub
 Route::prefix('expenses')->name('expenses.')->group(function () {

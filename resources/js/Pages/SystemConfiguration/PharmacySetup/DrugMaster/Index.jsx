@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Head, Link, router, useForm } from "@inertiajs/react";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import AuthenticatedLayout from "@/Layouts/HospitalLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faEdit, faHome, faCheckCircle, faExclamationCircle, faPills, faFlask } from "@fortawesome/free-solid-svg-icons";
 import Pagination from "@/Components/Pagination";

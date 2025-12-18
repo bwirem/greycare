@@ -2,9 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\ACCMakePaymentController;
-use App\Http\Controllers\ACCReceivePaymentController;
-use App\Http\Controllers\ACCJournalEntryController;
+use App\Http\Controllers\Accounting\ACCMakePaymentController;
+use App\Http\Controllers\Accounting\ACCReceivePaymentController;
+use App\Http\Controllers\Accounting\ACCJournalEntryController;
 
 // Main Hub
 Route::prefix('accounting')->name('accounting.')->group(function () {

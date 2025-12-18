@@ -64,11 +64,8 @@ const allowedResourceItemKeys = [
     'reporting2', // Inventory
     'reporting3', // Material Conversion
 
-    // --- REQUESTED CONFIGURATIONS ---
-    'systemconfiguration0', // Billing Setup
-    'systemconfiguration1', // Expenses (or Inventory depending on your DB)
-    'systemconfiguration2', // Inventory Setup (Standard Key)
-    'systemconfiguration5'  // Facility Setup (Often needed for stores)
+    // --- REQUESTED CONFIGURATIONS ---    
+    'systemconfiguration2', // Inventory Setup (Standard Key)    
 ];
 
 // Icon Map

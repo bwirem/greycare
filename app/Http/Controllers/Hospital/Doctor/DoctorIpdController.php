@@ -19,7 +19,7 @@ use App\Models\Ipd\IpdDischargeSummary;
 use App\Models\Pharmacy\PharmacyPrescription;
 use App\Models\Pharmacy\PharmacyFrequency;
 use App\Models\Pharmacy\PharmacyDuration;
-use App\Models\SIV_Product;
+use App\Models\Inventory\SIV_Product;
 // Models - Diagnoses ICD
 use App\Models\MedicalRecord\MrPatientDiagnosisIcdConfirmed;
 use App\Models\MedicalRecord\MrPatientDiagnosisIcdProvisional;

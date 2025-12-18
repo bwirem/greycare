@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/ResourceLayout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload, faDownload, faSpinner, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 

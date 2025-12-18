@@ -12,7 +12,7 @@ import {
     faBabyCarriage, faRibbon, faClipboardList, faFileSignature, faAmbulance, faBed, faDoorOpen, faThermometerHalf,
     faPills, faNotesMedical, faUserInjured, faSearchPlus, faFileMedical, faFileMedicalAlt, faCut, faCalendarCheck,
     faHandsHelping, faVials, faVial, faPoll, faHandHoldingHeart, faXRay, faImages, faVenusMars, faBaby,
-    faHandHoldingMedical, faChild, faSyringe, faIdCard, faTablets,
+    faHandHoldingMedical, faChild, faSyringe, faIdCard, faTablets,faSackDollar,
 
     // Mortuary & Pharmacy
     faCross, faBookDead, faHandshake,
@@ -20,6 +20,10 @@ import {
     
     // Additional Icons
     faExchangeAlt,  
+    // Generic Icons
+    faChartBar, faCog,
+    // Setup Icons
+    faFlask,
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -30,6 +34,36 @@ import usePermissionsStore from "@/stores/usePermissionsStore"; // Ensure path i
 // Constants for CSS classes
 const navLinkClasses = 'flex items-center p-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors duration-200';
 const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`;
+
+// 2. DEFINING FINANCE CHILD ITEM KEYS (Whitelist)
+const allowedFinanceItemKeys = [     
+    
+    //Outpatient Module Items
+    'outpatient0', 'outpatient1', 'outpatient2', 'outpatient3',
+    //Inpatient Module Items
+    'inpatient0', 'inpatient1', 'inpatient2', 
+    //Nursing Module Items
+    'nursing0', 'nursing1', 'nursing2',
+    //Doctor Module Items
+    'doctor0', 'doctor1', 'doctor2', 'doctor3',
+    //Theatre Module Items
+    'theatre0', 'theatre1', 'theatre2', 'theatre3',
+    //Laboratory Module Items
+    'laboratory0', 'laboratory1',
+    //Blood Bank Module Items
+    'bloodbank0', 'bloodbank1', 'bloodbank2',
+    //Radiology Module Items
+    'radiology0', 'radiology1',
+    //Pharmacy Module Items
+    'pharmacy0', 'pharmacy1',
+
+    //System Configuration Module Items   
+    'systemconfiguration6', //  
+    'systemconfiguration7', //  
+    'systemconfiguration8', //  
+    'systemconfiguration9', //  
+    'systemconfiguration10', //   
+];
 
 // Icon Map
 const iconMap = {
@@ -66,10 +100,13 @@ const iconMap = {
     cut: faCut,
     calendar_check: faCalendarCheck,
     file_medical_alt: faFileMedicalAlt,
+    procedures: faProcedures,
     hands_helping: faHandsHelping,
     vials: faVials,
     vial: faVial,
     tint: faTint, // <--- Add this line
+     
+    
 
     poll: faPoll,
     hand_holding_heart: faHandHoldingHeart,
@@ -86,6 +123,17 @@ const iconMap = {
     prescription_bottle: faPrescriptionBottle,
     book_dead: faBookDead,
     handshake: faHandshake,
+
+    // Generics
+    analytics: faChartBar,
+    settings: faCog,
+
+    // Setup Icons
+    lab_setup: faFlask,            // Laboratory
+    radiology_setup: faXRay,       // Radiology / Imaging
+    theatre_setup: faProcedures,   // Operating Theatre
+    pharmacy_setup: faPills,       // Pharmacy
+    blood_bank_setup: faTint,      // Blood Bank
 };
 
 // SidebarNavLink Component
@@ -175,20 +223,30 @@ export default function HospitalLayout({ header, children }) {
     // FIX: Renamed 'children' to 'subItems' to avoid prop conflict with React Components
     const clinicalSidebarItems = modules
         .filter(module => hospitalModuleKeys.includes(module.modulekey))
-        .map(module => ({
-            label: module.moduletext,
-            key: module.modulekey,
-            icon: iconMap[module.modulekey] || iconMap[module.icon] || faStethoscope, 
-            isOpen: sidebarState[module.modulekey],
-            toggleOpen: () => toggleSidebarSection(module.modulekey),
-            // Changed property name from children -> subItems
-            subItems: moduleItems[module.modulekey]?.map(item => ({
-                label: item.text,
-                icon: iconMap[item.icon] || null,
-                href: `/${item.key}`, // Ensure your routes (e.g. /outpatient0) exist in web.php
-            })) || [],
-        }));
+        .map(module => {
+            // Filter children based on the whitelist (allowedFinanceItemKeys)
+            const relevantChildren = moduleItems[module.modulekey]?.filter(item => 
+                allowedFinanceItemKeys.includes(item.key)
+            ) || [];
 
+            // If module has no relevant children, hide it
+            if (relevantChildren.length === 0) return null;
+
+            return {
+                label: module.moduletext,
+                key: module.modulekey,
+                icon: iconMap[module.modulekey] || iconMap[module.icon] || faSackDollar, 
+                isOpen: sidebarState[module.modulekey],
+                toggleOpen: () => toggleSidebarSection(module.modulekey),
+                subItems: relevantChildren.map(item => ({
+                    label: item.text,
+                    icon: iconMap[item.icon] || null,
+                    href: `/${item.key}`, 
+                })),
+            };
+        })
+        .filter(Boolean); // Filter out nulls
+        
     return (
         <div className="flex h-screen bg-gray-100 overflow-hidden">            
 

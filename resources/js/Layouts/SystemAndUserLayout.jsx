@@ -48,12 +48,7 @@ const allowedFinanceItemKeys = [
     'systemconfiguration2', // Location Setup      
     'systemconfiguration3', // Accounting Setup
     'systemconfiguration4', // 
-    'systemconfiguration5', // 
-    'systemconfiguration6', // Lab Setup
-    'systemconfiguration7', // Radiology Setup
-    'systemconfiguration8', // Theatre Setup
-    'systemconfiguration9', // Pharmacy Setup
-    'systemconfiguration10', // Blood Bank Setup
+    'systemconfiguration5', //     
 
     // --- USER MANAGEMENT ---
     'usermanagement',

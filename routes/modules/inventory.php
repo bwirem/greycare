@@ -2,11 +2,14 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\IVRequistionController;
-use App\Http\Controllers\IVIssueController;
-use App\Http\Controllers\IVReceiveController;
-use App\Http\Controllers\IVNormalAdjustmentController;
-use App\Http\Controllers\IVPhysicalInventoryController;
+use App\Http\Controllers\Inventory\IVRequistionController;
+use App\Http\Controllers\Inventory\IVIssueController;
+use App\Http\Controllers\Inventory\IVReceiveController;
+use App\Http\Controllers\Inventory\IVNormalAdjustmentController;
+use App\Http\Controllers\Inventory\IVPhysicalInventoryController;
+
+use App\Models\Inventory\IVNormalAdjustment;
+use App\Models\Inventory\IVPhysicalInventory;
 
 // Main Hub & Material Conversion Hub
 Route::prefix('inventory')->name('inventory.')->group(function () {
@@ -51,8 +54,13 @@ Route::prefix('inventory2')->name('inventory2.')->group(function () {
 
 // inventory3: Reconciliation
 Route::prefix('inventory3')->name('inventory3.')->group(function () {
-
-    Route::get('/', function () { return Inertia::render('Inventorys/IvReconciliation/Index'); })->name('index'); 
+    
+    Route::get('/', function () {
+        return Inertia::render('Inventory/IvReconciliation/Index', [
+            'normalAdjustmentCount'      => IVNormalAdjustment::count(),
+            'physicalInventoryCount'   => IVPhysicalInventory::count(),                
+        ]);
+    })->name('index');
 
     // Normal Adjustment
     Route::prefix('normal-adjustment')->name('normal-adjustment.')->group(function () {

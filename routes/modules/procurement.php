@@ -2,8 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\PROTenderController;
-use App\Http\Controllers\PROPurchaseController;
+use App\Http\Controllers\Procurement\PROTenderController;
+use App\Http\Controllers\Procurement\PROPurchaseController;
 
 // Main Hub
 Route::prefix('procurement')->name('procurement.')->group(function () {

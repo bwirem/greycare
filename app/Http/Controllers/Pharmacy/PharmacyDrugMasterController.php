@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Pharmacy;
 
 use App\Http\Controllers\Controller;
-use App\Models\SIV_Product;
+use App\Models\Inventory\SIV_Product;
 use App\Models\Pharmacy\PharmacyDrugDetail;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

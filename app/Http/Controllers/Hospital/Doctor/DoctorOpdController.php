@@ -37,7 +37,7 @@ use App\Models\Radiology\RadProcedure;
 use App\Models\Pharmacy\PharmacyPrescription;
 use App\Models\Pharmacy\PharmacyFrequency;
 use App\Models\Pharmacy\PharmacyDuration;
-use App\Models\SIV_Product; 
+use App\Models\Inventory\SIV_Product; 
 use App\Models\Theatre\TheatreBooking;
 use App\Models\Theatre\TheatreProcedure;
 
