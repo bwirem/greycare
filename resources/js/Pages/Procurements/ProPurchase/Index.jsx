@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faPlus, faEdit, faTrash, faFilter, faTimes, faEye } from "@fortawesome/free-solid-svg-icons"; // Added faEye
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { debounce } from 'lodash';
+import { toast } from 'react-toastify';
 
 import Modal from '@/Components/CustomModal.jsx'; // Assuming this is styled well
 
@@ -118,7 +119,7 @@ export default function Index({ auth, purchases, filters, flash }) { // Added fl
                 onError: (errorObj) => {
                     console.error("Failed to delete purchase:", errorObj);
                     const errorMsg = Object.values(errorObj).join(' ') || "There was an error deleting the purchase.";
-                    showAlert(errorMsg, 'Deletion Failed', 'error');
+                    toast.error(errorMsg, 'Deletion Failed', 'error');
                     // Don't close deletion confirmation on error, let user try again or close manually
                 },
             });
@@ -137,8 +138,8 @@ export default function Index({ auth, purchases, filters, flash }) { // Added fl
     };
 
     useEffect(() => {
-        if (flash?.success) showAlert(flash.success, 'Success', 'success');
-        if (flash?.error) showAlert(flash.error, 'Error', 'error');
+        if (flash?.success) toast.success(flash.success, 'Success', 'success');
+        if (flash?.error) toast.error(flash.error, 'Error', 'error');
     }, [flash]);
 
     // Helper function to get supplier display name

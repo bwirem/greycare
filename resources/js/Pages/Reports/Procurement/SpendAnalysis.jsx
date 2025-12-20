@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/ResourceLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import React from 'react';
 // To use charts, you'd import your chosen library e.g.:

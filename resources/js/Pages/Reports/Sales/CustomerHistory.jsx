@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/FinanceLayout';
 import { Head, useForm } from '@inertiajs/react';
 import React from 'react'; // Removed useState as useForm handles state
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

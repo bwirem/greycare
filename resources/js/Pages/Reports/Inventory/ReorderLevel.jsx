@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/ResourceLayout';
 import { Head, useForm } from '@inertiajs/react'; // Link might not be needed if no direct links from table
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

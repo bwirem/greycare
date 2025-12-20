@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\PROPurchase;
-use App\Models\PROPurchaseItem;
-use App\Models\SPR_Supplier;
-use App\Models\SIV_Product;
-use App\Models\FacilityOption; // Assuming PROPurchase has facilityoption_id
-use App\Models\SIV_ProductCategory; // Assuming SIV_Product links to categories
+
+use App\Models\Procurement\PROPurchase;
+use App\Models\Procurement\PROPurchaseItem;
+
+use App\Models\Inventory\SPR_Supplier;
+use App\Models\Inventory\SIV_Product;
+use App\Models\Inventory\SIV_ProductCategory; // Assuming SIV_Product links to categories
+
+use App\Models\Facility\FacilityOption; // Assuming PROPurchase has facilityoption_id
+
 use Carbon\Carbon;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;

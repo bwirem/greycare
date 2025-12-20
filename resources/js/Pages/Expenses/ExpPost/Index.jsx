@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faPlus, faEdit, faTrash, faSpinner, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { debounce } from 'lodash';
+import { toast } from 'react-toastify';
 
 import Modal from '@/Components/CustomModal.jsx'; // Adjust path if needed
 
@@ -38,10 +39,10 @@ export default function Index({ auth, posts, filters, flash }) {
 
     useEffect(() => {
         if (flash?.success) {
-            showAlert(flash.success, 'success');
+            toast.success(flash.success, 'success');
         }
         if (flash?.error) {
-            showAlert(flash.error, 'error');
+            toast.error(flash.error, 'error');
         }
     }, [flash]);
 
@@ -76,7 +77,7 @@ export default function Index({ auth, posts, filters, flash }) {
                 onError: (errorResponse) => {
                     console.error("Failed to delete post:", errorResponse);
                     const errorMessage = errorResponse?.message || (errorResponse?.error || "There was an error deleting the expense. Please try again.");
-                    showAlert(errorMessage, 'error');
+                    toast.error(errorMessage, 'error');
                 },
                 onFinish: () => {
                     if (!modalState.isAlert) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Reports\SalesBillingController;
 use App\Http\Controllers\Reports\SalesReportsController;
 use App\Http\Controllers\Reports\ProcurementReportsController;
 use App\Http\Controllers\Reports\InventoryReportsController;
+use App\Http\Controllers\Reports\HumanResourceReportsController;
 
 // --- Reporting Hubs (reporting0 - reporting7) ---
 
@@ -82,5 +83,21 @@ Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/expiring-items', [InventoryReportsController::class, 'expiringItems'])->name('expiring_items');
         Route::get('/slow-moving', [InventoryReportsController::class, 'slowMoving'])->name('slow_moving');
         Route::match(['get', 'post'],'/custom', [InventoryReportsController::class, 'customInventoryReport'])->name('custom');
+        Route::get('/product-list', [InventoryReportsController::class, 'productList'])->name('product-list');
+        Route::get('/product-list/export-pdf', [InventoryReportsController::class, 'exportProductListPdf'])->name('product-list.pdf');
+        Route::get('/product-list/export-excel', [InventoryReportsController::class, 'exportProductListExcel'])->name('product-list.excel');
+    });
+   
+    Route::prefix('hr')->name('hr.')->group(function () {
+        Route::get('/employee-list', [HumanResourceReportsController::class, 'employeeList'])->name('employee_list');
+        Route::get('/payroll-summary', [HumanResourceReportsController::class, 'payrollSummary'])->name('payroll_summary');
+        Route::get('/leave-report', [HumanResourceReportsController::class, 'leaveReport'])->name('leave_balances');
+        Route::get('/attendance-summary', [HumanResourceReportsController::class, 'attendanceSummary'])->name('attendance_summary');
+        
+        // Stubs for future implementation if needed
+        Route::get('/turnover', function() { return back(); })->name('turnover');
+        Route::get('/recruitment', function() { return back(); })->name('recruitment_pipeline');
+        Route::get('/demographics', function() { return back(); })->name('demographics');
+        Route::get('/custom', function() { return back(); })->name('custom');
     });
 });

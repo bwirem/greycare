@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faPlus, faEdit, faTrash, faFilter, faTimes } from "@fortawesome/free-solid-svg-icons";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { debounce } from 'lodash'; // For debouncing search input
+import { toast } from 'react-toastify';
 
 import Modal from '@/Components/CustomModal.jsx';
 
@@ -92,13 +93,13 @@ export default function Index({ auth, tenders, filters, flash }) { // Added flas
                 onSuccess: () => {
                     // Inertia's flash messages can be used here if set up in HandleInertiaRequests middleware
                     // For now, let's assume it's handled or use a client-side alert as fallback.
-                    // showAlert("Tender deleted successfully."); // Optional: if you want a success alert
+                    // toast.success("Tender deleted successfully."); // Optional: if you want a success alert
                     handleModalClose();
                 },
                 onError: (errors) => {
                     console.error("Failed to delete tender:", errors);
                     const errorMsg = Object.values(errors).join(' ') || "There was an error deleting the tender. Please try again.";
-                    showAlert(errorMsg);
+                    toast.error(errorMsg);
                     // Don't close modal on error, let user see the error then close manually or retry
                 },
                 // onFinish: () => handleModalClose(), // Close modal regardless of success/error
@@ -118,10 +119,10 @@ export default function Index({ auth, tenders, filters, flash }) { // Added flas
     // Show flash messages if available
     useEffect(() => {
         if (flash && flash.success) {
-            showAlert(flash.success);
+            toast.success(flash.success);
         }
         if (flash && flash.error) {
-            showAlert(flash.error);
+            toast.error(flash.error);
         }
     }, [flash]);
 

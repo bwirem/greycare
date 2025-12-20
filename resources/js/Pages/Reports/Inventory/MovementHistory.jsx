@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/ResourceLayout';
 import { Head, Link, useForm } from '@inertiajs/react'; // Added Link for potential links
 import React from 'react';
 import Pagination from '@/Components/Pagination'; // Assuming you have a Pagination component

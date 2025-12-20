@@ -13,7 +13,13 @@ import {
     faClipboardUser, faChalkboardTeacher, faHandsHelping,
     faChartPie, faChartBar, faCog, faUsersCog, faUpload,
     faBuilding, faMapMarkerAlt, faCalendarAlt, faHistory,
-    faListAlt
+    faListAlt,
+    
+    // NEW ICONS FOR UPDATED MODULES
+    faClock,            // Attendance
+    faHandHoldingUsd,   // Loans
+    faCalculator,       // Process Payroll
+    faFileInvoiceDollar // Payslips & Tax
 } from "@fortawesome/free-solid-svg-icons";
 
 // Specific Icons matching your backend data
@@ -34,22 +40,31 @@ const hrModuleKeys = [
     'humanresource', 
     'usermanagement', 
     'reporting',      // Parent for HR Reports
-    'systemConfig'    // Parent for Location/Facility Setup
+    'systemConfig'    // Parent for HR Setup
 ];
 
 // 2. DEFINING HR SPECIFIC ITEM KEYS (Children)
 // This list acts as a whitelist. Only these items will appear in the HR Sidebar.
 const allowedHrItemKeys = [
-    // Main HR Items
-    'humanresurces0', 'humanresurces1', 'humanresurces2', 'humanresurces3',
-    'usermanagement',
+    // Main HR Items (Updated based on new schema)
+    'humanresurces0', // Employee Records
+    'humanresurces1', // Attendance
+    'humanresurces2', // Loans & Advances
+    'humanresurces3', // Process Payroll
+    'humanresurces4', // Payslips
+    'humanresurces5', // Leave Management
+    
+    'usermanagement', // Manage Users
     
     // Specific Reports
     'reporting5', // Human Resource Report
     
     // Specific Configurations
-    'systemconfiguration4', // Location Setup
-    'systemconfiguration5'  // Facility Setup
+    // Note: We removed generic location/facility from here to focus on HR specific config, 
+    // but you can keep them if HR manages facility locations.
+    'systemconfiguration11', // HR Organization (Depts, Positions)
+    'systemconfiguration12',  // Payroll Configuration (Tax, Insurance)
+    'systemconfiguration13'  // Payroll Configuration (Tax, Insurance)
 ];
 
 // Icon Map (Tailored for HR)
@@ -64,19 +79,28 @@ const iconMap = {
     reporting: faChartPie,
     systemConfig: faCog,
 
-    // HR Items
-    person: faUserTie, // Bio Data
-    upload: faUpload, // Import
-    person_outline: faUserSlash, // Termination
-    payroll: faMoneyCheckAlt, // Payroll
+    // --- NEW HR ITEMS MAPPING ---
+    id_badge: faIdBadge,           // Employee Records
+    clock: faClock,                // Attendance
+    hand_holding_usd: faHandHoldingUsd, // Loans
+    calculator: faCalculator,      // Process Payroll
+    file_invoice_dollar: faFileInvoiceDollar, // Payslips / Tax
+    calendar_day: faCalendarAlt, // Leave Management
+
+    // Legacy / Other Mappings
+    person: faUserTie, 
+    upload: faUpload, 
+    person_outline: faUserSlash, 
+    payroll: faMoneyCheckAlt, 
     
     // User Management Items
     manage_accounts: faUsersCog,
     
-    // ** REQUESTED SPECIFIC ICONS **
-    location_setup: faMapMarkerAlt,  // For systemconfiguration4
-    facility_setup: faBuilding,      // For systemconfiguration5
-    // 'person' is used for reporting5 in your backend
+    // Configurations
+    location_setup: faMapMarkerAlt,
+    facility_setup: faBuilding,      
+    users: faUsers, // HR Org Setup
+    cog: faCog,     // Payroll Config
     
     // Generics
     calendar: faCalendarAlt, 

@@ -2,9 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
-use App\Models\FacilityOption;
-use App\Http\Controllers\Nhif\NhifController;
-use App\Http\Controllers\Nhif\NhifBreezeController;
+use App\Models\Facility\FacilityOption;
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -80,7 +78,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     require __DIR__.'/modules/inventory.php';
     require __DIR__.'/modules/accounting.php';
     require __DIR__.'/modules/expenses.php';
+    require __DIR__.'/modules/humanresource.php';
     require __DIR__.'/modules/reports.php';
     require __DIR__.'/modules/configuration.php'; // For systemconfiguration0...
     require __DIR__.'/modules/usermanagement.php';
+
 });

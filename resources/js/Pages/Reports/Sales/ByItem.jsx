@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/FinanceLayout';
 import { Head, useForm, Link } from '@inertiajs/react'; // Added Link
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

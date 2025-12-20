@@ -16,6 +16,12 @@ use App\Models\Inventory\SIV_Store;           // Stores
 use App\Models\Inventory\SIV_Product;         // Products
 use App\Models\User;                // Users/HR
 
+// --- HR Models ---
+use App\Models\HumanResource\HrmEmployee;
+use App\Models\HumanResource\HrmAttendance;
+use App\Models\HumanResource\HrmLeaveRequest;
+use App\Models\HumanResource\PayEmployeeLoan;
+
 class DashboardController extends Controller
 {
     /**
@@ -149,16 +155,35 @@ class DashboardController extends Controller
      */
     public function hrStats()
     {
-        // Total Users in the system
-        $totalEmployees = User::count(); 
+        $today = Carbon::today();
+
+        // 1. Total Employees registered in HR
+        $totalEmployees = HrmEmployee::count();
         
-        // Placeholder for Leave Logic (requires Leave model)
-        $onLeave = 0; 
+        // 2. Active Employees (Excluding terminated/resigned)
+        $activeEmployees = HrmEmployee::where('status', 'Active')->count();
+
+        // 3. Attendance: Present Today (Present or Late)
+        $presentToday = HrmAttendance::whereDate('attendance_date', $today)
+            ->whereIn('status', ['Present', 'Late'])
+            ->count();
+
+        // 4. On Leave Today (Approved requests overlapping today)
+        $onLeave = HrmLeaveRequest::where('status', 'Approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->count();
+
+        // 5. Active Loans (Currently deducting)
+        $pendingLoans = PayEmployeeLoan::where('is_active', true)->count();
 
         return Inertia::render('Dashboard/HumanResource', [
             'stats' => [
-                'totalEmployees' => $totalEmployees,
-                'onLeave' => $onLeave,
+                'totalEmployees'  => $totalEmployees,
+                'activeEmployees' => $activeEmployees,
+                'presentToday'    => $presentToday,
+                'onLeave'         => $onLeave,
+                'pendingLoans'    => $pendingLoans,
             ]
         ]);
     }

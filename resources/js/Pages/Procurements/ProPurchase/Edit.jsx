@@ -4,6 +4,7 @@ import { Head, useForm, Link, router } from '@inertiajs/react'; // router for ac
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faSave, faTimesCircle, faEye, faCheck, faSpinner, faSearch, faPaperclip, faInfoCircle, faBuilding, faTimes} from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
+import { toast } from 'react-toastify';
 // No need to import Inertia directly, useForm and router handle it.
 // import axios from 'axios'; // Only if making direct API calls not handled by Inertia
 
@@ -107,8 +108,8 @@ export default function Edit({ auth, purchase, flash, errors: pageErrors }) { //
 
     // Handle flash messages
     useEffect(() => {
-        if (flash?.success) showAlert(flash.success, 'Success', 'success');
-        if (flash?.error) showAlert(flash.error, 'Error', 'error');
+        if (flash?.success) toast.success(flash.success, 'Success', 'success');
+        if (flash?.error) toast.error(flash.error, 'Error', 'error');
     }, [flash]);
      // Update form data if `purchase` prop changes (e.g., after successful update and Inertia reload)
      useEffect(() => {
@@ -138,7 +139,7 @@ export default function Edit({ auth, purchase, flash, errors: pageErrors }) { //
         setIsSearchingItems(true);
         axios.get(route('systemconfiguration2.products.search'), { params: { query } })
             .then(res => { setItemSearchResults(res.data.products.slice(0, 10)); setShowItemDropdown(true); })
-            .catch(err => { console.error('Error fetching products:', err); showAlert('Failed to fetch products.', 'Error', 'error'); })
+            .catch(err => { console.error('Error fetching products:', err); toast.error('Failed to fetch products.', 'Error', 'error'); })
             .finally(() => setIsSearchingItems(false));
     }, []);
     const debouncedItemSearch = useMemo(() => debounce(fetchItems, 300), [fetchItems]);
@@ -163,7 +164,7 @@ export default function Edit({ auth, purchase, flash, errors: pageErrors }) { //
     const addPurchaseItem = (selectedItem) => {
         if (isReadOnly) return;
         if (purchaseItemsUI.some(item => item.item_id === selectedItem.id)) {
-            showAlert(`${selectedItem.name} is already in the list.`, 'Item Exists', 'warning');
+            toast.error(`${selectedItem.name} is already in the list.`, 'Item Exists', 'warning');
             setItemSearchQuery(''); setItemSearchResults([]); setShowItemDropdown(false);
             if(itemSearchInputRef.current) itemSearchInputRef.current.focus(); return;
         }
@@ -185,12 +186,12 @@ export default function Edit({ auth, purchase, flash, errors: pageErrors }) { //
 
     const handleFormSubmit = (e) => { // This is for "Save Changes"
         e.preventDefault();
-        if (isReadOnly) { showAlert("Cannot save, purchase is not in pending state.", "Save Denied", "warning"); return;}
+        if (isReadOnly) { toast.error("Cannot save, purchase is not in pending state.", "Save Denied", "warning"); return;}
         clearErrors();
         // Client-side validation (similar to Create page)
-        if (purchaseItemsUI.length === 0) { showAlert('Add at least one item.', 'Items Required', 'error'); return; }
+        if (purchaseItemsUI.length === 0) { toast.error('Add at least one item.', 'Items Required', 'error'); return; }
         const hasInvalidItems = purchaseItemsUI.some(item => !item.item_id || (item.quantity || 0) <= 0 || (item.price || 0) < 0);
-        if (hasInvalidItems) { showAlert('Ensure items have product, quantity > 0, and price >= 0.', 'Invalid Items', 'error'); return; }
+        if (hasInvalidItems) { toast.error('Ensure items have product, quantity > 0, and price >= 0.', 'Invalid Items', 'error'); return; }
 
         // `data` from useForm already contains remarks, file, remove_existing_file, _method
         // `transform` has already prepared `purchaseitems` and `total` in `data`
@@ -198,8 +199,8 @@ export default function Edit({ auth, purchase, flash, errors: pageErrors }) { //
             // onSuccess is handled by flash message effect & useEffect on `purchase` prop
             onError: (serverErrors) => {
                 console.error("PO Update Error:", serverErrors);
-                if (serverErrors.message) showAlert(serverErrors.message, 'Update Error', 'error');
-                else if (Object.keys(serverErrors).length > 0) showAlert('An error occurred. Please review the form.', 'Update Error', 'error');
+                if (serverErrors.message) toast.error(serverErrors.message, 'Update Error', 'error');
+                else if (Object.keys(serverErrors).length > 0) toast.error('An error occurred. Please review the form.', 'Update Error', 'error');
             }
         });
     };
@@ -218,8 +219,8 @@ export default function Edit({ auth, purchase, flash, errors: pageErrors }) { //
         const file = event.target.files?.[0];
         event.target.value = null;
         if (file) {
-            if (file.size > MAX_FILE_SIZE_BYTES) { showAlert(`File size exceeds ${MAX_FILE_SIZE_MB}MB.`, 'File Too Large', 'error'); setData('file', null); setCurrentFilenameDisplay(data.existing_filename); return; }
-            if (!ALLOWED_PURCHASE_FILE_TYPES.includes(file.type)) { showAlert(`Invalid file type. Allowed: ${ALLOWED_PURCHASE_FILE_EXT_MSG}.`, 'Invalid File Type', 'error'); setData('file', null); setCurrentFilenameDisplay(data.existing_filename); return; }
+            if (file.size > MAX_FILE_SIZE_BYTES) { toast.error(`File size exceeds ${MAX_FILE_SIZE_MB}MB.`, 'File Too Large', 'error'); setData('file', null); setCurrentFilenameDisplay(data.existing_filename); return; }
+            if (!ALLOWED_PURCHASE_FILE_TYPES.includes(file.type)) { toast.error(`Invalid file type. Allowed: ${ALLOWED_PURCHASE_FILE_EXT_MSG}.`, 'Invalid File Type', 'error'); setData('file', null); setCurrentFilenameDisplay(data.existing_filename); return; }
             setData('file', file); setCurrentFilenameDisplay(file.name); setData('remove_existing_file', false); // If new file, don't remove old one by flag yet
             if(errors.file) clearErrors('file');
         } else { setData('file', null); setCurrentFilenameDisplay(data.existing_filename); }
@@ -262,7 +263,7 @@ export default function Edit({ auth, purchase, flash, errors: pageErrors }) { //
                 onError: (serverErrors) => {
                     console.error("Approval Error:", serverErrors);
                     setActionModal(prev => ({ ...prev, isLoading: false, remarksError: serverErrors.remarks || '' }));
-                    if(!serverErrors.remarks) showAlert(serverErrors.message || "Failed to approve.", "Approval Failed", "error");
+                    if(!serverErrors.remarks) toast.error(serverErrors.message || "Failed to approve.", "Approval Failed", "error");
                 },
                 onFinish: () => { // This runs on success or error
                     setActionModal(prev => ({ ...prev, isLoading: false, isOpen: false }));

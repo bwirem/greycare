@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faSave, faTimesCircle,faSpinner,faInfoCircle, faSearch } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 import Modal from '@/Components/CustomModal.jsx'; // Assuming this is styled well
 import InputError from '@/Components/InputError'; // Standard Inertia error component
@@ -52,12 +53,12 @@ export default function Create({ auth, facilityoption, flash }) { // Added auth 
     // Handle flash messages from server
     useEffect(() => {
         if (flash?.success) {
-            showAlert(flash.success, 'Success', 'success');
+            toast.success(flash.success, 'Success', 'success');
             reset(); // Reset form on successful submission from backend
             setTenderItems([]); // Clear local items as well
         }
         if (flash?.error) {
-            showAlert(flash.error, 'Error', 'error');
+            toast.error(flash.error, 'Error', 'error');
         }
     }, [flash, reset]);
 
@@ -66,7 +67,7 @@ export default function Create({ auth, facilityoption, flash }) { // Added auth 
         if (recentlySuccessful) {
             // This can be used if you don't rely solely on flash messages
             // For example, to clear the form after a successful post without a full redirect
-            // showAlert('Tender created successfully!', 'Success', 'success');
+            // toast.success('Tender created successfully!', 'Success', 'success');
             // reset();
             // setTenderItems([]);
         }
@@ -87,7 +88,7 @@ export default function Create({ auth, facilityoption, flash }) { // Added auth 
             })
             .catch((error) => {
                 console.error('Error fetching products:', error);
-                showAlert('Failed to fetch products. Please try again.', 'Error', 'error');
+                toast.error('Failed to fetch products. Please try again.', 'Error', 'error');
                 setItemSearchResults([]);
                 setShowItemDropdown(false);
             })
@@ -127,7 +128,7 @@ export default function Create({ auth, facilityoption, flash }) { // Added auth 
     const addTenderItem = (selectedItem) => {
         // Check if item already exists
         if (tenderItems.some(item => item.item_id === selectedItem.id)) {
-            showAlert(`${selectedItem.name} is already in the tender list.`, 'Item Exists', 'warning');
+            toast.error(`${selectedItem.name} is already in the tender list.`, 'Item Exists', 'warning');
             setItemSearchQuery('');
             setItemSearchResults([]);
             setShowItemDropdown(false);
@@ -186,13 +187,13 @@ export default function Create({ auth, facilityoption, flash }) { // Added auth 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (tenderItems.length === 0) {
-            showAlert('Please add at least one item to the tender.', 'Validation Error', 'error');
+            toast.error('Please add at least one item to the tender.', 'Validation Error', 'error');
             return;
         }
         // Client-side validation for quantity (though backend should also validate)
         const hasInvalidQuantity = tenderItems.some(item => !item.quantity || item.quantity < 1);
         if (hasInvalidQuantity) {
-            showAlert('Please ensure all items have a quantity of at least 1.', 'Validation Error', 'error');
+            toast.error('Please ensure all items have a quantity of at least 1.', 'Validation Error', 'error');
             return;
         }
 
@@ -205,10 +206,10 @@ export default function Create({ auth, facilityoption, flash }) { // Added auth 
                 // Errors from `useForm` (errors object) are automatically populated.
                 // If there's a general error message from the backend not tied to a field:
                 if (errorObj.message) { // Check if your backend sends a general 'message'
-                    showAlert(errorObj.message, 'Submission Error', 'error');
+                    toast.error(errorObj.message, 'Submission Error', 'error');
                 } else if (Object.keys(errorObj).length > 0 && !errors.description && !errors.tenderitems) {
                     // If errors object has content but not for known fields, show a generic one
-                    showAlert('An error occurred while saving the tender. Please check the form for details.', 'Submission Error', 'error');
+                    toast.error('An error occurred while saving the tender. Please check the form for details.', 'Submission Error', 'error');
                 }
             },
             // onFinish: () => {} // Use if needed, processing state is handled by useForm

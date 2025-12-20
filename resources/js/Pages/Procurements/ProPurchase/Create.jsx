@@ -20,6 +20,7 @@ import axios from 'axios';
 
 import Modal from '@/Components/CustomModal.jsx';
 import InputError from '@/Components/InputError';
+import { toast } from 'react-toastify';
 
 const debounce = (func, delay) => {
     let timeout;
@@ -93,10 +94,10 @@ export default function Create({ auth, facilityoption, flash, errors: pageErrors
 
     useEffect(() => {
         if (flash?.success) {
-            showAlert(flash.success, 'Success', 'success');
+            toast.success(flash.success, 'Success', 'success');
             resetFormState();
         }
-        if (flash?.error) showAlert(flash.error, 'Error', 'error');
+        if (flash?.error) toast.error(flash.error, 'Error', 'error');
     }, [flash]);
 
     const fetchItems = useCallback((query) => {
@@ -104,7 +105,7 @@ export default function Create({ auth, facilityoption, flash, errors: pageErrors
         setIsSearchingItems(true);
         axios.get(route('systemconfiguration2.products.search'), { params: { query } })
             .then(res => { setItemSearchResults(res.data.products.slice(0, 10)); setShowItemDropdown(true); })
-            .catch(err => { console.error('Error fetching products:', err); showAlert('Failed to fetch products.', 'Error', 'error'); })
+            .catch(err => { console.error('Error fetching products:', err); toast.error('Failed to fetch products.', 'Error', 'error'); })
             .finally(() => setIsSearchingItems(false));
     }, []);
     const debouncedItemSearch = useMemo(() => debounce(fetchItems, 300), [fetchItems]);
@@ -119,7 +120,7 @@ export default function Create({ auth, facilityoption, flash, errors: pageErrors
         setIsSearchingSuppliers(true);
         axios.get(route('systemconfiguration2.suppliers.search'), { params: { query } })
             .then(res => { setSupplierSearchResults(res.data.suppliers.slice(0, 10)); setShowSupplierDropdown(true); })
-            .catch(err => { console.error('Error fetching suppliers:', err); showAlert('Failed to fetch suppliers.', 'Error', 'error'); })
+            .catch(err => { console.error('Error fetching suppliers:', err); toast.error('Failed to fetch suppliers.', 'Error', 'error'); })
             .finally(() => setIsSearchingSuppliers(false));
     }, []);
     const debouncedSupplierSearch = useMemo(() => debounce(fetchSuppliers, 300), [fetchSuppliers]);
@@ -141,7 +142,7 @@ export default function Create({ auth, facilityoption, flash, errors: pageErrors
 
     const addPurchaseItem = (selectedItem) => {
         if (purchaseItems.some(item => item.item_id === selectedItem.id)) {
-            showAlert(`${selectedItem.name} is already in the list.`, 'Item Exists', 'warning');
+            toast.error(`${selectedItem.name} is already in the list.`, 'Item Exists', 'warning');
             setItemSearchQuery(''); setItemSearchResults([]); setShowItemDropdown(false);
             if(itemSearchInputRef.current) itemSearchInputRef.current.focus();
             return;
@@ -166,26 +167,26 @@ export default function Create({ auth, facilityoption, flash, errors: pageErrors
         e.preventDefault();
         clearErrors();
         if (!data.supplier_id) {
-            showAlert('Please select or create a supplier.', 'Supplier Required', 'error');
+            toast.error('Please select or create a supplier.', 'Supplier Required', 'error');
             if (supplierSearchInputRef.current) supplierSearchInputRef.current.focus();
             return;
         }
         if (purchaseItems.length === 0) {
-            showAlert('Please add at least one item to the purchase order.', 'Items Required', 'error');
+            toast.error('Please add at least one item to the purchase order.', 'Items Required', 'error');
             if (itemSearchInputRef.current) itemSearchInputRef.current.focus();
             return;
         }
         const hasInvalidItems = purchaseItems.some(item => !item.item_id || (item.quantity || 0) <= 0 || (item.price || 0) < 0);
         if (hasInvalidItems) {
-            showAlert('Ensure all items have a selected product, quantity > 0, and price >= 0.', 'Invalid Items', 'error');
+            toast.error('Ensure all items have a selected product, quantity > 0, and price >= 0.', 'Invalid Items', 'error');
             return;
         }
         post(route('procurements1.store'), {
             onError: (serverErrors) => {
                 console.error("PO Creation Error:", serverErrors);
-                if (serverErrors.message) showAlert(serverErrors.message, 'Submission Error', 'error');
+                if (serverErrors.message) toast.error(serverErrors.message, 'Submission Error', 'error');
                 else if (Object.keys(serverErrors).length > 0 && !errors.supplier_id && !errors.purchaseitems && !errors.remarks && !errors.file ) {
-                    showAlert('An error occurred. Please review the form.', 'Submission Error', 'error');
+                    toast.error('An error occurred. Please review the form.', 'Submission Error', 'error');
                 }
             }
         });
@@ -238,14 +239,14 @@ export default function Create({ auth, facilityoption, flash, errors: pageErrors
                 setNewSupplierModal(prev => ({ ...prev, loading: false, success: true }));
                 const createdSupplier = response.data.supplier || response.data;
                 if (createdSupplier && createdSupplier.id) selectSupplier(createdSupplier);
-                else { console.error("New supplier response format error:", response.data); showAlert("Supplier created, but selection failed.", "Data Issue", "warning"); }
+                else { console.error("New supplier response format error:", response.data); toast.error("Supplier created, but selection failed.", "Data Issue", "warning"); }
                 setTimeout(closeNewSupplierModal, 1500);
             })
             .catch(error => {
                 console.error("Full Axios error (New Supplier):", error); let errMsg = "Unexpected error."; let modalErrs = {};
                 if(error.response){ if(error.response.data){ if(error.response.data.errors){ modalErrs = error.response.data.errors; errMsg = error.response.data.message || "Validation failed."; } else if (error.response.data.message) errMsg = error.response.data.message; } else if (error.response.statusText) errMsg = `Server Error: ${error.response.status}`; }
                 else if(error.request) errMsg = "No server response."; else errMsg = error.message;
-                setNewSupplierModal(prev => ({ ...prev, loading: false, errors: modalErrs })); showAlert(errMsg, "Creation Failed", "error");
+                setNewSupplierModal(prev => ({ ...prev, loading: false, errors: modalErrs })); toast.error(errMsg, "Creation Failed", "error");
             });
     };
       
@@ -253,8 +254,8 @@ export default function Create({ auth, facilityoption, flash, errors: pageErrors
         const file = event.target.files?.[0];
         event.target.value = null;
         if (file) {
-            if (file.size > MAX_FILE_SIZE_BYTES) { showAlert(`File size exceeds ${MAX_FILE_SIZE_MB}MB.`, 'File Too Large', 'error'); setData('file', null); setCurrentFilename(''); return; }
-            if (!ALLOWED_PURCHASE_FILE_TYPES.includes(file.type)) { showAlert(`Invalid file type. Allowed: ${ALLOWED_PURCHASE_FILE_EXT_MSG}.`, 'Invalid File Type', 'error'); setData('file', null); setCurrentFilename(''); return; }
+            if (file.size > MAX_FILE_SIZE_BYTES) { toast.error(`File size exceeds ${MAX_FILE_SIZE_MB}MB.`, 'File Too Large', 'error'); setData('file', null); setCurrentFilename(''); return; }
+            if (!ALLOWED_PURCHASE_FILE_TYPES.includes(file.type)) { toast.error(`Invalid file type. Allowed: ${ALLOWED_PURCHASE_FILE_EXT_MSG}.`, 'Invalid File Type', 'error'); setData('file', null); setCurrentFilename(''); return; }
             setData('file', file); setCurrentFilename(file.name);
             if(errors.file) clearErrors('file');
         } else { setData('file', null); setCurrentFilename(''); }

@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/ResourceLayout';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimesCircle, faEye, faArrowLeft, faAward, faCheckCircle, faExclamationTriangle, faInfoCircle, faSpinner, faListUl, faFilePdf, faFileWord, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import { toast } from 'react-toastify';
 // Removed axios as router.put is used for actions
 import Modal from '@/Components/CustomModal.jsx';
 import InputError from '@/Components/InputError';
@@ -90,8 +91,8 @@ export default function Evaluation({ auth, tender, flash, errors: pageErrors }) 
     const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
     useEffect(() => {
-        if (flash?.success) showAlert(flash.success, 'Success', 'success');
-        if (flash?.error) showAlert(flash.error, 'Error', 'error');
+        if (flash?.success) toast.success(flash.success, 'Success', 'success');
+        if (flash?.error) toast.error(flash.error, 'Error', 'error');
     }, [flash]);
 
     // Update selectedQuotationIndex if tender data (award status) changes from props
@@ -117,7 +118,7 @@ export default function Evaluation({ auth, tender, flash, errors: pageErrors }) 
     const openActionModal = (type) => {
         clearErrors(); setData('remarks', ''); // Reset for each new modal open
         if (type === 'award') {
-            if (selectedQuotationIndex === -1) { showAlert('Please select a supplier quotation to award.', 'Selection Required', 'warning'); return; }
+            if (selectedQuotationIndex === -1) { toast.error('Please select a supplier quotation to award.', 'Selection Required', 'warning'); return; }
             const targetQuotation = quotationEntries[selectedQuotationIndex];
             setActionModal({ isOpen: true, title: 'Confirm Award', message: `Award this tender to "${targetQuotation.supplier_name}"? This action will finalize the quotation stage.`, type: 'warning', actionType: 'award', targetQuotation: targetQuotation, isLoading: false, remarksError: '' });
         } else if (type === 'return') {
@@ -152,7 +153,7 @@ export default function Evaluation({ auth, tender, flash, errors: pageErrors }) 
             routeName = route('procurements0.return', tender.id);
         } else {
             setActionModal(prev => ({ ...prev, isLoading: false }));
-            showAlert('Invalid action specified.', 'Error', 'error');
+            toast.error('Invalid action specified.', 'Error', 'error');
             return;
         }
         
@@ -174,7 +175,7 @@ export default function Evaluation({ auth, tender, flash, errors: pageErrors }) 
                     let generalErrorMessage = `Failed to ${actionModal.actionType} tender.`;
                     if (serverErrors.message) { generalErrorMessage = serverErrors.message; }
                     else if (Object.keys(serverErrors).length > 0) { generalErrorMessage = "Please check for errors and try again."; }
-                    showAlert(generalErrorMessage, 'Action Failed', 'error');
+                    toast.error(generalErrorMessage, 'Action Failed', 'error');
                 }
             }
         });

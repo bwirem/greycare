@@ -6,6 +6,7 @@ import { faPlus, faTrash, faSave, faTimesCircle, faTimes, faEye, faCheck, faSpin
 import axios from 'axios';
 import Modal from '@/Components/CustomModal.jsx';
 import InputError from '@/Components/InputError';
+import { toast } from 'react-toastify';
 
 const debounce = (func, delay) => {
     let timeout;
@@ -115,8 +116,8 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
     }, [quotationEntries, transform]);
 
     useEffect(() => {
-        if (flash?.success) showAlert(flash.success, 'Success', 'success');
-        if (flash?.error) showAlert(flash.error, 'Error', 'error');
+        if (flash?.success) toast.success(flash.success, 'Success', 'success');
+        if (flash?.error) toast.error(flash.error, 'Error', 'error');
     }, [flash]);
 
     const fetchSuppliers = useCallback((query) => {
@@ -124,7 +125,7 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
         setIsSearchingSuppliers(true);
         axios.get(route('systemconfiguration2.suppliers.search'), { params: { query } })
             .then(response => { setSupplierSearchResults(response.data.suppliers.slice(0, 10)); setShowSupplierDropdown(true); })
-            .catch(error => { console.error('Error fetching suppliers:', error); showAlert('Failed to fetch suppliers.', 'Error', 'error'); })
+            .catch(error => { console.error('Error fetching suppliers:', error); toast.error('Failed to fetch suppliers.', 'Error', 'error'); })
             .finally(() => setIsSearchingSuppliers(false));
     }, []);
     const debouncedSupplierSearch = useMemo(() => debounce(fetchSuppliers, 300), [fetchSuppliers]);
@@ -155,7 +156,7 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
     const addQuotationEntry = (selectedSupplier) => {
         if (!selectedSupplier || !selectedSupplier.id) {
             console.error("addQuotationEntry called with invalid supplier object:", selectedSupplier);
-            showAlert("Could not add supplier: invalid data received.", "Internal Error", "error");
+            toast.error("Could not add supplier: invalid data received.", "Internal Error", "error");
             return;
         }
         const supplierName = selectedSupplier.supplier_type === 'individual'
@@ -163,7 +164,7 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
             : selectedSupplier.company_name;
         const finalSupplierName = supplierName || `Supplier (ID: ${selectedSupplier.id})`;
         if (quotationEntries.some(entry => entry.supplier_id === selectedSupplier.id)) {
-            showAlert(`${finalSupplierName} is already added.`, 'Supplier Exists', 'warning');
+            toast.error(`${finalSupplierName} is already added.`, 'Supplier Exists', 'warning');
             setSupplierSearchQuery(''); setShowSupplierDropdown(false); if(supplierSearchInputRef.current) supplierSearchInputRef.current.focus(); return;
         }
         setQuotationEntries(prev => [...prev, {
@@ -206,14 +207,14 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
         formData.append('facility_id', data.facility_id || ''); formData.append('stage', data.stage || '');
         let hasFileErrors = quotationEntries.some(entry => entry.file_error);
         let hasMissingSupplierInfo = quotationEntries.some(entry => !entry.supplier_id);
-        if (parseInt(tender.stage, 10) === 2 && quotationEntries.length === 0) { showAlert('Please add at least one supplier quotation before saving.', 'No Quotations', 'warning'); return; }
+        if (parseInt(tender.stage, 10) === 2 && quotationEntries.length === 0) { toast.error('Please add at least one supplier quotation before saving.', 'No Quotations', 'warning'); return; }
         buildQuotationFormData(formData);
-        if (hasFileErrors) { showAlert('Some files have errors. Please review.', 'File Errors', 'error'); return; }
-        if (hasMissingSupplierInfo) { showAlert('Supplier information missing for some entries.', 'Data Error', 'error'); return; }
+        if (hasFileErrors) { toast.error('Some files have errors. Please review.', 'File Errors', 'error'); return; }
+        if (hasMissingSupplierInfo) { toast.error('Supplier information missing for some entries.', 'Data Error', 'error'); return; }
         router.post(route('procurements0.quotation', tender.id), formData, { // Changed route to .save
             preserveScroll: true,
             onSuccess: (page) => {
-                showAlert('Quotations saved successfully!', 'Saved', 'success');
+                toast.success('Quotations saved successfully!', 'Saved', 'success');
                 if (page.props.tender && page.props.tender.tenderquotations) {
                      setQuotationEntries(page.props.tender.tenderquotations.map(q => {
                         let sName = 'Unknown Supplier';
@@ -231,7 +232,7 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
                     return {...entry, file_error: newFileError || null };
                 });
                 setQuotationEntries(newQuotationEntries);
-                showAlert(serverValidationErrors.message || "Failed to save. Please check form errors.", "Save Error", "error");
+                toast.error(serverValidationErrors.message || "Failed to save. Please check form errors.", "Save Error", "error");
             }
         });
     };
@@ -252,7 +253,7 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
                     addQuotationEntry(createdSupplier);
                 } else {
                     console.error("New supplier response data format error:", response.data);
-                    showAlert("Supplier created, but failed to add to list. Refresh or search.", "Data Issue", "warning");
+                    toast.error("Supplier created, but failed to add to list. Refresh or search.", "Data Issue", "warning");
                 }
                 setTimeout(closeNewSupplierModal, 1500);
             })
@@ -262,7 +263,7 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
                 if(error.response){ if(error.response.data){ if(error.response.data.errors){ modalErrors = error.response.data.errors; errorMessage = error.response.data.message || "Validation failed."; } else if (error.response.data.message) errorMessage = error.response.data.message; else if (typeof error.response.data === 'string') errorMessage = error.response.data; } else if (error.response.statusText) errorMessage = `Server Error: ${error.response.status} ${error.response.statusText}`; }
                 else if(error.request) errorMessage = "No server response. Check network."; else errorMessage = error.message || "Request setup error.";
                 setNewSupplierModal(prev => ({ ...prev, loading: false, success: false, errors: modalErrors }));
-                showAlert(errorMessage, "Supplier Creation Failed", "error");
+                toast.error(errorMessage, "Supplier Creation Failed", "error");
             });
     };
 
@@ -270,9 +271,9 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
         clearErrors();
         const noFileErrors = quotationEntries.every(q => !q.file_error);
         const allFilesPresent = quotationEntries.every(q => q.file_url || q.file_object);
-        if (!noFileErrors) { showAlert('Some files have errors. Correct them before submitting.', 'File Errors', 'error'); return; }
-        if (!allFilesPresent) { showAlert('All supplier entries must have a quotation file uploaded.', 'Missing Files', 'error'); return; }
-        if (quotationEntries.length === 0) { showAlert('Add at least one quotation.', 'No Quotations', 'warning'); return; }
+        if (!noFileErrors) { toast.error('Some files have errors. Correct them before submitting.', 'File Errors', 'error'); return; }
+        if (!allFilesPresent) { toast.error('All supplier entries must have a quotation file uploaded.', 'Missing Files', 'error'); return; }
+        if (quotationEntries.length === 0) { toast.error('Add at least one quotation.', 'No Quotations', 'warning'); return; }
         setData('remarks', '');
         setSubmitToEvaluationModal({ isOpen: true, loading: false, success: false, remarksError: '' });
     };
@@ -292,7 +293,7 @@ export default function Quotation({ auth, tender, flash, errors: pageErrors }) {
                 closeSubmitToEvaluationModal(); 
                 //router.visit(route('procurements0.index')); 
             }, 2000); },
-            onError: (serverValidationErrors) => { console.error("Submit to Evaluation error:", serverValidationErrors); setSubmitToEvaluationModal(prev => ({ ...prev, loading: false, remarksError: serverValidationErrors.remarks || '' })); showAlert(serverValidationErrors.message || "Failed to submit. Check errors.", "Submission Error", "error"); }
+            onError: (serverValidationErrors) => { console.error("Submit to Evaluation error:", serverValidationErrors); setSubmitToEvaluationModal(prev => ({ ...prev, loading: false, remarksError: serverValidationErrors.remarks || '' })); toast.error(serverValidationErrors.message || "Failed to submit. Check errors.", "Submission Error", "error"); }
         });
     };
 

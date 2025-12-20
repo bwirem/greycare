@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
-use App\Models\BILProductControl;
-use App\Models\BILProductExpiryDates;
-use App\Models\BILProductTransactions;
-use App\Models\BILSale;
-use App\Models\SIV_Product;
-use App\Models\SIV_ProductCategory;
-use App\Models\SIV_Store;
+use App\Models\Inventory\IVProductControl;
+use App\Models\Inventory\IVProductExpiryDates;
+use App\Models\Inventory\IVProductTransactions;
+
+use App\Models\Inventory\SIV_Product;
+use App\Models\Inventory\SIV_ProductCategory;
+use App\Models\Inventory\SIV_Store;
+
+use App\Models\Billing\BILSale;
+use App\Models\Billing\BLSPriceCategory;
+
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductsExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +27,7 @@ class InventoryReportsController extends Controller
 {
     /**
      * Stock on Hand Report
-     * REFACTORED: Uses BILProductControl as the single source of truth for current stock.
+     * REFACTORED: Uses IVProductControl as the single source of truth for current stock.
      */
     public function stockOnHand(Request $request)
     {
@@ -89,7 +96,7 @@ class InventoryReportsController extends Controller
 
     /**
      * Inventory Valuation Report
-     * REFACTORED: Also uses BILProductControl for current valuation.
+     * REFACTORED: Also uses IVProductControl for current valuation.
      */
     public function valuation(Request $request)
     {
@@ -153,7 +160,7 @@ class InventoryReportsController extends Controller
 
         $storeId = $validated['store_id'] ?? null;
 
-        $movementsQuery = BILProductTransactions::with('product:id,name')
+        $movementsQuery = IVProductTransactions::with('product:id,name')
             ->whereBetween('transdate', [
                 Carbon::parse($request->start_date ?? '30 days ago')->startOfDay(),
                 Carbon::parse($request->end_date ?? 'today')->endOfDay(),
@@ -182,14 +189,14 @@ class InventoryReportsController extends Controller
             'movements' => $movements,
             'stores' => SIV_Store::orderBy('name')->get(['id', 'name']),
             'productsList' => SIV_Product::orderBy('name')->get(['id', 'name']),
-            'transactionTypes' => BILProductTransactions::select('transtype')->distinct()->pluck('transtype'),
+            'transactionTypes' => IVProductTransactions::select('transtype')->distinct()->pluck('transtype'),
             'filters' => $validated,
         ]);
     }
 
     /**
      * Reorder Level Report
-     * REFACTORED: Uses BILProductControl and a selected store.
+     * REFACTORED: Uses IVProductControl and a selected store.
      */
     public function reorderLevel(Request $request)
     {
@@ -268,7 +275,7 @@ class InventoryReportsController extends Controller
 
         $expiryDateThreshold = Carbon::today()->addDays($daysToExpiry);
 
-        $expiringQuery = BILProductExpiryDates::with(['product:id,name', 'store:id,name'])
+        $expiringQuery = IVProductExpiryDates::with(['product:id,name', 'store:id,name'])
             ->where('quantity', '>', 0) // Only items with stock
             ->whereDate('expirydate', '<=', $expiryDateThreshold) // Expiring on or before threshold
             ->whereDate('expirydate', '>=', Carbon::today()); // Not yet expired
@@ -296,7 +303,7 @@ class InventoryReportsController extends Controller
 
     /**
      * Slow Moving Stock Report
-     * REFACTORED: Uses BILProductControl for current stock and simplifies the sales query.
+     * REFACTORED: Uses IVProductControl for current stock and simplifies the sales query.
      */
     public function slowMoving(Request $request)
     {
@@ -415,5 +422,91 @@ class InventoryReportsController extends Controller
         ]);
     }
      */
+
+    private function getActivePriceConfigs()
+    {
+        $activePriceCategories = [];
+        $priceCategorySettings = BLSPriceCategory::first();
+
+        if ($priceCategorySettings) {
+            for ($i = 1; $i <= 4; $i++) {
+                if ($priceCategorySettings->{'useprice' . $i}) {
+                    $activePriceCategories[] = [
+                        'key' => 'price' . $i,
+                        'label' => $priceCategorySettings->{'price' . $i},
+                    ];
+                }
+            }
+        }
+        if (empty($activePriceCategories)) {
+            $activePriceCategories[] = ['key' => 'price1', 'label' => 'Price'];
+        }
+        return $activePriceCategories;
+    }
+
+    // ... Helper to build the query ...
+    private function getProductQuery(Request $request)
+    {
+        $query = SIV_Product::with(['category:id,name', 'unit:id,name', 'blsItem']);
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('displayname', 'like', '%' . $request->search . '%');
+            });
+        }
+        
+        return $query->orderBy('name');
+    }
+
+    public function productList(Request $request)
+    {
+        $activePriceCategories = $this->getActivePriceConfigs();
+        
+        // Use paginate for the view
+        $products = $this->getProductQuery($request)->paginate(50)->withQueryString();
+
+        return Inertia::render('Reports/Inventory/ProductList', [
+            'products'   => $products,
+            'categories' => SIV_ProductCategory::orderBy('name')->get(['id', 'name']),
+            'activePriceCategories' => $activePriceCategories,
+            'filters'    => $request->only(['search', 'category_id']),
+        ]);
+    }
+
+    public function exportProductListPdf(Request $request)
+    {
+        $activePriceCategories = $this->getActivePriceConfigs();
+        
+        // Use get() for export (all records)
+        $products = $this->getProductQuery($request)->get();
+        
+        $categoryName = $request->category_id 
+            ? SIV_ProductCategory::find($request->category_id)?->name 
+            : 'All Categories';
+
+        $pdf = Pdf::loadView('pdfs.product_list', [
+            'products' => $products,
+            'activePriceCategories' => $activePriceCategories,
+            'categoryName' => $categoryName
+        ]);
+
+        return $pdf->download('product_list_' . date('Y_m_d') . '.pdf');
+    }
+
+    public function exportProductListExcel(Request $request)
+    {
+        $activePriceCategories = $this->getActivePriceConfigs();
+        $products = $this->getProductQuery($request)->get();
+
+        return Excel::download(
+            new ProductsExport($products, $activePriceCategories), 
+            'product_list_' . date('Y_m_d') . '.xlsx'
+        );
+    }
 
 }

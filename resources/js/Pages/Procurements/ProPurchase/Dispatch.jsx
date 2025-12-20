@@ -4,6 +4,7 @@ import { Head, useForm, Link, router } from '@inertiajs/react'; // router for na
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimesCircle, faEye, faTruck, faSpinner, faInfoCircle, faCheckCircle, faListUl } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
+import { toast } from 'react-toastify';
 // No need to import Inertia directly, useForm and router handle it.
 
 import Modal from '@/Components/CustomModal.jsx'; // Assuming styled well
@@ -63,8 +64,8 @@ export default function Dispatch({ auth, purchase, flash, errors: pageErrors }) 
     const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
     useEffect(() => {
-        if (flash?.success) showAlert(flash.success, 'Success', 'success');
-        if (flash?.error) showAlert(flash.error, 'Error', 'error');
+        if (flash?.success) toast.success(flash.success, 'Success', 'success');
+        if (flash?.error) toast.error(flash.error, 'Error', 'error');
     }, [flash]);
 
     // Update form if purchase prop changes (e.g., after Inertia reload)
@@ -168,7 +169,7 @@ export default function Dispatch({ auth, purchase, flash, errors: pageErrors }) 
                 }));
                 // If errors are not specific to modal fields, show a general alert
                 if (!serverErrors.recipient_name && !serverErrors.recipient_contact && !serverErrors.dispatch_remarks && !serverErrors.remarks) {
-                    showAlert(serverErrors.message || "Failed to dispatch purchase order.", "Dispatch Failed", "error");
+                    toast.error(serverErrors.message || "Failed to dispatch purchase order.", "Dispatch Failed", "error");
                 }
             },
         });

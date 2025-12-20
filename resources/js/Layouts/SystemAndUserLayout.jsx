@@ -42,11 +42,7 @@ const financeModuleKeys = [
 // 2. DEFINING FINANCE CHILD ITEM KEYS (Whitelist)
 const allowedFinanceItemKeys = [  
     
-    // --- REQUESTED CONFIGURATIONS ---
-    'systemconfiguration0', // Billing Setup
-    'systemconfiguration1', // Expenses Setup  
-    'systemconfiguration2', // Location Setup      
-    'systemconfiguration3', // Accounting Setup
+    // --- REQUESTED CONFIGURATIONS ---    
     'systemconfiguration4', // 
     'systemconfiguration5', //     
 

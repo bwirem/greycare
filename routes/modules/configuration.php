@@ -70,7 +70,15 @@ use App\Http\Controllers\BloodBank\BloodBankSetupController;
 use App\Http\Controllers\BloodBank\BbComponentTypeController;
 use App\Http\Controllers\BloodBank\BbDeferralReasonController;
 
-
+// Human Resource Controllers   
+use App\Http\Controllers\HumanResource\Setup\HrmDepartmentController;
+use App\Http\Controllers\HumanResource\Setup\HrmPositionController;
+use App\Http\Controllers\HumanResource\Setup\HrmBankController;
+use App\Http\Controllers\HumanResource\Setup\PayTaxBracketController;
+use App\Http\Controllers\HumanResource\Setup\PaySocialSecurityTypeController;
+use App\Http\Controllers\HumanResource\Setup\PayInsuranceTypeController;
+use App\Http\Controllers\HumanResource\Setup\PayFinancierController;
+use App\Http\Controllers\HumanResource\Setup\HrmLeaveTypeController;
 
 
 // Models
@@ -91,8 +99,18 @@ use App\Models\Billing\BLSPaymentType;
 use App\Models\Billing\BLSPriceCategory; 
 use App\Models\Billing\BLSItemGroup;      
 use App\Models\Billing\BLSItem;           
-use App\Models\Billing\BLSCustomer;      
+use App\Models\Billing\BLSCustomer;     
 
+
+// Models for Dashboards
+use App\Models\HumanResource\HrmDepartment;
+use App\Models\HumanResource\HrmPosition;
+use App\Models\HumanResource\HrmBank;
+use App\Models\HumanResource\PayTaxBracket;
+use App\Models\HumanResource\PaySocialSecurityType;
+use App\Models\HumanResource\PayInsuranceType;
+use App\Models\HumanResource\PayFinancier;
+use App\Models\HumanResource\HrmLeaveType;
 
 // systemconfiguration0: Billing Setup
 Route::prefix('systemconfiguration0')->name('systemconfiguration0.')->group(function () {
@@ -678,5 +696,126 @@ Route::prefix('systemconfiguration10')->name('systemconfiguration10.')->group(fu
         Route::get('/{id}/edit', [BbDeferralReasonController::class, 'edit'])->name('edit');
         Route::put('/{id}', [BbDeferralReasonController::class, 'update'])->name('update');
         Route::delete('/{id}', [BbDeferralReasonController::class, 'destroy'])->name('destroy');
+    });
+});
+
+ 
+// systemconfiguration11: HR Organization Setup
+Route::prefix('systemconfiguration11')->name('systemconfiguration11.')->group(function () {
+    
+    // Dashboard
+    Route::get('/', function () { 
+        return Inertia::render('SystemConfiguration/HrSetup/Index', [
+            'deptCount' => HrmDepartment::count(),
+            'posCount' => HrmPosition::count(),
+            'bankCount' => HrmBank::count(),
+        ]); 
+    })->name('index');
+
+    // 1. Departments
+    Route::prefix('departments')->name('departments.')->group(function () {
+        Route::get('/', [HrmDepartmentController::class, 'index'])->name('index');
+        Route::get('/create', [HrmDepartmentController::class, 'create'])->name('create');
+        Route::post('/', [HrmDepartmentController::class, 'store'])->name('store');
+        Route::get('/{department}/edit', [HrmDepartmentController::class, 'edit'])->name('edit');
+        Route::put('/{department}', [HrmDepartmentController::class, 'update'])->name('update');
+        Route::delete('/{department}', [HrmDepartmentController::class, 'destroy'])->name('destroy');
+    });
+
+    // 2. Positions
+    Route::prefix('positions')->name('positions.')->group(function () {
+        Route::get('/', [HrmPositionController::class, 'index'])->name('index');
+        Route::get('/create', [HrmPositionController::class, 'create'])->name('create');
+        Route::post('/', [HrmPositionController::class, 'store'])->name('store');
+        Route::get('/{position}/edit', [HrmPositionController::class, 'edit'])->name('edit');
+        Route::put('/{position}', [HrmPositionController::class, 'update'])->name('update');
+        Route::delete('/{position}', [HrmPositionController::class, 'destroy'])->name('destroy');
+    });
+
+    // 3. Banks
+    Route::prefix('banks')->name('banks.')->group(function () {
+        Route::get('/', [HrmBankController::class, 'index'])->name('index');
+        Route::get('/create', [HrmBankController::class, 'create'])->name('create');
+        Route::post('/', [HrmBankController::class, 'store'])->name('store');
+        Route::get('/{bank}/edit', [HrmBankController::class, 'edit'])->name('edit');
+        Route::put('/{bank}', [HrmBankController::class, 'update'])->name('update');
+        Route::delete('/{bank}', [HrmBankController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// systemconfiguration12: Payroll Configuration
+Route::prefix('systemconfiguration12')->name('systemconfiguration12.')->group(function () {
+    
+    // Dashboard
+    Route::get('/', function () { 
+        return Inertia::render('SystemConfiguration/PayrollSetup/Index', [
+            'taxCount' => PayTaxBracket::count(),
+            'ssCount' => PaySocialSecurityType::count(),
+            'insCount' => PayInsuranceType::count(),
+            'finCount' => PayFinancier::count(),
+        ]); 
+    })->name('index');
+
+    // 1. Tax Brackets (PAYE)
+    Route::prefix('tax')->name('tax.')->group(function () {
+        Route::get('/', [PayTaxBracketController::class, 'index'])->name('index');
+        Route::get('/create', [PayTaxBracketController::class, 'create'])->name('create');
+        Route::post('/', [PayTaxBracketController::class, 'store'])->name('store');
+        Route::get('/{tax}/edit', [PayTaxBracketController::class, 'edit'])->name('edit');
+        Route::put('/{tax}', [PayTaxBracketController::class, 'update'])->name('update');
+        Route::delete('/{tax}', [PayTaxBracketController::class, 'destroy'])->name('destroy');
+    });
+
+    // 2. Social Security
+    Route::prefix('social')->name('social.')->group(function () {
+        Route::get('/', [PaySocialSecurityTypeController::class, 'index'])->name('index');
+        Route::get('/create', [PaySocialSecurityTypeController::class, 'create'])->name('create');
+        Route::post('/', [PaySocialSecurityTypeController::class, 'store'])->name('store');
+        Route::get('/{social}/edit', [PaySocialSecurityTypeController::class, 'edit'])->name('edit');
+        Route::put('/{social}', [PaySocialSecurityTypeController::class, 'update'])->name('update');
+        Route::delete('/{social}', [PaySocialSecurityTypeController::class, 'destroy'])->name('destroy');
+    });
+
+    // 3. Insurance Types
+    Route::prefix('insurance')->name('insurance.')->group(function () {
+        Route::get('/', [PayInsuranceTypeController::class, 'index'])->name('index');
+        Route::get('/create', [PayInsuranceTypeController::class, 'create'])->name('create');
+        Route::post('/', [PayInsuranceTypeController::class, 'store'])->name('store');
+        Route::get('/{insurance}/edit', [PayInsuranceTypeController::class, 'edit'])->name('edit');
+        Route::put('/{insurance}', [PayInsuranceTypeController::class, 'update'])->name('update');
+        Route::delete('/{insurance}', [PayInsuranceTypeController::class, 'destroy'])->name('destroy');
+    });
+
+    // 4. Financiers (Loans)
+    Route::prefix('financiers')->name('financiers.')->group(function () {
+        Route::get('/', [PayFinancierController::class, 'index'])->name('index');
+        Route::get('/create', [PayFinancierController::class, 'create'])->name('create');
+        Route::post('/', [PayFinancierController::class, 'store'])->name('store');
+        Route::get('/{financier}/edit', [PayFinancierController::class, 'edit'])->name('edit');
+        Route::put('/{financier}', [PayFinancierController::class, 'update'])->name('update');
+        Route::delete('/{financier}', [PayFinancierController::class, 'destroy'])->name('destroy');
+    });
+});
+
+
+
+// systemconfiguration13: Leave Setup
+Route::prefix('systemconfiguration13')->name('systemconfiguration13.')->group(function () {
+    
+    // Main Dashboard for Leave Setup
+    Route::get('/', function () { 
+        return Inertia::render('SystemConfiguration/LeaveSetup/Index', [
+            'typeCount' => HrmLeaveType::count(),
+        ]); 
+    })->name('index');
+
+    // Leave Types CRUD
+    Route::prefix('leavetypes')->name('leavetypes.')->group(function () {
+        Route::get('/', [HrmLeaveTypeController::class, 'index'])->name('index');
+        Route::get('/create', [HrmLeaveTypeController::class, 'create'])->name('create');
+        Route::post('/', [HrmLeaveTypeController::class, 'store'])->name('store');
+        Route::get('/{leavetype}/edit', [HrmLeaveTypeController::class, 'edit'])->name('edit');
+        Route::put('/{leavetype}', [HrmLeaveTypeController::class, 'update'])->name('update');
+        Route::delete('/{leavetype}', [HrmLeaveTypeController::class, 'destroy'])->name('destroy');
     });
 });

@@ -4,15 +4,17 @@ namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\BILSale;
-use App\Models\BILSaleItem;
-use App\Models\BLSItemGroup;
-use App\Models\BLSPaymentType;
-use App\Models\BILCollection;
-use App\Models\BLSItem;
-use App\Models\BLSCustomer;
-use App\Models\SIV_Store;
+use App\Models\Billing\BILSale;
+use App\Models\Billing\BILSaleItem;
+use App\Models\Billing\BLSItemGroup;
+use App\Models\Billing\BLSPaymentType;
+use App\Models\Billing\BILCollection;
+use App\Models\Billing\BLSItem;
+use App\Models\Billing\BLSCustomer;
+
+use App\Models\Inventory\SIV_Store;
 use App\Models\User;
+
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;

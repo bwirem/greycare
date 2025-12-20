@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/FinanceLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import React, { useState } from 'react'; // For date picker state
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

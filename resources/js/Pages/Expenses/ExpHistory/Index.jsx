@@ -47,10 +47,10 @@ export default function Index({ auth, historys, filters, flash }) {
     // This effect handles flash messages by showing an alert modal
     useEffect(() => {
         if (flash?.success) {
-            showAlert(flash.success, 'success');
+            toast.success(flash.success, 'success');
         }
         if (flash?.error) {
-            showAlert(flash.error, 'error');
+            toast.error(flash.error, 'error');
         }
     }, [flash]);
 

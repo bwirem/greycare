@@ -50,10 +50,10 @@ export default function View({ auth, history, flash }) {
     // Effect to display flash messages that might be passed to the page
     useEffect(() => {
         if (flash?.success) {
-            showAppModal('Success', flash.success, 'success');
+            toast.success('Success', flash.success, 'success');
         }
         if (flash?.error) {
-            showAppModal('Error', flash.error, 'error');
+            toast.error('Error', flash.error, 'error');
         }
     }, [flash]);
 

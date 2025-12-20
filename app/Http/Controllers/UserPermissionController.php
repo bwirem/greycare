@@ -348,10 +348,12 @@ class UserPermissionController extends Controller
                 ['key' => 'expenses2', 'text' => 'Expense History', 'icon' => 'history'],               
             ],
             'humanresurces' => [
-                ['key' => 'humanresurces0', 'text' => 'Employee Bio Data', 'icon' => 'person'],
-                ['key' => 'humanresurces1', 'text' => 'Import Employee Data', 'icon' => 'upload'],
-                ['key' => 'humanresurces2', 'text' => 'Termination', 'icon' => 'person_outline'],
-                ['key' => 'humanresurces3', 'text' => 'Payroll', 'icon' => 'payroll'],
+                ['key' => 'humanresurces0', 'text' => 'Employee Records', 'icon' => 'id_badge'], // Covers hrm_employees, jobs, banking
+                ['key' => 'humanresurces1', 'text' => 'Attendance', 'icon' => 'clock'], // Covers hrm_attendance
+                ['key' => 'humanresurces2', 'text' => 'Loans & Advances', 'icon' => 'hand_holding_usd'], // Covers pay_employee_loans
+                ['key' => 'humanresurces3', 'text' => 'Process Payroll', 'icon' => 'calculator'], // Covers pay_payroll_periods
+                ['key' => 'humanresurces4', 'text' => 'Payslips', 'icon' => 'file_invoice_dollar'], // Covers pay_slips
+                ['key' => 'humanresurces5', 'text' => 'Leave Management', 'icon' => 'calendar_day'], // Covers hrm_leaves
             ],
             'fixedassets' => [
                 ['key' => 'fixedassets0', 'text' => 'Asset Register', 'icon' => 'list_alt'],
@@ -391,13 +393,19 @@ class UserPermissionController extends Controller
                 ['key' => 'systemconfiguration3', 'text' => 'Accounting Setup', 'icon' => 'menu_book'],
                 ['key' => 'systemconfiguration4', 'text' => 'Location Setup', 'icon' => 'location_setup'],
                 ['key' => 'systemconfiguration5', 'text' => 'Facility Setup', 'icon' => 'facility_setup'],
+                //Hospital Departments Setup
                 ['key' => 'systemconfiguration6', 'text' => 'Lab Setup', 'icon' => 'lab_setup'],               
                 ['key' => 'systemconfiguration7', 'text' => 'Radiology Setup', 'icon' => 'radiology_setup'],
                 ['key' => 'systemconfiguration8', 'text' => 'Theatre Setup', 'icon' => 'theatre_setup'],
                 ['key' => 'systemconfiguration9', 'text' => 'Pharmacy Setup', 'icon' => 'pharmacy_setup'],
                 ['key' => 'systemconfiguration10', 'text' => 'Blood Bank Setup', 'icon' => 'blood_bank_setup'],
-
-
+                // Handles Departments, Positions, Banks
+                ['key' => 'systemconfiguration11', 'text' => 'HR Organization', 'icon' => 'users'], 
+                // Handles Tax, Social Security, Insurance, Financiers
+                ['key' => 'systemconfiguration12', 'text' => 'Payroll Configuration', 'icon' => 'cog'],
+                // Handles Lave Types, Leave Entitlements, Holiday Calendar
+                ['key' => 'systemconfiguration13', 'text' => 'Leave Configuration', 'icon' => 'calendar_day'],
+                
             ],
             'usermanagement' => [
                 ['key' => 'usermanagement', 'text' => 'Manage Users', 'icon' => 'manage_accounts'],

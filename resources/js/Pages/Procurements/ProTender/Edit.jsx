@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faSave, faTimesCircle, faCheck, faSpinner, faSearch, faInfoCircle, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 import Modal from '@/Components/CustomModal.jsx';
 import InputError from '@/Components/InputError'; // Standard Inertia error component
@@ -81,12 +82,12 @@ export default function Edit({ auth, tender, flash, errors: serverErrors }) { //
     // Handle flash messages from server (e.g., after successful update)
     useEffect(() => {
         if (flash?.success) {
-            showAlert(flash.success, 'Success', 'success');
+            toast.success(flash.success, 'Success', 'success');
             // The 'tender' prop should be updated by Inertia, re-rendering the component.
             // `reset()` might not be needed if the page re-initializes with new `tender` data.
         }
         if (flash?.error) {
-            showAlert(flash.error, 'Error', 'error');
+            toast.error(flash.error, 'Error', 'error');
         }
     }, [flash]);
 
@@ -113,7 +114,7 @@ export default function Edit({ auth, tender, flash, errors: serverErrors }) { //
             })
             .catch((error) => {
                 console.error('Error fetching products:', error);
-                showAlert('Failed to fetch products.', 'Error fetching items', 'error');
+                toast.error('Failed to fetch products.', 'Error fetching items', 'error');
                 setItemSearchResults([]);
                 setShowItemDropdown(false);
             })
@@ -157,7 +158,7 @@ export default function Edit({ auth, tender, flash, errors: serverErrors }) { //
 
     const addTenderItem = (selectedItem) => {
         if (currentTenderItems.some(item => item.item_id === selectedItem.id)) {
-            showAlert(`${selectedItem.name} is already in the tender list.`, 'Item Exists', 'warning');
+            toast.error(`${selectedItem.name} is already in the tender list.`, 'Item Exists', 'warning');
             setItemSearchQuery('');
             setItemSearchResults([]);
             setShowItemDropdown(false);
@@ -202,12 +203,12 @@ export default function Edit({ auth, tender, flash, errors: serverErrors }) { //
         clearErrors(); // Clear previous errors before new submission
 
         if (currentTenderItems.length === 0 && !isReadOnly) { // Don't validate if read-only
-            showAlert('Please add at least one item to the tender.', 'Validation Error', 'error');
+            toast.error('Please add at least one item to the tender.', 'Validation Error', 'error');
             return;
         }
         const hasInvalidQuantity = currentTenderItems.some(item => !item.quantity || item.quantity < 1);
         if (hasInvalidQuantity && !isReadOnly) {
-            showAlert('Please ensure all items have a quantity of at least 1.', 'Validation Error', 'error');
+            toast.error('Please ensure all items have a quantity of at least 1.', 'Validation Error', 'error');
             return;
         }
 
@@ -227,7 +228,7 @@ export default function Edit({ auth, tender, flash, errors: serverErrors }) { //
             preserveScroll: true,
             onSuccess: () => {
                 // Success message will be handled by flash message from backend
-                // showAlert('Tender updated successfully!', 'Success', 'success'); // Can be used too
+                // toast.error('Tender updated successfully!', 'Success', 'success'); // Can be used too
             },
             onError: (serverValidationErrors) => {
                 // `errors` object from `useForm` is automatically populated by Inertia.
@@ -244,7 +245,7 @@ export default function Edit({ auth, tender, flash, errors: serverErrors }) { //
                     // If specific validation errors are present, InputError components will show them.
                     // The general message above is usually sufficient.
                 }
-                showAlert(generalErrorMessage, 'Update Failed', 'error');
+                toast.error(generalErrorMessage, 'Update Failed', 'error');
             }
         });
     };
@@ -312,7 +313,7 @@ export default function Edit({ auth, tender, flash, errors: serverErrors }) { //
                 else if (errorObj.message) errorMessage = errorObj.message;
                 else if (Object.keys(errorObj).length > 0) errorMessage = "Please check approval form for errors."
 
-                showAlert(errorMessage, 'Approval Error', 'error');
+                toast.error(errorMessage, 'Approval Error', 'error');
                 setApproveModalState(prev => ({ ...prev, loading: false, success: false }));
             }
         });

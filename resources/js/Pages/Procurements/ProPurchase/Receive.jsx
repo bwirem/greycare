@@ -18,6 +18,7 @@ import {
     faTruckLoading,
 } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
+import { toast } from 'react-toastify';
 
 import Modal from '@/Components/CustomModal.jsx'; // Ensure this path is correct
 import InputError from '@/Components/InputError';
@@ -93,8 +94,8 @@ export default function Receive({ auth, purchase, stores, flash, errors: pageErr
 
     // Handle flash messages
     useEffect(() => {
-        if (flash?.success) showAlert(flash.success, 'Success', 'success');
-        if (flash?.error) showAlert(flash.error, 'Error', 'error');
+        if (flash?.success) toast.success(flash.success, 'Success', 'success');
+        if (flash?.error) toast.error(flash.error, 'Error', 'error');
     }, [flash]);
 
     // Sync form stage with purchase stage if purchase prop changes
@@ -159,7 +160,7 @@ export default function Receive({ auth, purchase, stores, flash, errors: pageErr
             }));
 
         if (itemsToSubmit.length === 0) {
-            showAlert("No items have a valid quantity greater than zero to receive.", "No Items to Receive", "warning");
+            toast.error("No items have a valid quantity greater than zero to receive.", "No Items to Receive", "warning");
             return;
         }
 

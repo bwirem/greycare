@@ -16,6 +16,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 import Modal from '@/Components/CustomModal.jsx'; // Ensure this path is correct
 
@@ -70,10 +71,10 @@ export default function Create({ auth, facilityoption, flash }) {
 
      useEffect(() => {
         if (flash?.success) {
-            showAppModal('Success', flash.success, 'success', true, null, 'OK');
+            toast.success('Success', flash.success, 'success', true, null, 'OK');
         }
         if (flash?.error) {
-            showAppModal('Error', flash.error, 'error', true, null, 'OK');
+            toast.error('Error', flash.error, 'error', true, null, 'OK');
         }
     }, [flash]);
 
@@ -86,7 +87,7 @@ export default function Create({ auth, facilityoption, flash }) {
             setShowDropdown(true);
         } catch (error) {
             console.error(`Error fetching ${errorMsgEntity}:`, error);
-            showAppModal('Fetch Error', `Failed to fetch ${errorMsgEntity}. Please try again later.`, 'error');
+            toast.error('Fetch Error', `Failed to fetch ${errorMsgEntity}. Please try again later.`, 'error');
             setResults([]); setShowDropdown(false);
         } finally { setLoading(false); }
     }, []);
@@ -139,7 +140,7 @@ export default function Create({ auth, facilityoption, flash }) {
     const addPostItem = (selectedItem) => {
         if (!selectedItem || !selectedItem.id) return;
         if (data.postitems.some(pi => pi.item_id === selectedItem.id)) {
-            showAppModal('Item Exists', `"${selectedItem.name}" is already in the list.`, 'warning');
+            toast.error('Item Exists', `"${selectedItem.name}" is already in the list.`, 'warning');
             itemSearchInputRef.current?.focus();
             return;
         }
@@ -207,7 +208,7 @@ export default function Create({ auth, facilityoption, flash }) {
             const generalErrorMsg = itemLineError ? "Please correct errors in the item list." :
                                     newErrors.postitems ? newErrors.postitems :
                                     newErrors.description || newErrors.facility_id || "Please fill all required fields correctly.";
-            showAppModal("Validation Error", generalErrorMsg, 'error');
+            toast.error("Validation Error", generalErrorMsg, 'error');
         }
         return isValid;
     };
@@ -237,11 +238,11 @@ export default function Create({ auth, facilityoption, flash }) {
                     facility_id: facilityoption?.id || null,
                 }));
                 const successMessage = targetStage === "1" ? "Expense saved as draft successfully!" : "Expense submitted successfully!"; // Adjusted for stage "2"
-                showAppModal("Success!", successMessage, 'success');
+                toast.success("Success!", successMessage, 'success');
             },
             onError: (pageErrors) => {
                 const errorMsg = Object.values(pageErrors).flat().join(' ') || 'Failed to save expense. Please check your input.';
-                showAppModal("Save Error", errorMsg, 'error');
+                toast.error("Save Error", errorMsg, 'error');
             },
             onFinish: () => {
                 setActiveSubmitStage(null);

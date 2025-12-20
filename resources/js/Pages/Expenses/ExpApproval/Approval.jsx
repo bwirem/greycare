@@ -83,10 +83,10 @@ export default function Edit({ auth, approval, flash }) {
     // Effect to display flash messages from the backend
     useEffect(() => {
         if (flash?.success) {
-            showAppModal('Success', flash.success, 'success');
+            toast.success('Success', flash.success, 'success');
         }
         if (flash?.error) {
-            showAppModal('Error', flash.error, 'error');
+            toast.error('Error', flash.error, 'error');
         }
     }, [flash]);
 
@@ -100,7 +100,7 @@ export default function Edit({ auth, approval, flash }) {
             setShowDropdown(true);
         } catch (error) {
             console.error(`Error fetching ${errorMsgEntity}:`, error);
-            showAppModal('Fetch Error', `Failed to fetch ${errorMsgEntity}. Please try again later.`, 'error');
+            toast.error('Fetch Error', `Failed to fetch ${errorMsgEntity}. Please try again later.`, 'error');
         } finally { setLoading(false); }
     }, []);
 
@@ -142,7 +142,7 @@ export default function Edit({ auth, approval, flash }) {
     const addApprovalItem = (selectedItem) => {
         if (!selectedItem || !selectedItem.id) return;
         if (data.approvalitems.some(pi => pi.item_id === selectedItem.id)) {
-            showAppModal('Item Exists', `"${selectedItem.name}" is already in the list.`, 'warning');
+            toast.error('Item Exists', `"${selectedItem.name}" is already in the list.`, 'warning');
             return;
         }
         const newItem = {
@@ -184,7 +184,7 @@ export default function Edit({ auth, approval, flash }) {
 
         if (Object.keys(newErrors).length > 0) {
             setError(newErrors);
-            showAppModal("Validation Error", Object.values(newErrors).find(msg => typeof msg === 'string'), 'error');
+            toast.error("Validation Error", Object.values(newErrors).find(msg => typeof msg === 'string'), 'error');
             return false;
         }
         return true;
@@ -207,7 +207,7 @@ export default function Edit({ auth, approval, flash }) {
             },
             onError: pageErrors => {
                 const errorMessages = Object.values(pageErrors).flat().join(' ');
-                showAppModal("Update Error", errorMessages || "An unknown error occurred.", 'error');
+                toast.error("Update Error", errorMessages || "An unknown error occurred.", 'error');
             },
             onFinish: () => {
                 setActiveSubmitStage(null);
