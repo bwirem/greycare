@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import AuthenticatedLayout from '@/Layouts/HospitalLayout';
+import AuthenticatedLayout from '@/Layouts/SpecializedLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSave, faSpinner, faCheckCircle } from '@fortawesome/free-solid-svg-icons';

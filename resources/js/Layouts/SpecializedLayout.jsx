@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     // Basic Navigation
     faBars, faTimes, faUser, faSignOutAlt, faHome, 
-    faArrowLeft,faBoxes,
+    faArrowLeft,faBoxes, faCog,
 
     // Specialized Care Icons
     faBabyCarriage, faRibbon, faBookDead, faWalking, // Module Headers
@@ -64,6 +64,7 @@ const iconMap = {
     hivart: faRibbon,
     mortuary: faBookDead, // or faCross
     physiotherapy: faWalking,
+    settings: faCog,
 
     // RCH Items
     venus_mars: faVenusMars, // Family Planning

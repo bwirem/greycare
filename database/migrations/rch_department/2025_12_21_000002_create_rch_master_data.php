@@ -20,6 +20,7 @@ return new class extends Migration {
             $table->string('code', 50)->unique();
             $table->string('name');
             $table->integer('target_age_weeks')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

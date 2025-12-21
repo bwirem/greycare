@@ -1,5 +1,5 @@
 import React from 'react';
-import AuthenticatedLayout from '@/Layouts/HospitalLayout';
+import AuthenticatedLayout from '@/Layouts/SpecializedLayout';
 import { Head } from '@inertiajs/react';
 import ImmunizationForm from './ImmunizationForm';
 
