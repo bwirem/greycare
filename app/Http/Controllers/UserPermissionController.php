@@ -405,6 +405,8 @@ class UserPermissionController extends Controller
                 ['key' => 'systemconfiguration12', 'text' => 'Payroll Configuration', 'icon' => 'cog'],
                 // Handles Lave Types, Leave Entitlements, Holiday Calendar
                 ['key' => 'systemconfiguration13', 'text' => 'Leave Configuration', 'icon' => 'calendar_day'],
+                // RCH Setup
+                ['key' => 'systemconfiguration14', 'text' => 'RCH Configuration', 'icon' => 'baby_carriage'],
                 
             ],
             'usermanagement' => [

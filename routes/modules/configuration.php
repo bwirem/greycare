@@ -819,3 +819,42 @@ Route::prefix('systemconfiguration13')->name('systemconfiguration13.')->group(fu
         Route::delete('/{leavetype}', [HrmLeaveTypeController::class, 'destroy'])->name('destroy');
     });
 });
+
+
+use App\Http\Controllers\Rch\RchSetupController;
+use App\Http\Controllers\Rch\RchVaccineController;
+use App\Http\Controllers\Rch\RchFpMethodController;
+use App\Models\Rch\RchVaccine;
+use App\Models\Rch\RchFpMethod;
+
+// systemconfiguration14: RCH Setup
+Route::prefix('systemconfiguration14')->name('systemconfiguration14.')->group(function () {
+    
+    // Main Dashboard
+    Route::get('/', function () { 
+        return Inertia::render('SystemConfiguration/RchSetup/Index', [
+            'vaccineCount' => RchVaccine::count(),
+            'fpMethodCount' => RchFpMethod::count(),
+        ]); 
+    })->name('index');
+
+    // 1. Vaccines
+    Route::prefix('vaccines')->name('vaccines.')->group(function () {
+        Route::get('/', [RchVaccineController::class, 'index'])->name('index');
+        Route::get('/create', [RchVaccineController::class, 'create'])->name('create');
+        Route::post('/', [RchVaccineController::class, 'store'])->name('store');
+        Route::get('/{vaccine}/edit', [RchVaccineController::class, 'edit'])->name('edit');
+        Route::put('/{vaccine}', [RchVaccineController::class, 'update'])->name('update');
+        Route::delete('/{vaccine}', [RchVaccineController::class, 'destroy'])->name('destroy');
+    });
+
+    // 2. Family Planning Methods
+    Route::prefix('fpmethods')->name('fpmethods.')->group(function () {
+        Route::get('/', [RchFpMethodController::class, 'index'])->name('index');
+        Route::get('/create', [RchFpMethodController::class, 'create'])->name('create');
+        Route::post('/', [RchFpMethodController::class, 'store'])->name('store');
+        Route::get('/{method}/edit', [RchFpMethodController::class, 'edit'])->name('edit');
+        Route::put('/{method}', [RchFpMethodController::class, 'update'])->name('update');
+        Route::delete('/{method}', [RchFpMethodController::class, 'destroy'])->name('destroy');
+    });
+});

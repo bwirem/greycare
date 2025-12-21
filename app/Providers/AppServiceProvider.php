@@ -40,7 +40,8 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/inventory'),
             database_path('migrations/procurement'),          
             database_path('migrations/accounting'),   
-            database_path('migrations/human_resources')
+            database_path('migrations/human_resources'),
+            database_path('migrations/rch_department'),
         ]);
     }
 }

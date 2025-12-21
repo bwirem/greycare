@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     // Basic Navigation
     faBars, faTimes, faUser, faSignOutAlt, faHome, 
-    faArrowLeft,
+    faArrowLeft,faBoxes,
 
     // Specialized Care Icons
     faBabyCarriage, faRibbon, faBookDead, faWalking, // Module Headers
@@ -29,7 +29,29 @@ const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-20
 const specializedModuleKeys = [
     'rch',
     'hivart',   
-    'physiotherapy'
+    'physiotherapy',
+    'systemConfig'
+];
+
+// 2. DEFINING SPECIALIZED CHILD ITEM KEYS
+const allowedSpecializedItemKeys = [
+    // RCH Items
+    'rch0', // Family Planning
+    'rch1', // Antenatal
+    'rch2', // Postnatal
+    'rch3', // Child Health
+    'rch4', // Immunizations   
+
+    // HIV Items
+    'hivart0', // Enrollment
+    'hivart1', // ART Mgmt
+    
+    // Physio Items
+    'physiotherapy0', // Sessions
+    'physiotherapy1',  // Progress Notes
+
+    'systemconfiguration14', // System Configurations
+
 ];
 
 // Icon Map (Tailored for Specialized Clinics)
@@ -49,6 +71,7 @@ const iconMap = {
     hand_holding_medical: faHandHoldingMedical, // Postnatal
     child: faChild, // Child Health
     syringe: faSyringe, // Immunizations
+    baby_carriage: faBabyCarriage, // Maternity Records
 
     // HIV Items
     id_card: faIdCard, // Enrollment
@@ -149,21 +172,32 @@ export default function SpecializedLayout({ header, children }) {
         }));
     };
 
-    // 2. Filter Modules to show only Specialized Clinics
+    // Filter specialized modules and their items
     const specializedSidebarItems = modules
         .filter(module => specializedModuleKeys.includes(module.modulekey))
-        .map(module => ({
-            label: module.moduletext,
-            key: module.modulekey,
-            icon: iconMap[module.modulekey] || iconMap[module.icon] || faStethoscope, 
-            isOpen: sidebarState[module.modulekey],
-            toggleOpen: () => toggleSidebarSection(module.modulekey),
-            children: moduleItems[module.modulekey]?.map(item => ({
-                label: item.text,
-                icon: iconMap[item.icon] || null,
-                href: `/${item.key}`, 
-            })) || [],
-        }));
+        .map(module => {
+            // Filter children based on the whitelist (allowedSpecializedItemKeys)
+            const relevantChildren = moduleItems[module.modulekey]?.filter(item =>
+                allowedSpecializedItemKeys.includes(item.key)
+            ) || [];
+
+            // If module has no relevant children, hide it
+            if (relevantChildren.length === 0) return null;
+
+            return {
+                label: module.moduletext,
+                key: module.modulekey,
+                icon: iconMap[module.modulekey] || iconMap[module.icon] || faBoxes,
+                isOpen: sidebarState[module.modulekey],
+                toggleOpen: () => toggleSidebarSection(module.modulekey),
+                children: relevantChildren.map(item => ({
+                    label: item.text,
+                    icon: iconMap[item.icon] || null,
+                    href: `/${item.key}`,
+                })),
+            };
+        })
+        .filter(Boolean); // Filter out nulls
 
     return (
         // Root container with no window scrollbars
