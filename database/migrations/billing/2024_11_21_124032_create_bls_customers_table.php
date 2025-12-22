@@ -17,7 +17,8 @@ return new class extends Migration
             $table->id();
             // Use CustomerType::cases() to get all the customer types
             $table->enum('customer_type', array_map(fn($type) => $type->value, CustomerType::cases()))->default(CustomerType::INDIVIDUAL->value);
-
+            $table->string('patient_code', 50)->nullable()->index();
+           
             // Individual Customer Fields
             $table->string('first_name')->nullable(); // Required for individuals
             $table->string('other_names')->nullable(); // Optional for individuals

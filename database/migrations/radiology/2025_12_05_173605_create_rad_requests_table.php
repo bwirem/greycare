@@ -32,6 +32,10 @@ return new class extends Migration
             // Ordered -> Scheduled -> Arrived -> Examined -> Reported -> Verified
             $table->string('status', 50)->default('Ordered');
 
+            // "unpaid", "paid", "waived", "insurance"
+            $table->string('payment_status', 20)->default('unpaid')->index(); 
+             
+
             // Personnel
             $table->foreignId('requested_by')->constrained('users'); // Referring Doctor
             $table->foreignId('technician_id')->nullable()->constrained('users'); // Who took the scan

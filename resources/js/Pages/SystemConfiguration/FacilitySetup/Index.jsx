@@ -4,12 +4,19 @@ import { Head, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faLayerGroup, faUsers, faSitemap, faClinicMedical, 
-    faBed, faProcedures, faStethoscope, faTags, faArrowRight, faFileMedical
+    faBed, faProcedures, faStethoscope, faTags, faArrowRight, faFileMedical,
+    faUserMd // <--- Added Icon
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function FacilitySetupIndex({ 
-    auth, facilityOptionCount, billingGroupCount, billingSubGroupCount, 
-    treatmentPointCount, wardCount, diagnosisCount 
+    auth, 
+    facilityOptionCount, 
+    billingGroupCount, 
+    billingSubGroupCount, 
+    treatmentPointCount, 
+    wardCount, 
+    diagnosisCount,
+    specializationCount // <--- Added Prop
 }) {
     const dashboardItems = [
         { 
@@ -23,6 +30,24 @@ export default function FacilitySetupIndex({
         { 
             title: "Billing Subgroups", count: billingSubGroupCount, icon: faSitemap, 
             routeName: 'systemconfiguration5.billingsubgroups.index', color: 'indigo', description: "Specific Insurance Plans." 
+        },
+        // --- NEW SPECIALIZATION CARD ---
+        { 
+            title: "Doctor Specializations", 
+            count: specializationCount, 
+            icon: faUserMd, 
+            routeName: 'systemconfiguration5.specializations.index', 
+            color: 'emerald', 
+            description: "Manage consult fees & revisit rules." 
+        },
+        // -------------------------------
+        { 
+            title: "Assign Doctors", 
+            count: 0, // Or pass User::count() if you want
+            icon: faStethoscope, 
+            routeName: 'systemconfiguration5.doctor-assignment.index', 
+            color: 'teal', 
+            description: "Map doctors to specializations." 
         },
         { 
             title: "OPD Treatment Points", count: treatmentPointCount, icon: faClinicMedical, 
@@ -44,12 +69,10 @@ export default function FacilitySetupIndex({
             title: "ICD-10 Diagnoses", count: diagnosisCount, icon: faStethoscope, 
             routeName: 'systemconfiguration5.diagnoses.index', color: 'cyan', description: "International Classification." 
         },
-        // --- NEW MTUHA CARD ---
         { 
             title: "Mtuha Diagnoses", 
             count: 0, 
             icon: faFileMedical, 
-            // Important: Mtuha route requires the 'type' parameter
             routeName: 'systemconfiguration5.mtuha.index', 
             routeParams: { type: 'opd' }, 
             color: 'pink', 
@@ -75,7 +98,7 @@ export default function FacilitySetupIndex({
                                     </div>
                                     <div className="ml-4 w-0 flex-1">
                                         <p className={`text-base font-semibold text-gray-800 group-hover:text-${item.color}-600`}>{item.title}</p>
-                                        {item.count > 0 && <p className="text-2xl font-bold text-gray-600">{item.count}</p>}
+                                        {item.count >= 0 && <p className="text-2xl font-bold text-gray-600">{item.count}</p>}
                                     </div>
                                 </div>
                                 <p className="mt-4 text-xs text-gray-500 line-clamp-2 h-8">{item.description}</p>

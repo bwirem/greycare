@@ -16,7 +16,16 @@ class BILOrderItem extends Model
      */
     protected $table = 'bil_orderitems';
 
-    protected $fillable = ['order_id', 'item_id', 'quantity','price','source_store_id','price_ref'];
+    protected $fillable = [
+        'order_id',
+        'item_id', 
+        'quantity',
+        'price',
+        'source_store_id',
+        'price_ref',
+        'source_type',
+        'source_id' 
+    ];
 
     public function order()
     {

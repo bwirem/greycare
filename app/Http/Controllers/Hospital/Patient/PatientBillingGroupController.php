@@ -12,6 +12,7 @@ use Inertia\Inertia;
 // Models
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\Billing\BlsNhifPackage; // Ensure you created this model in previous steps
+use App\Models\Billing\BLSPriceCategory;
 
 class PatientBillingGroupController extends Controller
 {
@@ -31,9 +32,43 @@ class PatientBillingGroupController extends Controller
         ]);
     }
 
-    public function create()
+    /**
+     * Helper to get active price categories
+     */
+    private function getActivePriceCategories()
     {
-        return Inertia::render('SystemConfiguration/FacilitySetup/BillingGroups/Create');
+        $activePriceCategories = [];
+        $priceCategorySettings = BLSPriceCategory::first();
+
+        if ($priceCategorySettings) {
+            for ($i = 1; $i <= 4; $i++) {
+                // Check if the 'useprice' field is true (or 1)
+                if ($priceCategorySettings->{'useprice' . $i}) {
+                    $activePriceCategories[] = [
+                        'key' => 'price' . $i,   // The actual DB column name (e.g., 'price1')
+                        'label' => $priceCategorySettings->{'price' . $i}, // The custom label (e.g., 'Cash Price')
+                    ];
+                }
+            }
+        }
+
+        // Final Check: If empty, provide a default to prevent UI errors
+        if (empty($activePriceCategories)) {
+            $activePriceCategories[] = [
+                'key' => 'price1',
+                'label' => 'Standard Price'
+            ];
+        }
+
+        return $activePriceCategories;
+    }
+
+
+    public function create()
+    {       
+        return Inertia::render('SystemConfiguration/FacilitySetup/BillingGroups/Create', [
+             'activePriceCategories' => $this->getActivePriceCategories()
+        ]);
     }
 
     public function store(Request $request)
@@ -67,7 +102,8 @@ class PatientBillingGroupController extends Controller
     {
         $group = PatientBillingGroup::findOrFail($id);
         return Inertia::render('SystemConfiguration/FacilitySetup/BillingGroups/Edit', [
-            'group' => $group
+            'group' => $group,
+            'activePriceCategories' => $this->getActivePriceCategories()
         ]);
     }
 

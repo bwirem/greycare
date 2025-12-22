@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head } from '@inertiajs/react';
 import ProcedureForm from './ProcedureForm';
 
-export default function Edit({ auth, procedure, modalities }) {
+export default function Edit({ auth, procedure, modalities, activePriceCategories }) {
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -12,10 +12,13 @@ export default function Edit({ auth, procedure, modalities }) {
             <Head title="Edit Exam" />
 
             <div className="py-12">
-                <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-5xl sm:px-6 lg:px-8">
                     <div className="bg-white shadow-sm sm:rounded-lg p-6">
-                        {/* Pass procedure data and modalities list */}
-                        <ProcedureForm procedure={procedure} modalities={modalities} />
+                        <ProcedureForm 
+                            procedure={procedure} 
+                            modalities={modalities} 
+                            activePriceCategories={activePriceCategories} 
+                        />
                     </div>
                 </div>
             </div>

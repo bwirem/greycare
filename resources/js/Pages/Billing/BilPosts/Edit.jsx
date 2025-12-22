@@ -263,7 +263,10 @@ export default function Edit({ order, fromstore, auth, priceCategories, facility
                 source_store_id: item.source_store_id,
                 // --- ADD THIS LINE ---
                 source_store_name: item.source_store_name, 
-                price_ref: item.price_ref
+                price_ref: item.price_ref,
+                // --------------------
+                source_type: item.source_type,
+                source_id: item.source_id,
             })),
         };
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ orderItems, store_id: data.store_id, pricecategory_id: data.pricecategory_id }));

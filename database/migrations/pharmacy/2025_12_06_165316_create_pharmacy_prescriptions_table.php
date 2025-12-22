@@ -39,6 +39,9 @@ return new class extends Migration
             // Status
             $table->string('status', 50)->default('Prescribed'); // Prescribed, Paid, Dispensed
             
+            // "unpaid", "paid", "waived", "insurance"
+            $table->string('payment_status', 20)->default('unpaid')->index();
+             
             // Who ordered it
             $table->foreignId('doctor_user_id')->constrained('users');
 

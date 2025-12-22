@@ -59,6 +59,8 @@ use App\Http\Controllers\Pharmacy\PharmacyRouteController;
 use App\Http\Controllers\Hospital\Patient\PatientBillingGroupController;
 use App\Http\Controllers\Hospital\Patient\PatientBillingSubgroupController;
 use App\Http\Controllers\Hospital\Opd\OpdTreatmentPointController;
+use App\Http\Controllers\Hospital\Opd\DoctorSpecializationController;
+use App\Http\Controllers\Hospital\Opd\DoctorAssignmentController;
 
 // IPD Controllers  
 use App\Http\Controllers\Hospital\Ipd\IpdWardController;
@@ -86,6 +88,9 @@ use App\Models\Facility\FacilityOption;
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\Patient\PatientBillingSubgroup;
 use App\Models\Opd\OpdTreatmentPoint;
+use App\Models\Opd\Config\DoctorSpecialization;
+
+
 
 use App\Models\Inventory\SIV_Store; 
 use App\Models\Inventory\SIV_ProductCategory;
@@ -381,6 +386,7 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
             'billingSubGroupCount'=> PatientBillingSubgroup::count(),
             'treatmentPointCount' => OpdTreatmentPoint::count(),
             'otherOptionCount'    => 0, // Logic for other options
+            'specializationCount' => DoctorSpecialization::count(), 
         ]);
     })->name('index');
     
@@ -499,6 +505,17 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
         Route::get('/{type}/{id}/edit', [MtuhaDiagnosesController::class, 'edit'])->name('edit');
         Route::put('/{type}/{id}', [MtuhaDiagnosesController::class, 'update'])->name('update');
         Route::delete('/{type}/{id}', [MtuhaDiagnosesController::class, 'destroy'])->name('destroy');
+    });
+    
+
+    // Inside your existing Route::prefix('systemconfiguration5')->group(...)
+    //systemconfiguration5.specializations.index, .create, .store, etc.
+    Route::resource('specializations', DoctorSpecializationController::class);
+
+     // Doctor Assignment Routes
+    Route::prefix('doctor-assignment')->name('doctor-assignment.')->group(function () {
+        Route::get('/', [DoctorAssignmentController::class, 'index'])->name('index');
+        Route::put('/{user}', [DoctorAssignmentController::class, 'update'])->name('update');
     });
 
 });

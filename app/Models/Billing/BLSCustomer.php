@@ -16,6 +16,7 @@ class BLSCustomer extends Model
 
     protected $fillable = [
         'customer_type',
+        'patient_code',
         'first_name',
         'other_names',
         'surname',

@@ -3,7 +3,8 @@ import { Link, useForm } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSave, faSpinner, faLink, faKey, faUserSecret } from '@fortawesome/free-solid-svg-icons';
 
-export default function GroupForm({ group = null }) {
+// Accept activePriceCategories from props
+export default function GroupForm({ group = null, activePriceCategories = [] }) {
     const { data, setData, post, put, processing, errors } = useForm({
         name: group?.name || '',
         code: group?.code || '',
@@ -18,7 +19,7 @@ export default function GroupForm({ group = null }) {
         isexemption: group ? Boolean(group.isexemption) : false,
         inactive: group ? Boolean(group.inactive) : false,
 
-        // API Credentials (New)
+        // API Credentials
         facility_code: group?.facility_code || '',
         verification_url: group?.verification_url || '',
         claims_url: group?.claims_url || '',
@@ -64,17 +65,26 @@ export default function GroupForm({ group = null }) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    
+                    {/* CHANGED SECTION: PRICE CATEGORY DROPDOWN */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Price Category Link</label>
-                        <input 
-                            type="text" 
-                            value={data.pricecategory} 
-                            onChange={e => setData('pricecategory', e.target.value)} 
-                            className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" 
-                            placeholder="e.g. price1" 
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Maps to pricing column in items table (price1, price2, etc).</p>
+                        <select
+                            value={data.pricecategory}
+                            onChange={e => setData('pricecategory', e.target.value)}
+                            className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="">-- Select Price Category --</option>
+                            {activePriceCategories.map((category) => (
+                                <option key={category.key} value={category.key}>
+                                    {category.label} ({category.key})
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">Determines which price column (Price 1-4) is charged for this group.</p>
                     </div>
+                    {/* END CHANGED SECTION */}
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Ceiling Amount</label>
                         <input 
@@ -119,7 +129,7 @@ export default function GroupForm({ group = null }) {
                 </div>
             </div>
 
-            {/* API Credentials (Only if Insurance) */}
+            {/* API Credentials */}
             {data.isinsurance && (
                 <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 animate-fade-in">
                     <h3 className="font-bold text-blue-800 mb-4 flex items-center gap-2">

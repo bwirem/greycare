@@ -31,6 +31,9 @@ use App\Models\Radiology\RadRequest;
 
 use App\Models\Pharmacy\PharmacyPrescription; // Ensure this is imported
 
+// Billing
+use App\Models\Billing\BLSItem;
+
 class OpdBooking extends Model
 {
     protected $table = 'opd_bookings';
@@ -78,6 +81,12 @@ class OpdBooking extends Model
     public function billingSubgroup()
     {
         return $this->belongsTo(PatientBillingSubgroup::class, 'billingsubgroup_id');
+    }
+
+    // Add this relationship to link back to the charged item
+    public function billItem()
+    {
+        return $this->belongsTo(BLSItem::class, 'bill_item_id');
     }
 
     /**

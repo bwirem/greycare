@@ -71,7 +71,7 @@ return new class extends Migration
 
             $table->string('vitalsignstatus', 50)->default('Pending')->index(); 
             $table->string('consultation_status', 50)->default('Pending')->index();
-
+            $table->string('payment_status', 20)->default('Unpaid')->index();
 
             // User
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();

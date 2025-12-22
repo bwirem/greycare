@@ -27,6 +27,13 @@ use App\Models\Inventory\{
     IVIssue ,SIV_Store   
 };
 
+// Clinical Models (For Payment Status Updates)
+use App\Models\Opd\OpdBooking;
+use App\Models\Laboratory\LabPrescription;
+use App\Models\Radiology\RadRequest;
+use App\Models\Pharmacy\PharmacyPrescription;
+use App\Models\Theatre\TheatreBooking;
+
 use App\Models\Facility\{    
     FacilityOption,
 };
@@ -249,7 +256,8 @@ class BilPostController extends Controller
      * Show the payment view for an existing order.
      */
     public function confirmExistingPayment(Request $request, BILOrder $order)
-    {
+    {      
+
         $orderData = $request->all();
         $orderData['id'] = $order->id;
 
@@ -280,7 +288,10 @@ class BilPostController extends Controller
             'orderitems.*.item_id' => 'required|integer|exists:bls_items,id',
             'orderitems.*.quantity' => 'required|numeric|min:0.01',
             'orderitems.*.price' => 'required|numeric|min:0',
+            
             'orderitems.*.source_store_id' => 'nullable|integer', 
+            'orderitems.*.source_type' => 'nullable|string',
+            'orderitems.*.source_id' => 'nullable|integer',
 
             'payment_method' => 'nullable|integer|exists:bls_paymenttypes,id',
             'paid_amount' => 'nullable|numeric|min:0',
@@ -291,9 +302,18 @@ class BilPostController extends Controller
 
         try {
             // 3. Database Transaction (Save Sale)
-            $sale = DB::transaction(function () use ($validated, $order) {
+            $sale = DB::transaction(function () use ($validated, $order) {                
+
+                // A. Financial Posting (Existing Logic)
                 $finalOrder = $this->createOrUpdateFinalOrder($validated, $order);
-                return $this->postBills($validated, $finalOrder);
+                $saleRecord = $this->postBills($validated, $finalOrder);
+
+                // B. Clinical Linkage: Mark Source Items as PAID
+                foreach ($validated['orderitems'] as $item) {
+                    $this->updateClinicalSourceStatus($item);
+                }
+
+                return $saleRecord;
             });
 
             session(['latest_sale_id' => $sale->id]);
@@ -380,6 +400,51 @@ class BilPostController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['message' => 'An unexpected error occurred: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Helper to update the payment_status in clinical tables
+     */
+    private function updateClinicalSourceStatus(array $item)
+    {
+        // Skip if no source info provided
+        if (empty($item['source_type']) || empty($item['source_id'])) {
+            return;
+        }
+
+        $id = $item['source_id'];
+
+        try {
+            switch ($item['source_type']) {
+                case 'consultation':
+                    // Updates OpdBooking
+                    OpdBooking::where('id', $id)->update(['payment_status' => 'paid']);
+                    break;
+
+                case 'laboratory':
+                    // Updates LabPrescription (Ready for Sample Collection)
+                    LabPrescription::where('id', $id)->update(['payment_status' => 'paid']);
+                    break;
+
+                case 'radiology':
+                    // Updates RadRequest (Ready for Imaging)
+                    RadRequest::where('id', $id)->update(['payment_status' => 'paid']);
+                    break;
+
+                case 'pharmacy':
+                    // Updates PharmacyPrescription (Ready for Dispensing)
+                    PharmacyPrescription::where('id', $id)->update(['payment_status' => 'paid']);
+                    break;
+
+                case 'theatre':
+                    // Updates TheatreBooking (Ready for Procedure)
+                    TheatreBooking::where('id', $id)->update(['payment_status' => 'paid']);
+                    break;
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the financial transaction if a status update fails
+            Log::error("Failed to update clinical status for {$item['source_type']} #{$id}: " . $e->getMessage());
         }
     }
 

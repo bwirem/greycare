@@ -49,9 +49,8 @@ return new class extends Migration
 
             // 6. Insurance / Payment Info
             // 'Cash', 'Insurance', 'Corporate'
-            $table->string('payment_category')->default('Cash'); 
-            // If you have an insurance companies table:
-            // $table->foreignId('insurance_provider_id')->nullable()->constrained('insurance_providers');
+            $table->string('payment_category')->default('Cash');           
+            $table->unsignedBigInteger('insurance_provider_id')->nullable()->index();
             $table->string('insurance_provider_name')->nullable(); // Text fallback
             $table->string('insurance_member_no')->nullable();
 

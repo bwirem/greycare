@@ -25,10 +25,10 @@ return new class extends Migration
             
             // Status Workflow: 'Requested', 'Paid', 'Sample Collected', 'Resulted'
             $table->string('status', 50)->default('Requested');
-            
-            // Billing Link (Optional: link to specific bill line item)
-            $table->unsignedBigInteger('bill_detail_id')->nullable();
 
+            // "unpaid", "paid", "waived", "insurance"
+            $table->string('payment_status', 20)->default('unpaid')->index(); 
+                        
             $table->timestamps();
         });
     }

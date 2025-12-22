@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Http\Controllers\Billing;
+
 use App\Http\Controllers\Controller;
 use App\Models\Billing\BLSItem;
 use App\Models\Billing\BLSItemGroup;
@@ -13,17 +15,15 @@ use App\Models\BILSaleItem;
 use App\Models\Inventory\SIV_Store;
 use App\Models\Inventory\SIV_Product;
 
-//
+// Inventory Transaction Models
 use App\Models\IVIssueItem;
 use App\Models\IVReceiveItem;
 use App\Models\IVNormalAdjustmentItem;
 use App\Models\IVPhysicalInventoryItem;
 use App\Models\IVRequistionItem;
-use Illuminate\Support\Facades\DB; // Ensure DB is imported
+
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
-
-
-
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
@@ -72,12 +72,11 @@ class BLSItemController extends Controller
             }
         }
 
-        // FINAL CHECK: If after checking the DB, the array is STILL empty,
-        // then we must add a default. This is the crucial fix.
+        // FINAL CHECK: If after checking the DB, the array is STILL empty, add default.
         if (empty($activePriceCategories)) {
             $activePriceCategories[] = [
                 'key' => 'price1',
-                'label' => $priceCategorySettings ? $priceCategorySettings->price1 : 'Price' // Use the name from the DB if it exists, otherwise a generic fallback
+                'label' => $priceCategorySettings ? $priceCategorySettings->price1 : 'Price'
             ];
         }
 
@@ -85,13 +84,10 @@ class BLSItemController extends Controller
             'items' => $items,
             'filters' => $request->only(['search']),
             'success' => session('success'),
-            
-            // Ensure error is passed correctly as requested previously
             'error' => session('error') ? [
                 'message' => session('error'),
                 'time' => microtime(true)
             ] : null,
-
             'activePriceCategories' => $activePriceCategories,
         ]);
     }
@@ -106,10 +102,9 @@ class BLSItemController extends Controller
             ->where('name', '!=', 'Inventory')
             ->get();
 
-        // Fetch ALL necessary data and pass it to the view
         return inertia('SystemConfiguration/BillingSetup/Items/Create', [
             'itemGroups' => $filteredItemGroups,
-            'pricecategories' => BLSPriceCategory::all(), // <-- FIX: Pass price categories
+            'pricecategories' => BLSPriceCategory::all(),
         ]);
     }
 
@@ -124,11 +119,7 @@ class BLSItemController extends Controller
             'itemgroup_id' => 'required|exists:bls_itemgroups,id',
             'defaultqty' => 'required|integer|min:1',
             'addtocart' => 'boolean',
-            
-            // price1 is always required as a baseline
             'price1' => 'required|numeric|min:0',
-            
-            // Other prices are only required if they are sent with the form
             'price2' => 'nullable|numeric|min:0',
             'price3' => 'nullable|numeric|min:0',
             'price4' => 'nullable|numeric|min:0',
@@ -148,19 +139,18 @@ class BLSItemController extends Controller
         return redirect()->route('systemconfiguration0.items.index')
             ->with('success', 'Item created successfully.');
     }
+
     /**
      * Show the form for editing the specified item.
      */
     public function edit(BLSItem $item)
     {
-        $filteredItemGroups = BLSItemGroup::orderBy('name')           
-            ->get();
+        $filteredItemGroups = BLSItemGroup::orderBy('name')->get();
 
-        // Fetch ALL necessary data and pass it to the view
         return inertia('SystemConfiguration/BillingSetup/Items/Edit', [
             'item' => $item,
             'itemGroups' => $filteredItemGroups,
-            'pricecategories' => BLSPriceCategory::all(), // <-- FIX: Pass price categories
+            'pricecategories' => BLSPriceCategory::all(),
         ]);
     }
 
@@ -185,30 +175,34 @@ class BLSItemController extends Controller
         // Ensure boolean values are set correctly
         $validated['addtocart'] = $request->boolean('addtocart');
 
-        // Prepare the data for update, ensuring prices not sent don't overwrite existing ones with null
+        // Prepare the data for update
         $updateData = $validated;
         
-        // --- MODIFIED LOGIC START ---
-        // If an item is linked to stock, check if user tried to change Name or Group
-        if ($item->product_id) {
+        // --- MODIFIED LOGIC START: Protected Linked Items ---
+        // Determine if this item is linked to ANY external module
+        $isLinked = $item->product_id || 
+                    $item->lab_panel_id || 
+                    $item->rad_procedure_id || 
+                    $item->theatre_procedure_id;
+
+        if ($isLinked) {
             
             // Check if the requested Name is different from the current Name
             if ($validated['name'] !== $item->name) {
                 return redirect()->back()
-                    ->with('error', 'Cannot update Name: This item is linked to Inventory. Please rename it via the Products interface.');
+                    ->with('error', 'Cannot update Name: This item is linked to a Clinical/Inventory module. Please rename it via the specific module interface.');
             }
 
             // Check if the requested Group is different from the current Group
             if ($validated['itemgroup_id'] != $item->itemgroup_id) {
                 return redirect()->back()
-                    ->with('error', 'Cannot update Group: This item is linked to Inventory. Please update the Category via the Products interface.');
+                    ->with('error', 'Cannot update Group: This item is linked to a Clinical/Inventory module. Please update it via the specific module interface.');
             }
 
             // Safety precaution: Remove them from update array just in case
             unset($updateData['name'], $updateData['itemgroup_id']);
         }
         // --- MODIFIED LOGIC END ---
-    
     
         // Update the item
         $item->update($updateData);
@@ -221,7 +215,6 @@ class BLSItemController extends Controller
     /**
      * Remove the specified item from storage.
      */
-    
     public function destroy(BLSItem $item)
     {
         // 1. Check if the ITEM itself is used in Billing transactions
@@ -236,7 +229,7 @@ class BLSItemController extends Controller
                 ->with('error', 'Cannot delete item: It has been used in existing billing transactions.');
         }
 
-        // 2. Check if linked to a PRODUCT and if that product is used in Inventory transactions
+        // 2. Check Inventory Linkage and Usage
         if ($item->product_id) {
             $productIsUsed = false;
             if (IVIssueItem::where('product_id', $item->product_id)->exists()) $productIsUsed = true;
@@ -251,7 +244,26 @@ class BLSItemController extends Controller
             }
         }
 
-        // 3. Attempt deletion of both Item and Linked Product
+        // 3. Check Clinical Linkages (Lab, Radiology, Theatre)
+        // We prevent deletion here to force the user to delete from the source module
+        if ($item->lab_panel_id) {
+            return redirect()->route('systemconfiguration0.items.index')
+                ->with('error', 'Cannot delete: This item is linked to a Laboratory Panel. Please delete the Panel in Lab Setup.');
+        }
+
+        if ($item->rad_procedure_id) {
+            return redirect()->route('systemconfiguration0.items.index')
+                ->with('error', 'Cannot delete: This item is linked to a Radiology Procedure. Please delete the Procedure in Radiology Setup.');
+        }
+
+        if ($item->theatre_procedure_id) {
+            return redirect()->route('systemconfiguration0.items.index')
+                ->with('error', 'Cannot delete: This item is linked to a Theatre Procedure. Please delete the Procedure in Theatre Setup.');
+        }
+
+        // 4. Attempt deletion 
+        // Note: For Inventory ($item->product_id), we delete both here because Inventory 
+        // is often tightly coupled with billing as "Goods". Services are "Definitions".
         try {
             DB::transaction(function () use ($item) {
                 // If there is a linked product, delete it first (or second, depending on FK constraints)
@@ -270,7 +282,7 @@ class BLSItemController extends Controller
         }
 
         return redirect()->route('systemconfiguration0.items.index')
-            ->with('success', 'Item (and linked stock product) deleted successfully.');
+            ->with('success', 'Item deleted successfully.');
     }
 
 
@@ -281,7 +293,7 @@ class BLSItemController extends Controller
     {
         $query = $request->input('query');
         $priceCategoryId = $request->input('pricecategory_id', 'price1'); 
-        $storeId = $request->input('store_id', null); // Get the store_id from the request
+        $storeId = $request->input('store_id', null); 
 
         // Ensure only allowed price columns are used
         if (!in_array($priceCategoryId, ['price1', 'price2', 'price3', 'price4'])) {
@@ -293,21 +305,17 @@ class BLSItemController extends Controller
             ->select(
                 'bls_items.id', 
                 'bls_items.name', 
-                'bls_items.product_id', // Useful to have for reference
+                'bls_items.product_id', 
                 "bls_items.$priceCategoryId as price"
             );
 
         // Append Stock Quantity Logic
         if ($storeId && is_numeric($storeId) && (int)$storeId > 0) {
-            // Construct dynamic column name based on store ID (e.g., qty_1, qty_2)
             $qtyColumn = 'iv_productcontrol.qty_' . (int)$storeId;
 
-            // Join with inventory control to get stock
-            // We link BLSItem to Inventory Control via the product_id field
             $itemsQuery->leftJoin('iv_productcontrol', 'iv_productcontrol.product_id', '=', 'bls_items.product_id')
                        ->addSelect(\DB::raw("COALESCE($qtyColumn, 0) as stock_quantity"));
         } else {
-            // Default stock to 0 if no store is selected
             $itemsQuery->addSelect(\DB::raw('0 as stock_quantity'));
         }
 
@@ -318,15 +326,11 @@ class BLSItemController extends Controller
 
 
     /**
-     * Quickly update the prices of a single BLSItem.
-     * Intended for AJAX calls from the index page.
+     * Quickly update the prices of a single BLSItem via AJAX.
      */
     public function updatePrices(Request $request, BLSItem $item)
     {
-        // REMOVED: The check for product_id has been taken out.
-        // if ($item->product_id) { ... }
-
-        // Dynamically build validation rules based on the data sent from the form
+        // Dynamically build validation rules
         $rules = [];
         $priceKeys = ['price1', 'price2', 'price3', 'price4'];
         
@@ -342,7 +346,7 @@ class BLSItemController extends Controller
 
         $validated = $request->validate($rules);
 
-        // Update the item with only the validated price fields
+        // Update the item
         $item->update($validated);
 
         return response()->json([
@@ -353,7 +357,6 @@ class BLSItemController extends Controller
 
     /**
      * Check which stores have stock > 0 for a specific item.
-     * Used by the Point of Sale when default store is empty.
      */
     public function checkAvailability($itemId)
     {
@@ -375,10 +378,7 @@ class BLSItemController extends Controller
 
         if ($productControl) {
             foreach ($stores as $store) {
-                // Construct the column name (e.g., qty_1, qty_2)
                 $col = 'qty_' . $store->id;
-
-                // Check if the column exists in the result and has positive stock
                 if (isset($productControl->$col) && (float)$productControl->$col > 0) {
                     $availableStoreIds[] = $store->id;
                 }
@@ -387,6 +387,4 @@ class BLSItemController extends Controller
 
         return response()->json($availableStoreIds);
     }
-
 }
-

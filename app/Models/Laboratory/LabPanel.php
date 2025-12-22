@@ -3,7 +3,7 @@
 namespace App\Models\Laboratory;
 
 use Illuminate\Database\Eloquent\Model;
-// use App\Models\Billing\BillItem; // Uncomment if you have a Billing Item model
+use App\Models\Billing\BLSItem;
 
 class LabPanel extends Model
 {
@@ -25,6 +25,8 @@ class LabPanel extends Model
         return $this->belongsTo(LabNatureOfSample::class, 'lab_nature_of_sample_id');
     }
 
-    // Optional: Link to Billing
-    // public function billItem() { return $this->belongsTo(BillItem::class, 'bill_item_id'); }
+    public function blsItem()
+    {
+        return $this->hasOne(BLSItem::class, 'lab_panel_id');
+    }
 }

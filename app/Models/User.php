@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 use App\Models\Inventory\SIV_Store;
+use App\Models\Opd\Config\DoctorSpecialization;
 
 class User extends Authenticatable
 {
@@ -28,6 +29,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'specialization_id',
     ];
 
     /**
@@ -69,5 +71,11 @@ class User extends Authenticatable
     {
         return $this->belongsTo(UserGroup::class, 'usergroup_id'); // Ensure this is correct
     }
+
+    public function specialization()
+    {
+        return $this->belongsTo(DoctorSpecialization::class, 'specialization_id');
+    }
+    
 
 }

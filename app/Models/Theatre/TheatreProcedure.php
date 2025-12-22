@@ -3,6 +3,7 @@
 namespace App\Models\Theatre;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Billing\BLSItem;
 
 class TheatreProcedure extends Model
 {
@@ -12,5 +13,10 @@ class TheatreProcedure extends Model
     public function group()
     {
         return $this->belongsTo(TheatreProcedureGroup::class, 'theatre_procedure_group_id');
+    }
+
+    public function blsItem()
+    {
+        return $this->hasOne(BLSItem::class, 'theatre_procedure_id');
     }
 }

@@ -33,6 +33,10 @@ return new class extends Migration
 
             // Status: Scheduled, In-Progress, Recovery, Completed, Cancelled
             $table->string('status', 50)->default('Scheduled');
+
+            // "unpaid", "paid", "waived", "insurance"
+            $table->string('payment_status', 20)->default('unpaid')->index(); 
+             
             $table->text('remarks')->nullable();
 
             // Billing

@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 // Models
 use App\Models\Patient\Patient;
@@ -16,7 +17,11 @@ use App\Models\Opd\OpdTreatmentPoint;
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\MedicalRecord\MrVitalSign;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
+use App\Models\Billing\BLSCustomer;
+
+// Services
+use App\Services\ConsultationPricingService;
+use App\Services\BillingService; // <--- NEW IMPORT
 
 class OpdRegistrationController extends Controller
 {
@@ -34,27 +39,18 @@ class OpdRegistrationController extends Controller
             return [
                 'id'           => $booking->id,
                 'visit_number' => $booking->visit_number,
-                
                 'file_number'  => $booking->patient?->code ?? 'N/A',
                 'patient_name' => $booking->patient 
                                     ? $booking->patient->first_name . ' ' . $booking->patient->last_name 
                                     : 'Unknown',
-                
-                'age'          => $booking->patient?->date_of_birth 
-                                    ? \Carbon\Carbon::parse($booking->patient->date_of_birth)->age 
-                                    : 0,
-                
+                'age'          => $booking->patient?->age ?? 0,
                 'gender'       => $booking->patient?->gender ?? '-',
-                
                 'payment_mode' => $booking->billingGroup?->name ?? 'Cash',
-                
-                // *** UPDATED HERE: Send separate fields ***
                 'doctor_name'  => $booking->DoctorName ?? 'Unassigned',
                 'clinic'       => $booking->treatmentPoint?->name ?? 'General OPD', 
-                // ******************************************
-
                 'status'       => $booking->vitalsignstatus === 'Closed' ? 'Triaged' : 'Waiting',
                 'time'         => $booking->created_at->format('h:i A'),
+                'visit_type'   => $booking->visit_classification, 
             ];
         });
 
@@ -62,6 +58,7 @@ class OpdRegistrationController extends Controller
             'registrations' => $registrations,
         ]);
     }
+
     /**
      * Show the form for creating a new registration.
      */
@@ -70,7 +67,6 @@ class OpdRegistrationController extends Controller
         return Inertia::render('Hospital/Opd/Registrations/Create', [
             'treatmentPoints' => OpdTreatmentPoint::select('id', 'name')->get(),
             'billingGroups'   => PatientBillingGroup::select('id', 'name')->get(),
-            // Assuming you have a 'role' column or similar to filter doctors
             'doctors'         => User::select('id', 'name')->get(), 
         ]);
     }
@@ -89,19 +85,18 @@ class OpdRegistrationController extends Controller
         $patients = Patient::where('code', 'like', "%{$query}%")
             ->orWhere('first_name', 'like', "%{$query}%")
             ->orWhere('last_name', 'like', "%{$query}%")
+            ->orWhere('phone_number', 'like', "%{$query}%")
             ->orWhere('national_id', 'like', "%{$query}%")
-            // Assuming you have a phone column, otherwise remove this
-            // ->orWhere('phone', 'like', "%{$query}%") 
             ->limit(10)
-            ->get(['code', 'first_name', 'last_name', 'middle_name', 'gender', 'date_of_birth', 'national_id']);
+            ->get(['code', 'first_name', 'last_name', 'middle_name', 'gender', 'date_of_birth', 'national_id', 'phone_number']);
 
         return response()->json($patients);
     }
 
     /**
-     * Store a newly created registration (New OR Revisit).
+     * Store: Register Patient & Push Charge to Billing
      */
-   public function store(Request $request)
+    public function store(Request $request, ConsultationPricingService $pricingService, BillingService $billingService)
     {  
         $isRevisit = $request->filled('existing_patient_code');
 
@@ -110,10 +105,8 @@ class OpdRegistrationController extends Controller
             'doctor_user_id'    => 'nullable|exists:users,id', 
             'billinggroup_id'   => 'required|exists:patient_billing_groups,id',
             
-            // // --- ADDED VALIDATION FOR INSURANCE FIELDS ---
-            //'schemeid'                 => 'nullable|string|max:50',
             'authorizationno'          => 'nullable|string|max:50',
-            'billinggroupmembershipno' => 'nullable|string|max:100', // Card No
+            'billinggroupmembershipno' => 'nullable|string|max:100', 
             
             'weight'            => 'nullable|numeric',
             'temp'              => 'nullable|numeric',
@@ -121,43 +114,90 @@ class OpdRegistrationController extends Controller
        
         if (!$isRevisit) {
             $rules = array_merge($rules, [
-                'first_name'     => 'required|string|max:255',
-                'last_name'       => 'required|string|max:255',
+                'first_name'    => 'required|string|max:255',
+                'last_name'     => 'required|string|max:255',
                 'gender'        => 'required|string|in:Male,Female',
-                'date_of_birth'     => 'required|date',
-                'national_id'    => 'nullable|string|max:50|unique:patients,national_id',
+                'date_of_birth' => 'required|date',
+                'national_id'   => 'nullable|string|max:50|unique:patients,national_id',
                 'phone_number'  => 'required|string|max:50',
+                'middle_name'   => 'nullable|string|max:255',
             ]);
         }
-
-      
 
         $validated = $request->validate($rules);     
 
         try {
             DB::beginTransaction();
 
-            // 1. Handle Patient (Same as before)
+            $patientCode = null;
+
+            // --- 1. DETERMINE PAYMENT CATEGORY ---
+            $billingGroup = PatientBillingGroup::findOrFail($validated['billinggroup_id']);
+            $isCash = stripos($billingGroup->name, 'Cash') !== false;
+            $paymentCategory = $isCash ? 'Cash' : 'Insurance';
+            $insuranceProviderId = $isCash ? null : $billingGroup->id;
+            $insuranceProviderName = $isCash ? null : $billingGroup->name;
+            $insuranceMemberNo = $isCash ? null : ($validated['billinggroupmembershipno'] ?? null);
+
+            // --- 2. HANDLE PATIENT & CUSTOMER ---
             if ($isRevisit) {
                 $patientCode = $request->existing_patient_code;
-            } else {
+                
+                // Update Patient Master
+                Patient::where('code', $patientCode)->update([
+                    'payment_category'        => $paymentCategory,
+                    'insurance_provider_id'   => $insuranceProviderId,
+                    'insurance_provider_name' => $insuranceProviderName,
+                    'insurance_member_no'     => $insuranceMemberNo,
+                ]);
 
-                $patientCode = 'PF-' . date('y') . '-' . strtoupper(Str::random(6)); 
+                // Ensure Billing Customer exists
+                $existingPatient = Patient::find($patientCode);
+                if ($existingPatient) {
+                    BLSCustomer::firstOrCreate(['patient_code' => $patientCode], [
+                        'customer_type' => 'individual',
+                        'first_name' => $existingPatient->first_name,
+                        'surname' => $existingPatient->last_name,
+                        'other_names' => $existingPatient->middle_name,
+                        'phone' => $existingPatient->phone_number,
+                    ]);
+                }
+
+            } else {
+                $patientCode = 'PAT-' . date('y') . '-' . strtoupper(Str::random(6)); 
               
                 Patient::create([
                     'code'          => $patientCode,
-                    'first_name'     => $validated['first_name'],
-                    'last_name'       => $validated['last_name'],
-                    'middle_name'    => $request->middle_name,
+                    'first_name'    => $validated['first_name'],
+                    'last_name'     => $validated['last_name'],
+                    'middle_name'   => $request->middle_name,
                     'gender'        => $validated['gender'],
-                    'date_of_birth'     => $validated['date_of_birth'],
-                    'national_id'    => $validated['national_id'] ?? null,
-                    'phone_number'  => $validated['phone_number'], 
+                    'date_of_birth' => $validated['date_of_birth'],
+                    'national_id'   => $validated['national_id'] ?? null,
+                    'phone_number'  => $validated['phone_number'],
+                    'payment_category'        => $paymentCategory,
+                    'insurance_provider_id'   => $insuranceProviderId,
+                    'insurance_provider_name' => $insuranceProviderName,
+                    'insurance_member_no'     => $insuranceMemberNo,
                 ]);
-               
+
+                BLSCustomer::create([
+                    'patient_code'  => $patientCode,
+                    'customer_type' => 'individual',
+                    'first_name'    => $validated['first_name'],
+                    'surname'       => $validated['last_name'],
+                    'other_names'   => $request->middle_name,
+                    'phone'         => $validated['phone_number'],
+                ]);
             }
 
-            // 2. Prepare Snapshots
+            // --- 3. CALCULATE CHARGE (New/Revisit) ---
+            $chargeDetails = $pricingService->determineConsultationCharge(
+                $patientCode, 
+                $validated['doctor_user_id']
+            );
+
+            // --- 4. CREATE BOOKING ---
             $clinicName = OpdTreatmentPoint::find($validated['treatmentpoint_id'])->name;
             $doctorName = null;
             if ($request->filled('doctor_user_id')) {
@@ -165,9 +205,7 @@ class OpdRegistrationController extends Controller
             }
             
             $hasVitals = !empty($validated['weight']) || !empty($validated['temp']);
-            $vitalsStatus = $hasVitals ? 'Closed' : 'Pending';
-
-            // 3. Create OPD Booking
+            
             $booking = OpdBooking::create([
                 'bookdate'           => now(),
                 'patientcode'        => $patientCode,
@@ -177,16 +215,19 @@ class OpdRegistrationController extends Controller
                 'user_id'            => auth()->id(),
                 'wheretaken'         => $clinicName,
                 'DoctorName'         => $doctorName,
-                'vitalsignstatus'    => $vitalsStatus,
+                'vitalsignstatus'    => $hasVitals ? 'Closed' : 'Pending',
                 'consultation_status'=> 'Pending',
+                
+                'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null, 
+                'authorizationno'          => $validated['authorizationno'] ?? null,          
+                'schemeid'                 => $request->schemeid ?? null,
 
-                // --- SAVE INSURANCE DETAILS ---
-                'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null, // Card No
-                'authorizationno'          => $validated['authorizationno'] ?? null,          // Auth No
-                'schemeid'                 => $request->schemeid ?? null,//$validated['schemeid'] ?? null,                 // Scheme Code
+                'bill_item_id'         => $chargeDetails['bill_item_id'] ?? null,
+                'visit_classification' => $chargeDetails['classification'] ?? 'New Case',
+                'payment_status'       => 'unpaid',
             ]);
 
-            // 4. Create Vitals (Same as before)
+            // --- 5. CREATE VITALS ---
             if ($hasVitals) {
                 MrVitalSign::create([
                     'opd_booking_id' => $booking->id,
@@ -198,22 +239,33 @@ class OpdRegistrationController extends Controller
                 ]);
             }
 
+            // --- 6. PUSH TO BILLING (The Magic Step) ---
+            if ($booking->bill_item_id) {
+                               
+                $billingService->addToBill(
+                    $booking->patientcode,      // Patient Code
+                    $booking->bill_item_id,     // Billing Item ID (from Pricing Service)
+                    1,                          // Quantity
+                    'consultation',             // Source Type (Matches Schema)
+                    $booking->id                // Source ID (OpdBooking ID)
+                );
+            }
+
             DB::commit();
             return redirect()->route('outpatient0.index')->with('success', 'Registration Successful. File: ' . $patientCode);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Registration Error: ' . $e->getMessage());
             return back()->withErrors(['error' => 'Registration failed: ' . $e->getMessage()]);
         }
     }
-    // ... existing index, create, store methods ...
 
     /**
      * Display the specified resource.
      */
     public function show($id)
     {
-        // Fetch booking with all details
         $booking = OpdBooking::with(['patient', 'billingGroup', 'treatmentPoint', 'user', 'latestVitalSign'])
             ->findOrFail($id);
 
@@ -231,7 +283,6 @@ class OpdRegistrationController extends Controller
 
         return Inertia::render('Hospital/Opd/Registrations/Edit', [
             'booking' => $booking,
-            // Re-use the dropdowns from Create
             'treatmentPoints' => OpdTreatmentPoint::select('id', 'name')->get(),
             'billingGroups'   => PatientBillingGroup::select('id', 'name')->get(),
             'doctors'         => User::select('id', 'name')->get(),
@@ -239,53 +290,101 @@ class OpdRegistrationController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update: Edit Registration details & Update Bill if needed
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, ConsultationPricingService $pricingService, BillingService $billingService)
     {
         $booking = OpdBooking::findOrFail($id);
         $patient = Patient::where('code', $booking->patientcode)->first();
 
-        // Validate
         $validated = $request->validate([
-            // Allow basic patient edits
             'first_name'     => 'required|string|max:255',
-            'last_name'       => 'required|string|max:255',
-            'middle_name'     => 'nullable|string|max:255',
-            'date_of_birth'   => 'nullable|date',
-            'contact'       => 'nullable|string|max:50',
+            'last_name'      => 'required|string|max:255',
+            'middle_name'    => 'nullable|string|max:255',
+            'date_of_birth'  => 'nullable|date',
+            'contact'        => 'nullable|string|max:50', 
             
-            // Allow booking edits
             'treatmentpoint_id' => 'required|exists:opd_treatmentpoints,id',
             'doctor_user_id'    => 'nullable|exists:users,id', 
             'billinggroup_id'   => 'required|exists:patient_billing_groups,id',
+            'billinggroupmembershipno' => 'nullable|string|max:100',
         ]);
 
-        DB::transaction(function () use ($validated, $booking, $patient) {
-            // 1. Update Patient
+        DB::transaction(function () use ($validated, $booking, $patient, $pricingService, $billingService, $request) {
+            
+            // 1. Payment Category Logic
+            $billingGroup = PatientBillingGroup::findOrFail($validated['billinggroup_id']);
+            $isCash = stripos($billingGroup->name, 'Cash') !== false;
+            $paymentCategory = $isCash ? 'Cash' : 'Insurance';
+            $insuranceProviderId = $isCash ? null : $billingGroup->id;
+            $insuranceProviderName = $isCash ? null : $billingGroup->name;
+            $insuranceMemberNo = $isCash ? null : ($validated['billinggroupmembershipno'] ?? null);
+
+            // 2. Update Patient
             $patient->update([
-                'first_name' => $validated['first_name'],
-                'last_name'   => $validated['last_name'],
-                'middle_name' => $validated['middle_name'],
+                'first_name'    => $validated['first_name'],
+                'last_name'     => $validated['last_name'],
+                'middle_name'   => $validated['middle_name'],
                 'date_of_birth' => $validated['date_of_birth'],
-                // Update contact if column exists
+                'phone_number'  => $validated['contact'] ?? $patient->phone_number,
+                
+                'payment_category'        => $paymentCategory,
+                'insurance_provider_id'   => $insuranceProviderId,
+                'insurance_provider_name' => $insuranceProviderName,
+                'insurance_member_no'     => $insuranceMemberNo,
             ]);
 
-            // 2. Prepare Doctor Snapshot
-            $doctorName = $booking->DoctorName; // Default to old name
-            if (isset($validated['doctor_user_id']) && $validated['doctor_user_id'] != $booking->doctor_user_id) {
-                $doctorName = User::find($validated['doctor_user_id'])?->name;
-            }
+            // 3. Update Customer
+            BLSCustomer::where('patient_code', $patient->code)->update([
+                'first_name'  => $validated['first_name'],
+                'surname'     => $validated['last_name'],
+                'other_names' => $validated['middle_name'],
+                'phone'       => $validated['contact'] ?? $patient->phone_number,
+            ]);
 
-            // 3. Update Booking
-            $booking->update([
+            // 4. Update Booking & Re-Bill if Doctor Changed
+            $doctorName = $booking->DoctorName; 
+            $updateData = [
                 'treatmentpoint_id' => $validated['treatmentpoint_id'],
                 'billinggroup_id'   => $validated['billinggroup_id'],
                 'doctor_user_id'    => $validated['doctor_user_id'],
-                'DoctorName'        => $doctorName,
-                // Update snapshot of clinic location
                 'wheretaken'        => OpdTreatmentPoint::find($validated['treatmentpoint_id'])->name,
-            ]);
+                'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null,
+            ];
+
+            $shouldUpdateBill = false;
+
+            if (isset($validated['doctor_user_id']) && $validated['doctor_user_id'] != $booking->doctor_user_id) {
+                $doctorName = User::find($validated['doctor_user_id'])?->name;
+                $updateData['DoctorName'] = $doctorName;
+
+                // Recalculate only if unpaid
+                if ($booking->payment_status === 'unpaid') {
+                    $chargeDetails = $pricingService->determineConsultationCharge(
+                        $patient->code, 
+                        $validated['doctor_user_id']
+                    );
+                    
+                    if ($chargeDetails) {
+                        $updateData['bill_item_id'] = $chargeDetails['bill_item_id'];
+                        $updateData['visit_classification'] = $chargeDetails['classification'];
+                        $shouldUpdateBill = true;
+                    }
+                }
+            }
+
+            $booking->update($updateData);
+
+            // 5. Push Updated Charge to Billing
+            if ($shouldUpdateBill && $booking->bill_item_id) {
+                $billingService->addToBill(
+                    $booking->patientcode,
+                    $booking->bill_item_id, // New Item ID
+                    1,
+                    'consultation',
+                    $booking->id
+                );
+            }
         });
 
         return redirect()->route('outpatient0.index')->with('success', 'Registration updated successfully.');
@@ -293,14 +392,10 @@ class OpdRegistrationController extends Controller
 
     /**
      * Print the OPD Ticket/Slip.
-     * This acts as the "Send to Triage" confirmation.
      */
     public function printSlip($id)
     {
         $booking = OpdBooking::with(['patient', 'treatmentPoint'])->findOrFail($id);
-        
-        // In a real app, generate a PDF using DomPDF or similar.
-        // For now, we allow the browser to handle the print view or return a simple view.
         return view('prints.opd_slip', compact('booking'));
     }
 }
