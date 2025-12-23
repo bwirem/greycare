@@ -209,6 +209,8 @@ Route::prefix('laboratory1')->name('laboratory1.')->group(function () {
     
     // Verify/Approve Results
     Route::post('/{sample}/verify', [LabResultController::class, 'verify'])->name('verify');
+
+    Route::post('/{sample}/reject', [LabResultController::class, 'rejectSample'])->name('reject_sample');
 });
 
 

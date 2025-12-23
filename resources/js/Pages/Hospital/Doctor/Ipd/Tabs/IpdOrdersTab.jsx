@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import ReactSelect from 'react-select';
+import InputLabel from '@/Components/InputLabel';
+import TextInput from '@/Components/TextInput';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFlask, faXRay, faTint, faTrash, faEye } from '@fortawesome/free-solid-svg-icons';
+import { faFlask, faXRay, faTint, faTrash, faEye, faNotesMedical } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
 export default function IpdOrdersTab({ 
     data, setData, options, 
     ordered_labs, ordered_rads, 
-    opd_labs = [], opd_rads = [], // Received from Parent
+    opd_labs = [], opd_rads = [], 
     onViewResult 
 }) {
     
@@ -47,7 +49,6 @@ export default function IpdOrdersTab({
                                     <td className="p-2 text-gray-700">{l.panel?.name}</td>
                                     <td className="p-2 text-gray-500 text-xs">{new Date(l.created_at).toLocaleDateString()}</td>
                                     <td className="p-2 text-right">
-                                        {/* Show View button if results exist (even from OPD) */}
                                         {l.status === 'completed' ? (
                                             <button type="button" onClick={()=>onViewResult(l,'lab')} className="text-blue-600 underline text-xs"><FontAwesomeIcon icon={faEye}/> View</button>
                                         ) : <span className="text-xs text-gray-400">{l.status}</span>}
@@ -99,8 +100,10 @@ export default function IpdOrdersTab({
                 </div>
             )}
 
-            {/* 3. NEW ORDERS FORM (Existing Code) */}
+            {/* 3. NEW ORDERS FORM */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Lab */}
                 <div className="border border-gray-200 p-4 rounded-lg bg-gray-50">
                     <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2"><FontAwesomeIcon icon={faFlask} /> Order Lab</h4>
                     <ReactSelect options={options.lab} onChange={opt => addOrder('lab_requests', { panel_id: opt.value, name: opt.label })} placeholder="Select Panel..." value={null} />
@@ -114,6 +117,7 @@ export default function IpdOrdersTab({
                     </div>
                 </div>
 
+                {/* Radiology */}
                 <div className="border border-gray-200 p-4 rounded-lg bg-gray-50">
                     <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2"><FontAwesomeIcon icon={faXRay} /> Order Radiology</h4>
                     <ReactSelect options={options.rad} onChange={opt => addOrder('rad_requests', { procedure_id: opt.value, name: opt.label })} placeholder="Select Procedure..." value={null} />
@@ -127,6 +131,34 @@ export default function IpdOrdersTab({
                     </div>
                 </div>
 
+                {/* Surgery Booking (NEW) */}
+                <div className="md:col-span-2 border border-red-200 p-4 rounded-lg bg-red-50 shadow-sm">
+                    <h3 className="font-bold mb-3 text-red-800 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faNotesMedical} /> Book Surgery (Theatre)
+                    </h3>
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <div className="w-full md:w-1/2">
+                            <InputLabel value="Procedure" className="mb-1 text-xs" />
+                            <ReactSelect 
+                                options={options.surgery || []} // Ensure options.surgery is passed from WardRound.jsx
+                                onChange={opt => setData('surgery_request', { ...data.surgery_request || {}, procedure_id: opt.value })} 
+                                placeholder="Select Procedure..." 
+                                styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                menuPortalTarget={document.body}
+                            />
+                        </div>
+                        <div className="w-full md:w-1/2">
+                            <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs" />
+                            <TextInput 
+                                type="datetime-local" 
+                                className="w-full" 
+                                onChange={e => setData('surgery_request', { ...data.surgery_request || {}, date: e.target.value })} 
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Blood Bank (Full Width) */}
                 <div className="md:col-span-2 border border-red-200 bg-red-50 p-4 rounded-lg">
                     <h5 className="font-bold mb-3 text-red-800 flex items-center gap-2"><FontAwesomeIcon icon={faTint} /> Blood Request</h5>
                     <div className="flex gap-3 items-end">

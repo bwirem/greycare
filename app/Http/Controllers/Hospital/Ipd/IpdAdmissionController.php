@@ -11,21 +11,20 @@ use Inertia\Inertia;
 // Models
 use App\Models\Ipd\IpdAdmission;
 use App\Models\Ipd\IpdAdmissionLog;
+use App\Models\Opd\OpdBooking;
 use App\Models\Ipd\IpdWard;
 use App\Models\Ipd\IpdBed;
-use App\Models\Ipd\IpdRoom;
 use App\Models\Patient\Patient;
 
 class IpdAdmissionController extends Controller
 {
-    /**
-     * List Active and Pending Admissions
-     */
+    // ... index and create methods remain the same ...
+
     public function index(Request $request)
     {
         $query = IpdAdmission::with(['patient', 'ward', 'bed'])
             ->whereIn('status', ['Admitted', 'Pending'])
-            ->orderByRaw("FIELD(status, 'Pending', 'Admitted')") // Show Pending first
+            ->orderByRaw("FIELD(status, 'Pending', 'Admitted')")
             ->orderBy('created_at', 'desc');
 
         if ($request->search) {
@@ -46,27 +45,20 @@ class IpdAdmissionController extends Controller
         ]);
     }
 
-    /**
-     * Show Admission Form (New OR Finalize Pending)
-     */
     public function create(Request $request)
     {
         $patient = null;
         $pendingAdmission = null;
 
-        // Case 1: Finalizing a Pending Admission (Link clicked from Index)
         if ($request->admission_id) {
             $pendingAdmission = IpdAdmission::with(['patient', 'ward'])->find($request->admission_id);
             if ($pendingAdmission) {
                 $patient = $pendingAdmission->patient;
             }
-        } 
-        // Case 2: New Direct Admission (Searching by Patient Code)
-        else if ($request->patient_code) {
+        } else if ($request->patient_code) {
             $patient = Patient::where('code', $request->patient_code)->first();
         }
 
-        // Fetch Wards with Rooms and Free Beds
         $wards = IpdWard::with(['rooms.beds' => function($q) {
             $q->where('status', 'Free'); 
         }])->orderBy('name')->get();
@@ -83,27 +75,35 @@ class IpdAdmissionController extends Controller
      */
     public function store(Request $request)
     {
-        // For final admission, Room and Bed are now REQUIRED
+        // 1. Validation: Make Room and Bed NULLABLE
         $request->validate([
             'patient_code' => 'required|exists:patients,code',
             'ward_id' => 'required|exists:ipd_wards,id',
-            'room_id' => 'required|exists:ipd_rooms,id',
-            'bed_id' => 'required|exists:ipd_beds,id',
             'admission_date' => 'required|date',
+            
+            // FIX: Allow these to be empty for Doctor's Request
+            'room_id' => 'nullable|exists:ipd_rooms,id',
+            'bed_id' => 'nullable|exists:ipd_beds,id',
+            
             'pending_admission_id' => 'nullable|exists:ipd_admissions,id'
         ]);
 
-        // Check if bed is actually free
-        $bed = IpdBed::find($request->bed_id);
-        if ($bed->status !== 'Free') {
-            return back()->withErrors(['bed_id' => 'Selected bed is already occupied.']);
+        // If a bed IS selected, verify it is free
+        if ($request->filled('bed_id')) {
+            $bed = IpdBed::find($request->bed_id);
+            if ($bed->status !== 'Free') {
+                return back()->withErrors(['bed_id' => 'Selected bed is already occupied.']);
+            }
         }
 
         DB::transaction(function () use ($request) {
             
+            // Determine Status: If Bed is selected -> Admitted, Else -> Pending
+            $status = $request->filled('bed_id') ? 'Admitted' : 'Pending';
+
             $admission = null;
 
-            // Scenario A: Finalize Pending Admission
+            // Scenario A: Finalize Pending Admission (Assigning Bed)
             if ($request->pending_admission_id) {
                 $admission = IpdAdmission::find($request->pending_admission_id);
                 $admission->update([
@@ -111,28 +111,28 @@ class IpdAdmissionController extends Controller
                     'room_id' => $request->room_id,
                     'bed_id'  => $request->bed_id,
                     'admission_date' => $request->admission_date,
-                    'status' => 'Admitted', // Flip status to Active
-                    // Keep original opd_booking_id and user_id (doctor)
+                    'status' => $status, 
                 ]);
             } 
-            // Scenario B: Create New Admission (Direct)
+            // Scenario B: Create New Admission (Doctor Request or Direct Admit)
             else {
-                // Ensure patient isn't already admitted
+                // Ensure patient isn't already ACTIVE
                 $isActive = IpdAdmission::where('patientcode', $request->patient_code)
                     ->whereIn('status', ['Admitted', 'Pending'])->exists();
                 
                 if($isActive) {
-                    throw new \Exception('Patient is already currently admitted.');
+                    throw new \Exception('Patient is already currently admitted or has a pending request.');
                 }
 
                 $admission = IpdAdmission::create([
                     'patientcode' => $request->patient_code,
+                    'opd_booking_id' => $request->opd_booking_id ?? null,
                     'ward_id' => $request->ward_id,
                     'room_id' => $request->room_id,
                     'bed_id' => $request->bed_id,
                     'admission_date' => $request->admission_date,
                     'user_id' => Auth::id(),
-                    'status' => 'Admitted'
+                    'status' => $status
                 ]);
             }
 
@@ -144,17 +144,31 @@ class IpdAdmissionController extends Controller
                 'ward_id' => $admission->ward_id,
                 'room_id' => $admission->room_id,
                 'bed_id' => $admission->bed_id,
-                'status' => 'Admitted',
+                'status' => $status,
                 'user_id' => Auth::id(),
+                'registrystatus' => $request->urgency ?? 'Routine'
             ]);
 
-            // 3. Update Bed Status
-            IpdBed::where('id', $request->bed_id)->update(['status' => 'Occupied']);
+            // 3. Update Bed Status (Only if bed assigned)
+            if ($request->filled('bed_id')) {
+                IpdBed::where('id', $request->bed_id)->update(['status' => 'Occupied']);
+                Patient::where('code', $request->patient_code)->update(['is_admitted' => true]);
+            }
 
-            // 4. Update Patient Master Flag
+            // --- 4. NEW: UPDATE OPD BOOKING STATUS ---
+            // This removes them from the Doctor's OPD Queue
+            if ($request->opd_booking_id) {
+                OpdBooking::where('id', $request->opd_booking_id)
+                    ->update([
+                        'consultation_status' => 'Admitted', // Mark as Admitted
+                        'ipdstart' => now(),                 // Log start time
+                    ]);
+            }
+
+            // 5. Update Patient Master Flag
             Patient::where('code', $request->patient_code)->update(['is_admitted' => true]);
         });
 
-        return redirect()->route('inpatient0.index')->with('success', 'Patient admission finalized.');
+        return redirect()->back()->with('success', 'Admission request processed successfully.');
     }
 }

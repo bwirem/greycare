@@ -11,16 +11,26 @@ use Inertia\Inertia;
 // Models
 use App\Models\Laboratory\LabSample;
 use App\Models\Laboratory\LabResult;
+use App\Models\Laboratory\LabSampleRejectionLog; // Import
+use App\Models\Laboratory\LabRejectionReason; // Import
 
 class LabResultController extends Controller
 {
     /**
      * List Samples waiting for Results
      */
+    /**
+     * List Samples waiting for Results
+     */
     public function index(Request $request)
     {
         $query = LabSample::with(['prescription.patient', 'prescription.panel', 'sampleType'])
-            ->where('status', 'collected') // Ready for processing
+            
+            // --- FIX START ---
+            // Allow both 'collected' (New) and 'processing' (Draft/Saved but not final)
+            ->whereIn('status', ['collected', 'processing']) 
+            // --- FIX END ---
+            
             ->orderBy('collected_at', 'asc');
 
         if ($request->search) {
@@ -53,7 +63,8 @@ class LabResultController extends Controller
             'patient' => $sample->prescription->patient,
             'panel' => $sample->prescription->panel,
             'parameters' => $sample->prescription->panel->parameters,
-            'existing_results' => $sample->results->keyBy('lab_test_parameter_id')
+            'existing_results' => $sample->results->keyBy('lab_test_parameter_id'),
+            'rejection_reasons' => LabRejectionReason::select('id', 'name')->orderBy('name')->get() 
         ]);
     }
 
@@ -107,5 +118,35 @@ class LabResultController extends Controller
     {
         $sample->update(['verified_at' => now(), 'verified_by' => Auth::id()]);
         return back()->with('success', 'Results verified.');
+    }
+    
+    /**
+     * Reject a collected sample (e.g. Hemolyzed, Clotted)
+     */
+    public function rejectSample(Request $request, LabSample $sample)
+    {
+        $request->validate(['reason_id' => 'required|exists:lab_rejection_reasons,id']);
+
+        DB::transaction(function () use ($request, $sample) {
+            
+            // 1. Log the rejection linked to the SAMPLE
+            LabSampleRejectionLog::create([
+                'lab_sample_id'           => $sample->id,
+                // We can also link the prescription for easier querying later
+                'lab_prescription_id'     => $sample->lab_prescription_id, 
+                'lab_rejection_reason_id' => $request->reason_id,
+                'rejected_by'             => Auth::id(),
+                //'rejected_at'             => now(),
+            ]);
+
+            // 2. Update Sample Status
+            $sample->update(['status' => 'rejected']);
+
+            // 3. Update Prescription Status
+            // This tells the Doctor/Nurse they need to redraw
+            $sample->prescription->update(['status' => 'sample_rejected']);
+        });
+
+        return redirect()->route('laboratory1.index')->with('success', 'Sample rejected. Request marked for redraw.');
     }
 }

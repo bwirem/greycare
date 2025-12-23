@@ -65,6 +65,7 @@ use App\Http\Controllers\Hospital\Opd\DoctorAssignmentController;
 // IPD Controllers  
 use App\Http\Controllers\Hospital\Ipd\IpdWardController;
 use App\Http\Controllers\Hospital\Ipd\IpdRoomController;
+use App\Http\Controllers\Hospital\Ipd\IpdDischargeStatusController;
 
 
 // Blood Bank Controllers
@@ -89,6 +90,7 @@ use App\Models\Patient\PatientBillingGroup;
 use App\Models\Patient\PatientBillingSubgroup;
 use App\Models\Opd\OpdTreatmentPoint;
 use App\Models\Opd\Config\DoctorSpecialization;
+use App\Models\Ipd\IpdDischargeStatus;
 
 
 
@@ -387,6 +389,7 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
             'treatmentPointCount' => OpdTreatmentPoint::count(),
             'otherOptionCount'    => 0, // Logic for other options
             'specializationCount' => DoctorSpecialization::count(), 
+            'dischargeStatusCount' => IpdDischargeStatus::count(), 
         ]);
     })->name('index');
     
@@ -516,6 +519,17 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
     Route::prefix('doctor-assignment')->name('doctor-assignment.')->group(function () {
         Route::get('/', [DoctorAssignmentController::class, 'index'])->name('index');
         Route::put('/{user}', [DoctorAssignmentController::class, 'update'])->name('update');
+    });
+
+    // 9. Discharge Statuses
+
+    Route::prefix('dischargestatuses')->name('dischargestatuses.')->group(function () {
+        Route::get('/', [IpdDischargeStatusController::class, 'index'])->name('index');
+        Route::get('/create', [IpdDischargeStatusController::class, 'create'])->name('create');
+        Route::post('/', [IpdDischargeStatusController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [IpdDischargeStatusController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [IpdDischargeStatusController::class, 'update'])->name('update');
+        Route::delete('/{id}', [IpdDischargeStatusController::class, 'destroy'])->name('destroy');
     });
 
 });

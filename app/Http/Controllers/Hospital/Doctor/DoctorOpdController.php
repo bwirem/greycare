@@ -40,6 +40,10 @@ use App\Models\Pharmacy\PharmacyDuration;
 use App\Models\Inventory\SIV_Product; 
 use App\Models\Theatre\TheatreBooking;
 use App\Models\Theatre\TheatreProcedure;
+use App\Models\Ipd\IpdWard; // <--- ADDED THIS IMPORT
+
+// Services
+use App\Services\BillingService; // <--- NEW IMPORT
 
 class DoctorOpdController extends Controller
 {
@@ -50,6 +54,10 @@ class DoctorOpdController extends Controller
     {
         $queue = OpdBooking::with(['patient', 'latestVitalSign'])
             ->whereDate('created_at', today())
+            // --- FILTER OUT ADMITTED PATIENTS ---
+            ->where('consultation_status', '!=', 'Admitted')             
+            // Optional: You might also want to hide 'Completed' or 'Cancelled'
+            // ->whereNotIn('consultation_status', ['Admitted', 'Cancelled'])
             ->orderBy('created_at', 'asc')
             ->paginate(20);
 
@@ -63,6 +71,15 @@ class DoctorOpdController extends Controller
      */
     public function create(OpdBooking $booking)
     {
+        // --- SECURITY CHECK ---
+        // Check if Cash patient and Unpaid
+        $isCash = stripos($booking->billingGroup?->name ?? 'Cash', 'Cash') !== false;
+        
+        if ($isCash && $booking->payment_status !== 'paid' && $booking->payment_status !== 'waived') {
+            return redirect()->route('doctor0.index')
+                ->with('error', 'Patient must clear the consultation bill before being seen.');
+        }
+
         // 1. Load Relationships
         $booking->load([
             'patient',
@@ -78,6 +95,9 @@ class DoctorOpdController extends Controller
             // Services
             'labRequests.panel',
             'labRequests.sample.results.parameter',
+            'labRequests' => function($q) {
+                $q->with(['panel', 'rejectionLog.reason']);
+            },
             'radiologyRequests.procedure',
             'radiologyRequests.report',
             'prescriptions.product' 
@@ -107,6 +127,7 @@ class DoctorOpdController extends Controller
             'ordered_labs' => $booking->labRequests,
             'ordered_rads' => $booking->radiologyRequests,
             'ordered_meds' => $booking->prescriptions,
+            'ordered_surgeries' => $booking->theatreBookings()->with('procedure')->get(),
             'previous_diagnoses' => $sortedHistory,
 
             // Dropdowns
@@ -118,6 +139,8 @@ class DoctorOpdController extends Controller
             'drugs_list' => SIV_Product::with('drugDetails')->select('id', 'name', 'costprice')->orderBy('name')->get(),
             'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')->get(),
             'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')->where('is_active', true)->orderBy('days')->get(),
+            // --- ADDED THIS LINE ---
+            'wards_list' => IpdWard::select('id', 'name')->orderBy('name')->get(),
         ]);
     }
 
@@ -174,7 +197,7 @@ class DoctorOpdController extends Controller
     /**
      * 3. The Save (Updated Diagnosis Logic)
      */
-    public function store(Request $request, OpdBooking $booking)
+    public function store(Request $request, OpdBooking $booking, BillingService $billingService)
     {
         $request->validate([
             'history_presenting_illness' => 'nullable|string',
@@ -292,53 +315,87 @@ class DoctorOpdController extends Controller
                 }
             }
 
-            // 4. Lab Orders
+             // =================================================================
+            // 4. LAB ORDERS + BILLING PUSH
+            // =================================================================
             if ($request->has('lab_requests')) {
                 foreach ($request->lab_requests as $lab) {
-                    // Check duplicates for this booking
                     $exists = LabPrescription::where('opd_booking_id', $booking->id)
                         ->where('lab_panel_id', $lab['panel_id'])->exists();
                     
-                    if(!$exists) {
-                        LabPrescription::create([
+                    if (!$exists) {
+                        // A. Create Clinical Record
+                        $labRecord = LabPrescription::create([
                             'opd_booking_id' => $booking->id,
                             'patientcode' => $booking->patientcode,
                             'doctor_user_id' => Auth::id(),
                             'lab_panel_id' => $lab['panel_id'],
-                            'status' => 'ordered'
+                            'status' => 'Requested',
+                            'payment_status' => 'unpaid' // Mark unpaid initially
                         ]);
+
+                        // B. Push to Billing
+                        $panel = LabPanel::with('blsItem')->find($lab['panel_id']);
+                        if ($panel && $panel->blsItem) {
+                            $billingService->addToBill(
+                                $booking->patientcode,
+                                $panel->blsItem->id, // Bill Item ID
+                                1, // Qty
+                                'laboratory', // Source Type
+                                $labRecord->id // Source ID
+                            );
+                        }
                     }
                 }
             }
 
-            // 5. Radiology Orders
+            // =================================================================
+            // 5. RADIOLOGY ORDERS + BILLING PUSH
+            // =================================================================
             if ($request->has('rad_requests')) {
                 foreach ($request->rad_requests as $rad) {
                     $exists = RadRequest::where('opd_booking_id', $booking->id)
                         ->where('rad_procedure_id', $rad['procedure_id'])->exists();
 
-                    if(!$exists) {
-                        RadRequest::create([
+                    if (!$exists) {
+                        // A. Create Clinical Record
+                        $radRecord = RadRequest::create([
                             'opd_booking_id' => $booking->id,
                             'patientcode' => $booking->patientcode,
                             'requested_by' => Auth::id(),
                             'rad_procedure_id' => $rad['procedure_id'],
-                            'status' => 'ordered',
+                            'status' => 'Ordered',
+                            'payment_status' => 'unpaid',
                             'accession_number' => 'RAD-' . date('YmdHis') . '-' . rand(100,999)
                         ]);
+
+                        // B. Push to Billing
+                        $procedure = RadProcedure::with('blsItem')->find($rad['procedure_id']);
+                        if ($procedure && $procedure->blsItem) {
+                            $billingService->addToBill(
+                                $booking->patientcode,
+                                $procedure->blsItem->id,
+                                1,
+                                'radiology',
+                                $radRecord->id
+                            );
+                        }
                     }
                 }
             }
 
-            // 6. Pharmacy
+            // =================================================================
+            // 6. PHARMACY + BILLING PUSH
+            // =================================================================
             if ($request->has('prescriptions')) {
                 foreach ($request->prescriptions as $rx) {
                     $exists = PharmacyPrescription::where('opd_booking_id', $booking->id)
                         ->where('product_id', $rx['product_id'])
                         ->where('status', 'Prescribed')->exists();
 
-                    if(!$exists) {
-                        PharmacyPrescription::create([
+                    if (!$exists) {
+                        // A. Create Clinical Record
+                        $pharmRecord = PharmacyPrescription::create([
                             'opd_booking_id' => $booking->id,
                             'patientcode' => $booking->patientcode,
                             'doctor_user_id' => Auth::id(),
@@ -347,25 +404,58 @@ class DoctorOpdController extends Controller
                             'frequency' => $rx['frequency'],
                             'duration' => $rx['duration'] ?? '5 days',
                             'quantity_prescribed' => $rx['quantity'], 
-                            'status' => 'Prescribed'
+                            'status' => 'Prescribed',
+                            'payment_status' => 'unpaid'
                         ]);
+
+                        // B. Push to Billing
+                        $product = SIV_Product::with('blsItem')->find($rx['product_id']);
+                        if ($product && $product->blsItem) {
+                            $billingService->addToBill(
+                                $booking->patientcode,
+                                $product->blsItem->id,
+                                $rx['quantity'], // Quantity from prescription
+                                'pharmacy',
+                                $pharmRecord->id
+                            );
+                        }
                     }
                 }
             }
 
-            // 7. Surgery
+            // =================================================================
+            // 7. SURGERY + BILLING PUSH
+            // =================================================================
             if (!empty($request->surgery_request['procedure_id']) && !empty($request->surgery_request['date'])) {
-                $surgDate = Carbon::parse($request->surgery_request['date']);
-                TheatreBooking::firstOrCreate([
+                $procId = $request->surgery_request['procedure_id'];
+                
+                // A. Create/Find Clinical Record
+                $surgRecord = TheatreBooking::firstOrCreate([
                     'opd_booking_id' => $booking->id,
-                    'theatre_procedure_id' => $request->surgery_request['procedure_id']
+                    'theatre_procedure_id' => $procId
                 ], [
                     'patientcode' => $booking->patientcode,
                     'doctor_user_id' => Auth::id(),
-                    'scheduled_at' => $surgDate,
-                    'status' => 'Scheduled'
+                    'scheduled_at' => Carbon::parse($request->surgery_request['date']),
+                    'status' => 'Scheduled',
+                    'payment_status' => 'unpaid'
                 ]);
+
+                // B. Push to Billing (Only if just created/unpaid)
+                if ($surgRecord->wasRecentlyCreated || $surgRecord->payment_status === 'unpaid') {
+                    $procedure = TheatreProcedure::with('blsItem')->find($procId);
+                    if ($procedure && $procedure->blsItem) {
+                        $billingService->addToBill(
+                            $booking->patientcode,
+                            $procedure->blsItem->id,
+                            1,
+                            'theatre',
+                            $surgRecord->id
+                        );
+                    }
+                }
             }
+
 
             // 8. Update Status
             $booking->update(['consultation_status' => 'Seen']);

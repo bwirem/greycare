@@ -7,6 +7,7 @@ use App\Models\Opd\OpdBooking;
 use App\Models\User;
 use App\Models\Patient\Patient;
 
+
 class LabPrescription extends Model
 {
     protected $table = 'lab_prescriptions';
@@ -40,5 +41,14 @@ class LabPrescription extends Model
     public function sample()
     {
         return $this->hasOne(LabSample::class, 'lab_prescription_id');
+    }
+
+    /**
+     * Get the rejection details if the request was rejected.
+     * We use latestOfMany() in case there are multiple logs (rare, but safe).
+     */
+    public function rejectionLog()
+    {
+        return $this->hasOne(LabSampleRejectionLog::class, 'lab_prescription_id')->latestOfMany();
     }
 }

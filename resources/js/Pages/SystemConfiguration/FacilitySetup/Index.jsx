@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faLayerGroup, faUsers, faSitemap, faClinicMedical, 
     faBed, faProcedures, faStethoscope, faTags, faArrowRight, faFileMedical,
-    faUserMd // <--- Added Icon
+    faUserMd, faDoorOpen // <--- Added Icon
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function FacilitySetupIndex({ 
@@ -16,7 +16,8 @@ export default function FacilitySetupIndex({
     treatmentPointCount, 
     wardCount, 
     diagnosisCount,
-    specializationCount // <--- Added Prop
+    specializationCount,     // <--- Added Prop
+    dischargeStatusCount // <--- 2. Add Prop
 }) {
     const dashboardItems = [
         { 
@@ -60,6 +61,15 @@ export default function FacilitySetupIndex({
         { 
             title: "Rooms & Beds", count: 0, icon: faProcedures, 
             routeName: 'systemconfiguration5.rooms.index', color: 'red', description: "Manage physical rooms and beds." 
+        },
+        // --- 3. ADD THIS CARD ---
+        { 
+            title: "Discharge Statuses", 
+            count: dischargeStatusCount, 
+            icon: faDoorOpen, 
+            routeName: 'systemconfiguration5.dischargestatuses.index', 
+            color: 'orange', 
+            description: "Outcomes (Recovered, Referred, etc)." 
         },
         { 
             title: "Diagnosis Groups", count: 0, icon: faTags, 

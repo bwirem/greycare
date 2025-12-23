@@ -31,6 +31,8 @@ use App\Models\Radiology\RadRequest;
 
 use App\Models\Pharmacy\PharmacyPrescription; // Ensure this is imported
 
+use App\Models\Theatre\TheatreBooking;
+
 // Billing
 use App\Models\Billing\BLSItem;
 
@@ -183,5 +185,9 @@ class OpdBooking extends Model
     public function prescriptions()
     {
         return $this->hasMany(PharmacyPrescription::class, 'opd_booking_id');
+    }
+
+    public function theatreBookings() {
+        return $this->hasMany(TheatreBooking::class, 'opd_booking_id');
     }
 }

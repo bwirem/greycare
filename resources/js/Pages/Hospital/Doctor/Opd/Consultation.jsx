@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import Modal from '@/Components/Modal'; 
@@ -16,7 +16,7 @@ import ExaminationTab from './Tabs/ExaminationTab';
 import DiagnosisTab from './Tabs/DiagnosisTab';
 import OrdersTab from './Tabs/OrdersTab';
 import PharmacyTab from './Tabs/PharmacyTab';
-import Admit from './Admit'; // The Admission Modal
+import Admit from './Admit';
 
 export default function OpdConsultation({ 
     booking, 
@@ -24,60 +24,33 @@ export default function OpdConsultation({
     vital_signs, 
     existing_history, 
     existing_exam, 
+    // --- History Lists ---
     ordered_labs = [], 
     ordered_rads = [], 
     ordered_meds = [],
-
-    previous_diagnoses = [], // <--- Ensure this prop is accepted
-    // Data Lists for Dropdowns
+    ordered_surgeries = [], // <--- ADDED THIS PROP
+    previous_diagnoses = [], 
+    // --- Dropdown Options ---
     icd_list = [], 
-    opd_diagnoses_list = [], // Ensure Controller sends this (DxtDiagnosesOpd with icdMap)
-    // New Order Data Lists
     lab_panels = [], 
     rad_procedures = [], 
     drugs_list = [], 
     surgery_procedures = [],
     pharmacy_frequencies = [], 
     pharmacy_durations = [],
-    wards_list = [] // Passed from Controller for Admission
+    wards_list = [] 
 }) {
-   
-    // 1. Build Reverse Map (ICD ID -> Mtuha Name/ID)
-    const icdToMtuhaMap = {};
-    if (opd_diagnoses_list) {
-        opd_diagnoses_list.forEach(localDiag => {
-            if (localDiag.icd_map?.id) {
-                icdToMtuhaMap[localDiag.icd_map.id] = {
-                    id: localDiag.id,
-                    name: localDiag.name
-                };
-            }
-        });
-    }
-
-    // --- 1. Data Transformation for Dropdowns ---
+    
+    // --- 1. Data Transformation ---
     const options = {
-
-        // 2. Build ICD Options with Mapping Attached
-        icd: icd_list.map(icd => {
-            const mapped = icdToMtuhaMap[icd.id];
-            return {
-                value: icd.id,
-                label: `${icd.code} - ${icd.name}`,
-                type: 'icd',
-                // Attach mapping info
-                mtuha_label: mapped ? mapped.name : null,
-                mtuha_id: mapped ? mapped.id : null
-            };
-        }),
-
+        icd: icd_list.map(d => ({ value: d.id, label: `${d.code} - ${d.name}` })),
         lab: lab_panels.map(l => ({ value: l.id, label: l.name })),
         rad: rad_procedures.map(r => ({ value: r.id, label: r.name })),
         drug: drugs_list.map(d => ({ value: d.id, label: d.name })),
         surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name }))
     };
 
-    // --- 2. Main Form State ---
+    // --- 2. Form State ---
     const { data, setData, post, processing, errors } = useForm({
         // History
         history_presenting_illness: existing_history?.history_presenting_illness || '',
@@ -95,10 +68,8 @@ export default function OpdConsultation({
         rs_examination: existing_exam?.rs_examination || '',
         abdomen_examination: existing_exam?.abdomen_examination || '',
         
-        // Diagnosis
+        // Diagnosis & Orders
         diagnoses: [], 
-        
-        // New Orders
         prescriptions: [],
         lab_requests: [],
         rad_requests: [],
@@ -107,9 +78,9 @@ export default function OpdConsultation({
 
     // --- 3. UI State ---
     const [activeTab, setActiveTab] = useState('history');
-    const [viewResult, setViewResult] = useState(null); // Data for Result Modal
-    const [resultType, setResultType] = useState('');   // 'lab' or 'rad'
-    const [showAdmitModal, setShowAdmitModal] = useState(false); // Admission Modal
+    const [viewResult, setViewResult] = useState(null);
+    const [resultType, setResultType] = useState('');   
+    const [showAdmitModal, setShowAdmitModal] = useState(false);
 
     // --- 4. Handlers ---
 
@@ -118,7 +89,6 @@ export default function OpdConsultation({
         post(route('doctor0.store', booking.id), {
             preserveScroll: true,
             onSuccess: () => {
-                // Clear "New Orders" lists after successful save
                 setData(prev => ({ 
                     ...prev, 
                     prescriptions: [], 
@@ -135,7 +105,17 @@ export default function OpdConsultation({
         });
     };
 
-    // Safe Patient Data Access
+    const openLabResult = (labRequest) => {
+        setResultType('lab');
+        setViewResult(labRequest);
+    };
+
+    const openRadReport = (radRequest) => {
+        setResultType('rad');
+        setViewResult(radRequest);
+    };
+
+    // Safe Patient Data
     const patientName = patient ? `${patient.first_name} ${patient.last_name}` : 'Unknown';
     const patientInitial = patient?.first_name ? patient.first_name.charAt(0) : '?';
 
@@ -223,12 +203,7 @@ export default function OpdConsultation({
                             
                             {activeTab === 'exam' && <ExaminationTab data={data} setData={setData} />}
                             
-                            {activeTab === 'diagnosis' && 
-                                <DiagnosisTab 
-                                    data={data} setData={setData}
-                                    options={options.icd}                                     
-                                    previous_diagnoses={previous_diagnoses} // <--- Pass it here
-                                />}
+                            {activeTab === 'diagnosis' && <DiagnosisTab data={data} setData={setData} options={options.icd} previous_diagnoses={previous_diagnoses} />}
                             
                             {activeTab === 'orders' && 
                                 <OrdersTab 
@@ -236,6 +211,7 @@ export default function OpdConsultation({
                                     options={options} 
                                     ordered_labs={ordered_labs} 
                                     ordered_rads={ordered_rads}
+                                    ordered_surgeries={ordered_surgeries} // <--- PASSED HERE
                                     onViewResult={(res, type) => { setResultType(type); setViewResult(res); }}
                                 />
                             }
@@ -264,7 +240,7 @@ export default function OpdConsultation({
                             <button 
                                 type="button"
                                 onClick={() => setShowAdmitModal(true)}
-                                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded shadow-sm text-sm font-semibold flex items-center gap-2 transition-colors whitespace-nowrap"
+                                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded shadow-sm text-sm font-semibold flex items-center gap-2 transition-colors"
                             >
                                 <FontAwesomeIcon icon={faBed} /> Admit
                             </button>
@@ -346,7 +322,7 @@ export default function OpdConsultation({
                 onClose={() => setShowAdmitModal(false)}
                 booking={booking}
                 patient={patient}
-                consultationData={data} // Passes current form state (history, exam, etc)
+                consultationData={data} // Passes current form state
                 wards={wards_list}
                 diagnosisOptions={options.icd}
             />

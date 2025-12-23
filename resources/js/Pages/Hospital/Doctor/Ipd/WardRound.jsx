@@ -23,7 +23,9 @@ export default function WardRound({
     diagnosis_history = [], // <--- Receive Prop
     ordered_labs = [], ordered_rads = [], ordered_meds = [],
     lab_panels = [], rad_procedures = [], drugs_list = [], bb_components = [],
-    pharmacy_frequencies = [], pharmacy_durations = [], icd_list = [], ipd_diagnoses_list = []
+    pharmacy_frequencies = [], pharmacy_durations = [],
+    surgery_procedures = [],
+    icd_list = [], ipd_diagnoses_list = []
 }) {
     
     // --- 1. Data Transformation for Dropdowns ---
@@ -31,7 +33,8 @@ export default function WardRound({
         lab: lab_panels.map(l => ({ value: l.id, label: l.name })),
         rad: rad_procedures.map(r => ({ value: r.id, label: r.name })),
         blood: bb_components.map(b => ({ value: b.id, label: b.name })),
-        drug: drugs_list.map(d => ({ value: d.id, label: d.name })),        
+        drug: drugs_list.map(d => ({ value: d.id, label: d.name })),   
+        surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name }))     
     };
   
 

@@ -13,16 +13,19 @@ use App\Models\Laboratory\LabPrescription;
 use App\Models\Laboratory\LabSample;
 use App\Models\Laboratory\LabNatureOfSample;
 use App\Models\Laboratory\LabRejectionReason;
+use App\Models\Laboratory\LabSampleRejectionLog;
 
 class LabRequestController extends Controller
 {
     /**
-     * List Pending Requests (Ordered but no Sample Collected yet)
+     * List Pending Requests
      */
     public function index(Request $request)
     {
-        $query = LabPrescription::with(['patient', 'requestedBy', 'panel', 'visit'])
-            ->where('status', 'ordered') // Status: ordered, collected, processing, completed
+        // Added 'visit.billingGroup' to help identify Cash vs Insurance in frontend if needed
+        $query = LabPrescription::with(['patient', 'requestedBy', 'panel', 'visit.billingGroup'])
+           // CHANGE: Show 'ordered' (New) AND 'sample_rejected' (Needs Redraw)
+            ->whereIn('status', ['Requested', 'sample_rejected']) 
             ->orderBy('created_at', 'asc');
 
         if ($request->search) {
@@ -43,6 +46,13 @@ class LabRequestController extends Controller
      */
     public function create(LabPrescription $prescription)
     {
+        // --- SECURITY CHECK: Prevent access if unpaid ---
+        if ($prescription->payment_status === 'unpaid') {
+            return redirect()->route('laboratory0.index')
+                ->with('error', 'Cannot collect sample. The request has not been paid for.');
+        }
+        // ------------------------------------------------
+
         $prescription->load(['patient', 'panel.defaultSample']);
 
         return Inertia::render('Hospital/Laboratory/Requests/Collect', [
@@ -57,8 +67,14 @@ class LabRequestController extends Controller
     /**
      * Store Sample Collection Data
      */
+       
     public function store(Request $request, LabPrescription $prescription)
     {
+       // --- DOUBLE CHECK: Prevent processing if unpaid ---
+        if ($prescription->payment_status === 'unpaid') {
+            return back()->withErrors(['error' => 'Payment required before collection.']);
+        }
+
         $request->validate([
             'lab_nature_of_sample_id' => 'required|exists:lab_nature_of_samples,id',
             'collection_date' => 'required|date',
@@ -67,37 +83,50 @@ class LabRequestController extends Controller
 
         DB::transaction(function () use ($request, $prescription) {
             
-            // 1. Create the Sample Record
+            // 1. Create a NEW Sample Record (This keeps history of the old rejected one)
             LabSample::create([
                 'lab_prescription_id' => $prescription->id,
                 'lab_nature_of_sample_id' => $request->lab_nature_of_sample_id,
                 'collected_by' => Auth::id(),
                 'collected_at' => $request->collection_date,
-                'sample_code' => 'SMP-' . date('Ymd') . '-' . $prescription->id, // Auto-gen ID
+                // Generate a new unique ID (e.g. append timestamp) to differentiate from the rejected one
+                'sample_code' => 'SMP-' . date('YmdHis') . '-' . $prescription->id, 
                 'notes' => $request->notes,
                 'status' => 'collected'
             ]);
 
-            // 2. Update Prescription Status
+            // 2. Reset Prescription Status
+            // This moves it OUT of the Collection Queue and INTO the Results Queue
             $prescription->update(['status' => 'collected']);
         });
 
         return redirect()->route('laboratory0.index')
-            ->with('success', 'Sample collected successfully. Sent to processing.');
+            ->with('success', 'New sample collected successfully.');
     }
 
+
     /**
-     * Reject a Request
+     * Reject a Lab Request
      */
     public function reject(Request $request, LabPrescription $prescription)
     {
         $request->validate(['reason_id' => 'required|exists:lab_rejection_reasons,id']);
 
-        $prescription->update([
-            'status' => 'rejected',
-            'rejection_reason_id' => $request->reason_id, // Ensure migration has this
-            'rejected_by' => Auth::id()
-        ]);
+        DB::transaction(function () use ($request, $prescription) {
+            
+            // 1. Create Log Entry linked to the Prescription
+            LabSampleRejectionLog::create([
+                'lab_prescription_id'     => $prescription->id, // <--- Correct ID now
+                'lab_rejection_reason_id' => $request->reason_id,
+                'rejected_by'             => Auth::id(),
+                // 'remarks'              => $request->remarks, // Add this if you have remarks in frontend
+            ]);
+
+            // 2. Update Status Only
+            $prescription->update([
+                'status' => 'rejected'
+            ]);
+        });
 
         return redirect()->back()->with('success', 'Request rejected.');
     }

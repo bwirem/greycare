@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 // Models - IPD
 use App\Models\Ipd\IpdAdmission;
@@ -36,9 +37,15 @@ use App\Models\Diagnosis\DxtDiagnosesIcd;
 use App\Models\Laboratory\LabPrescription;
 use App\Models\Laboratory\LabPanel;
 
+// Radiology
 use App\Models\Radiology\RadRequest;
 use App\Models\Radiology\RadProcedure;
 
+// Theatre
+use App\Models\Theatre\TheatreProcedure;
+use App\Models\Theatre\TheatreBooking;
+
+// Blood Bank
 use App\Models\BloodBank\BbIssueRequest;
 use App\Models\BloodBank\BbComponentType;
 
@@ -194,6 +201,7 @@ class DoctorIpdController extends Controller
             // Dropdowns
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
             'rad_procedures' => RadProcedure::select('id', 'name')->orderBy('name')->get(),
+            'surgery_procedures' => TheatreProcedure::select('id', 'name')->orderBy('name')->get(),
             'drugs_list' => SIV_Product::select('id', 'name', 'costprice')->orderBy('name')->get(),
             'bb_components' => BbComponentType::select('id', 'name')->get(),
             
@@ -226,6 +234,7 @@ class DoctorIpdController extends Controller
             'blood_requests' => 'nullable|array',
             'new_prescriptions' => 'nullable|array',
             'diagnoses' => 'nullable|array',
+            'surgery_requests' => 'nullable|array',
         ]);
 
         try {
@@ -261,7 +270,7 @@ class DoctorIpdController extends Controller
                         'patientcode' => $admission->patientcode,
                         'doctor_user_id' => Auth::id(),
                         'lab_panel_id' => $lab['panel_id'],
-                        'status' => 'ordered'
+                        'status' => 'Requested'
                     ]);
                 }
             }
@@ -281,7 +290,27 @@ class DoctorIpdController extends Controller
                 }
             }
 
-            // E. Save Blood Requests
+            // E. SAVE SURGERY BOOKING (NEW) ---
+            if (
+                !empty($request->surgery_request['procedure_id']) && 
+                !empty($request->surgery_request['date'])
+            ) {
+                $surgDate = Carbon::parse($request->surgery_request['date']);
+
+                TheatreBooking::create([
+                    'ipd_admission_id'     => $admission->id,
+                    'opd_booking_id'       => $admission->opd_booking_id, // Maintain link if exists
+                    'patientcode'          => $admission->patientcode,
+                    'doctor_user_id'       => Auth::id(),
+                    'theatre_procedure_id' => $request->surgery_request['procedure_id'],
+                    'scheduled_at'         => $surgDate,
+                    'status'               => 'Scheduled',
+                    'remarks'              => 'Booked from Ward Round'
+                ]);
+            }
+
+
+            // F. Save Blood Requests
             if ($request->has('blood_requests')) {
                 foreach ($request->blood_requests as $bb) {
                     BbIssueRequest::create([
@@ -297,7 +326,7 @@ class DoctorIpdController extends Controller
                 }
             }
 
-            // F. Save Pharmacy
+            // G. Save Pharmacy
             if ($request->has('new_prescriptions')) {
                 foreach ($request->new_prescriptions as $rx) {
                     PharmacyPrescription::create([
@@ -314,7 +343,7 @@ class DoctorIpdController extends Controller
                 }
             }
            
-            // G. Save New Diagnoses
+            // H. Save New Diagnoses
             if ($request->has('diagnoses')) {
 
 
