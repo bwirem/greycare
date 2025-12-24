@@ -15,11 +15,13 @@ return new class extends Migration
             $table->unsignedBigInteger('lab_panel_id')->nullable()->after('product_id');
             $table->unsignedBigInteger('rad_procedure_id')->nullable()->after('lab_panel_id');
             $table->unsignedBigInteger('theatre_procedure_id')->nullable()->after('rad_procedure_id');
-            
+            $table->unsignedBigInteger('ipd_ward_id')->nullable()->after('theatre_procedure_id');
+
             // Optional: Add indexes for performance
             $table->index('lab_panel_id');
             $table->index('rad_procedure_id');
             $table->index('theatre_procedure_id');
+            $table->index('ipd_ward_id');
         });
     }
 

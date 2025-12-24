@@ -8,6 +8,7 @@ use App\Models\Inventory\SIV_Product;
 use App\Models\Laboratory\LabPanel;
 use App\Models\Radiology\RadProcedure;
 use App\Models\Theatre\TheatreProcedure;
+use App\Models\Ipd\IpdWard;
 
 class BLSItem extends Model
 {
@@ -32,6 +33,7 @@ class BLSItem extends Model
         'lab_panel_id',
         'rad_procedure_id',
         'theatre_procedure_id',
+        'ipd_ward_id',
     ];
 
     public function itemgroup()
@@ -69,5 +71,14 @@ class BLSItem extends Model
     public function theatreProcedure() 
     {
         return $this->belongsTo(TheatreProcedure::class, 'theatre_procedure_id');
+    }
+
+    /**
+     * Link to IPD Ward
+     */
+    // Add Relationship
+    public function ward()
+    {
+        return $this->belongsTo(IpdWard::class, 'ipd_ward_id');
     }
 }

@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Models\Laboratory\LabPrescription;
 // Radiology
 use App\Models\Radiology\RadRequest;//
+// Theatre
+use App\Models\Theatre\TheatreBooking;
 use App\Models\Pharmacy\PharmacyPrescription; // Ensure this is i
 use App\Models\BloodBank\BbIssueRequest;
 
@@ -51,6 +53,11 @@ class IpdAdmission extends Model
     public function bed()
     {
         return $this->belongsTo(IpdBed::class, 'bed_id');
+    }
+
+    public function bedCharges()
+    {
+        return $this->hasMany(IpdBedCharge::class, 'ipd_admission_id');
     }
 
     // --- ADD THESE MISSING RELATIONSHIPS ---
@@ -97,6 +104,11 @@ class IpdAdmission extends Model
         return $this->hasMany(RadRequest::class, 'ipd_admission_id');
     }
 
+    public function theatreBookings()
+    { 
+        return $this->hasMany(TheatreBooking::class, 'ipd_admission_id'); 
+    }
+
     /**
      * Pharmacy Prescriptions linked to this admission
      */
@@ -104,6 +116,7 @@ class IpdAdmission extends Model
     {
         return $this->hasMany(PharmacyPrescription::class, 'ipd_admission_id');
     }
+
 
     /**
      * Blood Bank Requests linked to this admission

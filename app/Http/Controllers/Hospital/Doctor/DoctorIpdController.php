@@ -15,20 +15,22 @@ use App\Models\Ipd\IpdAdmission;
 use App\Models\Ipd\IpdWardRound;
 use App\Models\Ipd\IpdDischargeSummary;
 
-
 // Models - Services
 use App\Models\Pharmacy\PharmacyPrescription;
 use App\Models\Pharmacy\PharmacyFrequency;
 use App\Models\Pharmacy\PharmacyDuration;
 use App\Models\Inventory\SIV_Product;
+
 // Models - Diagnoses ICD
 use App\Models\MedicalRecord\MrPatientDiagnosisIcdConfirmed;
 use App\Models\MedicalRecord\MrPatientDiagnosisIcdProvisional;
 use App\Models\MedicalRecord\MrPatientDiagnosisIcdDifferential;
+
 // Models - Diagnoses
 use App\Models\MedicalRecord\MrPatientDiagnosisConfirmed;
 use App\Models\MedicalRecord\MrPatientDiagnosisProvisional;
 use App\Models\MedicalRecord\MrPatientDiagnosisDifferential;
+
 // Diagnosis Source Models
 use App\Models\Diagnosis\DxtDiagnosesIpd;
 use App\Models\Diagnosis\DxtDiagnosesIcd;
@@ -49,6 +51,8 @@ use App\Models\Theatre\TheatreBooking;
 use App\Models\BloodBank\BbIssueRequest;
 use App\Models\BloodBank\BbComponentType;
 
+// --- NEW IMPORT: Billing Service ---
+use App\Services\BillingService; 
 
 class DoctorIpdController extends Controller
 {
@@ -74,82 +78,69 @@ class DoctorIpdController extends Controller
      */
     public function create(IpdAdmission $admission)
     {
-        // Load Admission Context + History
-        $admission->load([
+         $admission->load([
             'patient',
-            // Load previous rounds with their details for the "History" tab
             'wardRounds' => function($q) {
                 $q->orderBy('round_date', 'desc')->with(['doctor', 'examination', 'assessment']);
             },
-
-            // --- NEW: Load Original OPD Consultation Data ---
-            'booking.history.complains',
-            'booking.examination',
-            'booking.diagnosesConfirmed',
-            'booking.diagnosesProvisional',
-            'booking.prescriptions.product',
+            
+            // --- FIX: Load OPD Results & Reports Deeply ---
+            
+            // 1. OPD Lab Results
             'booking.labRequests.panel',
+            'booking.labRequests.sample.results.parameter', // <--- WAS MISSING
+            
+            // 2. OPD Radiology Reports
             'booking.radiologyRequests.procedure',
-            'booking.user', // The OPD Doctor
+            'booking.radiologyRequests.report', // <--- WAS MISSING
             
-            // Load Active Orders linked to this Admission (Cumulative view)
+            // 3. OPD Diagnoses & Meds
+            'booking.diagnosesConfirmed.diagnosis.icdMap',
+            'booking.diagnosesProvisional.diagnosis.icdMap',
+            'booking.icdDiagnosesConfirmed.icdDiagnosis',
+            'booking.icdDiagnosesProvisional.icdDiagnosis',
+            'booking.prescriptions.product',
+            'booking.theatreBookings.procedure', 
+            'booking.user',
+
+            // --- IPD Active Orders (Already correct) ---
             'labRequests.panel', 
-            'labRequests.sample.results.parameter', // Nested results
-            
+            'labRequests.sample.results.parameter',
             'radiologyRequests.procedure',
-            'radiologyRequests.report', // Nested report
-            
-            'prescriptions.product'
+            'radiologyRequests.report',
+            'prescriptions.product',
+            'bloodRequests.componentType',
+            'theatreBookings.procedure', 
         ]);
 
-        // --- FETCH & DEDUPLICATE DIAGNOSIS HISTORY ---
-        
+        // ... (Existing Diagnosis History logic remains the same) ...
         $diagHistory = collect();
-        $coveredIcdCodes = []; // Array to track codes handled by Local Diagnoses
+        $coveredIcdCodes = [];
 
-        // 1. Fetch from Database
-        // Generic/Local (Mtuha)
         $genConf = MrPatientDiagnosisConfirmed::where('ipd_admission_id', $admission->id)
             ->with(['diagnosis.icdMap', 'user'])->get();
         $genProv = MrPatientDiagnosisProvisional::where('ipd_admission_id', $admission->id)
             ->with(['diagnosis.icdMap', 'user'])->get();
-        
-        // ICD Specific
         $icdConf = MrPatientDiagnosisIcdConfirmed::where('ipd_admission_id', $admission->id)
             ->with(['icdDiagnosis', 'user'])->get();
         $icdProv = MrPatientDiagnosisIcdProvisional::where('ipd_admission_id', $admission->id)
             ->with(['icdDiagnosis', 'user'])->get();
 
-        // 2. Define Formatter Logic
         $processRecords = function($records, $status, $source) use (&$diagHistory, &$coveredIcdCodes) {
             foreach($records as $rec) {
-                
                 $icdCode = '-';
                 $icdName = null;
                 $localName = null;
 
                 if ($source === 'local') {
-                    // It's a Local/Mtuha Diagnosis
                     $localName = $rec->diagnosis?->name ?? $rec->diagnosisdescription;
-                    
-                    // Get the Mapped Code
                     $icdCode = $rec->diagnosis?->icdMap?->code ?? $rec->diagnosis?->maptocode ?? '-';
                     $icdName = $rec->diagnosis?->icdMap?->name ?? null;
-
-                    // Add this code to 'covered' list so we don't show the duplicate ICD entry later
-                    if ($icdCode !== '-') {
-                        $coveredIcdCodes[] = $icdCode;
-                    }
+                    if ($icdCode !== '-') { $coveredIcdCodes[] = $icdCode; }
                 } else {
-                    // It's a Standard ICD Diagnosis
                     $icdCode = $rec->icdDiagnosis?->code ?? '-';
                     $icdName = $rec->icdDiagnosis?->name ?? $rec->diagnosisdescription;
-                    
-                    // DEDUPLICATION CHECK:
-                    // If this ICD code was already added via a Local Diagnosis, SKIP it.
-                    if (in_array($icdCode, $coveredIcdCodes)) {
-                        continue; 
-                    }
+                    if (in_array($icdCode, $coveredIcdCodes)) { continue; }
                 }
 
                 $diagHistory->push([
@@ -164,71 +155,51 @@ class DoctorIpdController extends Controller
             }
         };
 
-        // 3. Process LOCAL First (Priority)
         $processRecords($genConf, 'Confirmed', 'local');
         $processRecords($genProv, 'Provisional', 'local');
-
-        // 4. Process ICD Second (Filter duplicates)
         $processRecords($icdConf, 'Confirmed', 'icd');
         $processRecords($icdProv, 'Provisional', 'icd');
 
-        // 5. Sort
         $sortedDiagHistory = $diagHistory->sortByDesc('created_at')->values();
         
         return Inertia::render('Hospital/Doctor/Ipd/WardRound', [
             'admission' => $admission,
             'patient' => $admission->patient,
             'previous_rounds' => $admission->wardRounds,
-
-            // --- NEW: Pass OPD Data ---
             'opd_consultation' => $admission->booking, 
-
-            // --- NEW PROP ---
             'diagnosis_history' => $sortedDiagHistory,
-            
-            // Existing Orders for Dashboard
             'ordered_labs' => $admission->labRequests,
             'ordered_rads' => $admission->radiologyRequests,
             'ordered_meds' => $admission->prescriptions,
-            
-            // Dropdown Data
-            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(100)->get(),    
-            'ipd_diagnoses_list' => DxtDiagnosesIpd::with('icdMap:id,name,code') // Load relation
-                ->select('id', 'name', 'maptocode') // MUST include 'maptocode' for the link to work
-                ->limit(100)
-                ->get(),                
+            'ordered_surgeries' => $admission->theatreBookings,
+            'ordered_blood' => $admission->bloodRequests,
 
-            // Dropdowns
+            // Data for Select Options
+            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(100)->get(),    
+            'ipd_diagnoses_list' => DxtDiagnosesIpd::with('icdMap:id,name,code')
+                ->select('id', 'name', 'maptocode')->limit(100)->get(),                
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
             'rad_procedures' => RadProcedure::select('id', 'name')->orderBy('name')->get(),
             'surgery_procedures' => TheatreProcedure::select('id', 'name')->orderBy('name')->get(),
-            'drugs_list' => SIV_Product::select('id', 'name', 'costprice')->orderBy('name')->get(),
             'bb_components' => BbComponentType::select('id', 'name')->get(),
-            
-            // Pharmacy related
             'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')->get(),
             'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')->where('is_active', true)->get(),
-            
-            // Ensure drugs list includes info if needed (though usually calculated on basic units)           
             'drugs_list' => SIV_Product::with('drugDetails') 
-            ->select('id', 'name', 'costprice') 
-            ->orderBy('name')
-            ->get(),
+                ->select('id', 'name', 'costprice') 
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
     /**
-     * 3. Save Round
+     * 3. Save Round - UPDATED WITH BILLING
      */
-    public function store(Request $request, IpdAdmission $admission)
+    public function store(Request $request, IpdAdmission $admission, BillingService $billingService)
     {
         $request->validate([
-            // Assessment
             'clinical_notes' => 'required|string',
             'treatment_plan' => 'nullable|string',
             'general_condition' => 'nullable|string',
-            
-            // Orders
             'lab_requests' => 'nullable|array',
             'rad_requests' => 'nullable|array',
             'blood_requests' => 'nullable|array',
@@ -251,7 +222,7 @@ class DoctorIpdController extends Controller
                 'general_condition' => $request->general_condition,
             ]);
 
-            // B. Save Physical Exam (Polymorphic linked to Round)
+            // B. Save Physical Exam
             $round->examination()->create([
                 'general_condition' => $request->general_condition,
                 'glasgow_coma_score' => $request->glasgow_coma_score ?? null,
@@ -262,55 +233,90 @@ class DoctorIpdController extends Controller
                 'abdomen_examination' => $request->abdomen_examination ?? null,
             ]);
 
-            // C. Save Lab Orders (Linked to Admission)
+            // C. Save Lab Orders + BILLING
             if ($request->has('lab_requests')) {
                 foreach ($request->lab_requests as $lab) {
-                    LabPrescription::create([
+                    $labRecord = LabPrescription::create([
                         'ipd_admission_id' => $admission->id, 
                         'patientcode' => $admission->patientcode,
                         'doctor_user_id' => Auth::id(),
                         'lab_panel_id' => $lab['panel_id'],
-                        'status' => 'Requested'
+                        'status' => 'Requested',
+                        'payment_status' => 'unpaid'
                     ]);
+
+                    // Push to Billing
+                    $panel = LabPanel::with('blsItem')->find($lab['panel_id']);
+                    if ($panel && $panel->blsItem) {
+                        $billingService->addToBill(
+                            $admission->patientcode,
+                            $panel->blsItem->id,
+                            1,
+                            'laboratory',
+                            $labRecord->id
+                        );
+                    }
                 }
             }
 
-            // D. Save Radiology Orders
+            // D. Save Radiology Orders + BILLING
             if ($request->has('rad_requests')) {
                 foreach ($request->rad_requests as $rad) {
-                    RadRequest::create([
-                        'ipd_admission_id' => $admission->id, // Add this column to rad_requests migration if missing
-                        'opd_booking_id' => $admission->opd_booking_id, // Fallback link
+                    $radRecord = RadRequest::create([
+                        'ipd_admission_id' => $admission->id, 
+                        'opd_booking_id' => $admission->opd_booking_id, 
                         'patientcode' => $admission->patientcode,
                         'requested_by' => Auth::id(),
                         'rad_procedure_id' => $rad['procedure_id'],
                         'status' => 'ordered',
+                        'payment_status' => 'unpaid',
                         'accession_number' => 'RAD-' . date('YmdHis') . '-' . rand(100,999)
                     ]);
+
+                    // Push to Billing
+                    $procedure = RadProcedure::with('blsItem')->find($rad['procedure_id']);
+                    if ($procedure && $procedure->blsItem) {
+                        $billingService->addToBill(
+                            $admission->patientcode,
+                            $procedure->blsItem->id,
+                            1,
+                            'radiology',
+                            $radRecord->id
+                        );
+                    }
                 }
             }
 
-            // E. SAVE SURGERY BOOKING (NEW) ---
-            if (
-                !empty($request->surgery_request['procedure_id']) && 
-                !empty($request->surgery_request['date'])
-            ) {
+            // E. SAVE SURGERY + BILLING
+            if (!empty($request->surgery_request['procedure_id']) && !empty($request->surgery_request['date'])) {
                 $surgDate = Carbon::parse($request->surgery_request['date']);
 
-                TheatreBooking::create([
+                $surgRecord = TheatreBooking::create([
                     'ipd_admission_id'     => $admission->id,
-                    'opd_booking_id'       => $admission->opd_booking_id, // Maintain link if exists
+                    'opd_booking_id'       => $admission->opd_booking_id,
                     'patientcode'          => $admission->patientcode,
                     'doctor_user_id'       => Auth::id(),
                     'theatre_procedure_id' => $request->surgery_request['procedure_id'],
                     'scheduled_at'         => $surgDate,
                     'status'               => 'Scheduled',
+                    'payment_status'       => 'unpaid',
                     'remarks'              => 'Booked from Ward Round'
                 ]);
+
+                // Push to Billing
+                $procedure = TheatreProcedure::with('blsItem')->find($request->surgery_request['procedure_id']);
+                if ($procedure && $procedure->blsItem) {
+                    $billingService->addToBill(
+                        $admission->patientcode,
+                        $procedure->blsItem->id,
+                        1,
+                        'theatre',
+                        $surgRecord->id
+                    );
+                }
             }
 
-
-            // F. Save Blood Requests
+            // F. Save Blood Requests (No Billing Integration for now)
             if ($request->has('blood_requests')) {
                 foreach ($request->blood_requests as $bb) {
                     BbIssueRequest::create([
@@ -326,10 +332,10 @@ class DoctorIpdController extends Controller
                 }
             }
 
-            // G. Save Pharmacy
+            // G. Save Pharmacy + BILLING
             if ($request->has('new_prescriptions')) {
                 foreach ($request->new_prescriptions as $rx) {
-                    PharmacyPrescription::create([
+                    $pharmRecord = PharmacyPrescription::create([
                         'ipd_admission_id' => $admission->id,
                         'patientcode' => $admission->patientcode,
                         'doctor_user_id' => Auth::id(),
@@ -338,60 +344,56 @@ class DoctorIpdController extends Controller
                         'frequency' => $rx['frequency'],
                         'duration' => $rx['duration'],
                         'quantity_prescribed' => $rx['quantity'],
-                        'status' => 'Prescribed'
+                        'status' => 'Prescribed',
+                        'payment_status' => 'unpaid'
                     ]);
+
+                    // Push to Billing
+                    $product = SIV_Product::with('blsItem')->find($rx['product_id']);
+                    if ($product && $product->blsItem) {
+                        $billingService->addToBill(
+                            $admission->patientcode,
+                            $product->blsItem->id,
+                            $rx['quantity'],
+                            'pharmacy',
+                            $pharmRecord->id
+                        );
+                    }
                 }
             }
            
-            // H. Save New Diagnoses
+            // H. Save New Diagnoses (Unchanged)
             if ($request->has('diagnoses')) {
-
-
                 foreach ($request->diagnoses as $diag) {
-                    
                     $status = $diag['status']; 
                     $type = $diag['type'] ?? 'icd';
 
-                    // ---------------------------------------------------------
-                    // SCENARIO 1: Save ICD-10 Code
-                    // ---------------------------------------------------------
-                    // Always save if type is ICD
                     if ($type === 'icd') {
                         $modelClassIcd = match ($status) {
                             'confirmed'    => MrPatientDiagnosisIcdConfirmed::class,
                             'differential' => MrPatientDiagnosisIcdDifferential::class,
                             default        => MrPatientDiagnosisIcdProvisional::class,
                         };
-
                         $modelClassIcd::create([
                             'ipd_admission_id'     => $admission->id,
                             'ipd_ward_round_id'    => $round->id,
                             'patientcode'          => $admission->patientcode,
                             'user_id'              => Auth::id(),
                             'transdate'            => now(),
-                            'diagnosis_id'         => $diag['id'], // ICD ID
+                            'diagnosis_id'         => $diag['id'],
                             'diagnosisdescription' => $diag['label'],
                         ]);
                     }
 
-                    // ---------------------------------------------------------
-                    // SCENARIO 2: Save Local Mtuha/IPD Code
-                    // ---------------------------------------------------------
-                    // Save if:
-                    // 1. User selected a Local Diagnosis directly (type != icd)
-                    // 2. OR User selected ICD but it has a linked Mtuha ID
-                    
                     $mtuhaId = null;
                     $sourceModel = null;
 
                     if ($type !== 'icd') {
-                        // Direct selection of local diagnosis
                         $mtuhaId = $diag['id'];
-                        $sourceModel = DxtDiagnosesIpd::class; // Or map based on type
+                        $sourceModel = DxtDiagnosesIpd::class; 
                     } elseif (!empty($diag['linked_mtuha_id'])) {
-                        // Indirect selection via ICD mapping
                         $mtuhaId = $diag['linked_mtuha_id'];
-                        $sourceModel = DxtDiagnosesIpd::class; // Mapped ones are usually IPD
+                        $sourceModel = DxtDiagnosesIpd::class; 
                     }
 
                     if ($mtuhaId) {
@@ -400,14 +402,13 @@ class DoctorIpdController extends Controller
                             'differential' => MrPatientDiagnosisDifferential::class,
                             default        => MrPatientDiagnosisProvisional::class,
                         };
-
                         $modelClassMtuha::create([
                             'ipd_admission_id'     => $admission->id,
                             'ipd_ward_round_id'    => $round->id,
                             'patientcode'          => $admission->patientcode,
                             'user_id'              => Auth::id(),
                             'transdate'            => now(),
-                            'diagnosis_id'         => $mtuhaId, // The Mtuha ID
+                            'diagnosis_id'         => $mtuhaId, 
                             'diagnosis_type'       => $sourceModel,
                             'diagnosisdescription' => $diag['linked_mtuha'] ?? $diag['label'],
                         ]);
@@ -416,7 +417,7 @@ class DoctorIpdController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('doctor1.index')->with('success', 'Ward round completed.');
+            return redirect()->route('doctor1.index')->with('success', 'Ward round completed and billing updated.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -458,7 +459,6 @@ class DoctorIpdController extends Controller
             );
 
             // 2. Update Admission Status to "Discharge Pending"
-            // This moves it to the Nurse/Billing/Discharge List
             $admission->update([
                 'status' => 'Discharge Pending'
             ]);

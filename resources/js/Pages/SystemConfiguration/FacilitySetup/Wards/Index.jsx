@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/SystemAndUserLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faPlus, faEdit, faTrash, faHome, faBed } from "@fortawesome/free-solid-svg-icons";
+import { faSearch, faPlus, faEdit, faTrash, faHome, faBed, faVenusMars } from "@fortawesome/free-solid-svg-icons";
 import Modal from '@/Components/CustomModal';
 import Pagination from "@/Components/Pagination";
 import { toast } from 'react-toastify';
@@ -28,10 +28,10 @@ export default function WardIndex({ auth, wards, success, filters }) {
     };
 
     return (
-        <AuthenticatedLayout user={auth.user} header={<h2 className="text-xl font-semibold">IPD Wards</h2>}>
+        <AuthenticatedLayout user={auth.user} header={<h2 className="text-xl font-semibold text-gray-800">IPD Wards</h2>}>
             <Head title="IPD Wards" />
             <div className="py-12">
-                <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="bg-white shadow-sm sm:rounded-lg p-6">
                         
                         <div className="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -54,26 +54,49 @@ export default function WardIndex({ auth, wards, success, filters }) {
                                 <thead className="bg-orange-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ward Name</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Gender</th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Daily Charge</th>
                                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {wards.data.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 text-sm font-medium text-gray-900 flex items-center">
-                                                <FontAwesomeIcon icon={faBed} className="text-orange-400 mr-2" />
-                                                {item.name}
-                                            </td>
-                                            <td className="px-6 py-4 text-center space-x-4">
-                                                <Link href={route("systemconfiguration5.wards.edit", item.id)} className="text-blue-600 hover:text-blue-900">
-                                                    <FontAwesomeIcon icon={faEdit} />
-                                                </Link>
-                                                <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900">
-                                                    <FontAwesomeIcon icon={faTrash} />
-                                                </button>
-                                            </td>
+                                    {wards.data.length > 0 ? (
+                                        wards.data.map((item) => (
+                                            <tr key={item.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900 flex items-center">
+                                                    <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mr-3">
+                                                        <FontAwesomeIcon icon={faBed} />
+                                                    </div>
+                                                    {item.name}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">{item.type || '-'}</td>
+                                                <td className="px-6 py-4 text-center text-sm text-gray-500">
+                                                    {item.gender === 'Male' && <span className="text-blue-600"><FontAwesomeIcon icon={faVenusMars}/> Male</span>}
+                                                    {item.gender === 'Female' && <span className="text-pink-600"><FontAwesomeIcon icon={faVenusMars}/> Female</span>}
+                                                    {item.gender === 'Mixed' && <span className="text-purple-600"><FontAwesomeIcon icon={faVenusMars}/> Mixed</span>}
+                                                </td>
+                                                <td className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
+                                                    {item.bls_item 
+                                                        ? parseFloat(item.bls_item.price1).toLocaleString(undefined, {minimumFractionDigits: 2}) 
+                                                        : <span className="text-gray-400 text-xs italic">Not Set</span>
+                                                    }
+                                                </td>
+                                                <td className="px-6 py-4 text-center space-x-4">
+                                                    <Link href={route("systemconfiguration5.wards.edit", item.id)} className="text-blue-600 hover:text-blue-900">
+                                                        <FontAwesomeIcon icon={faEdit} />
+                                                    </Link>
+                                                    <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900">
+                                                        <FontAwesomeIcon icon={faTrash} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-10 text-center text-gray-500">No wards found.</td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
                             </table>
                         </div>

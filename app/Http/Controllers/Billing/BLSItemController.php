@@ -35,7 +35,6 @@ class BLSItemController extends Controller
      */
     public function index(Request $request)
     {
-       // 1. UPDATE: Add 'product.category' to the with() clause
         $query = BLSItem::with(['itemgroup', 'product.category']); 
 
         if ($request->filled('search')) {
@@ -48,7 +47,6 @@ class BLSItemController extends Controller
             });
         }
         
-        // Order by itemgroup name, then item name
         $query->orderBy(
             BLSItemGroup::select('name')
                 ->whereColumn('bls_itemgroups.id', 'bls_items.itemgroup_id')
@@ -56,13 +54,11 @@ class BLSItemController extends Controller
 
         $items = $query->paginate(50)->withQueryString();
 
-        // --- REVISED AND IMPROVED LOGIC ---
         $activePriceCategories = [];
         $priceCategorySettings = BLSPriceCategory::first();
 
         if ($priceCategorySettings) {
             for ($i = 1; $i <= 4; $i++) {
-                // Check if the 'useprice' field is true (or 1)
                 if ($priceCategorySettings->{'useprice' . $i}) {
                     $activePriceCategories[] = [
                         'key' => 'price' . $i,
@@ -72,7 +68,6 @@ class BLSItemController extends Controller
             }
         }
 
-        // FINAL CHECK: If after checking the DB, the array is STILL empty, add default.
         if (empty($activePriceCategories)) {
             $activePriceCategories[] = [
                 'key' => 'price1',
@@ -113,7 +108,6 @@ class BLSItemController extends Controller
      */
     public function store(Request $request)
     {
-        // --- UPDATED VALIDATION ---
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:bls_items,name',
             'itemgroup_id' => 'required|exists:bls_itemgroups,id',
@@ -125,15 +119,11 @@ class BLSItemController extends Controller
             'price4' => 'nullable|numeric|min:0',
         ]);
          
-        // Ensure boolean is correctly cast
         $validated['addtocart'] = $request->boolean('addtocart');
-        
-        // Ensure prices that were not submitted default to 0
         $validated['price2'] = $validated['price2'] ?? 0;
         $validated['price3'] = $validated['price3'] ?? 0;
         $validated['price4'] = $validated['price4'] ?? 0;
 
-        // Create the item
         BLSItem::create($validated);
 
         return redirect()->route('systemconfiguration0.items.index')
@@ -159,7 +149,6 @@ class BLSItemController extends Controller
      */
     public function update(Request $request, BLSItem $item)
     {
-        // --- UPDATED VALIDATION ---
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('bls_items')->ignore($item->id)],
             'itemgroup_id' => 'required|exists:bls_itemgroups,id',
@@ -172,10 +161,7 @@ class BLSItemController extends Controller
             'price4' => 'nullable|numeric|min:0',
         ]);
     
-        // Ensure boolean values are set correctly
         $validated['addtocart'] = $request->boolean('addtocart');
-
-        // Prepare the data for update
         $updateData = $validated;
         
         // --- MODIFIED LOGIC START: Protected Linked Items ---
@@ -183,28 +169,27 @@ class BLSItemController extends Controller
         $isLinked = $item->product_id || 
                     $item->lab_panel_id || 
                     $item->rad_procedure_id || 
-                    $item->theatre_procedure_id;
+                    $item->theatre_procedure_id ||
+                    $item->ipd_ward_id; // <--- Added IPD Ward Check
 
         if ($isLinked) {
             
-            // Check if the requested Name is different from the current Name
+            // Prevent renaming items managed by other modules
             if ($validated['name'] !== $item->name) {
                 return redirect()->back()
                     ->with('error', 'Cannot update Name: This item is linked to a Clinical/Inventory module. Please rename it via the specific module interface.');
             }
 
-            // Check if the requested Group is different from the current Group
+            // Prevent changing group
             if ($validated['itemgroup_id'] != $item->itemgroup_id) {
                 return redirect()->back()
                     ->with('error', 'Cannot update Group: This item is linked to a Clinical/Inventory module. Please update it via the specific module interface.');
             }
 
-            // Safety precaution: Remove them from update array just in case
             unset($updateData['name'], $updateData['itemgroup_id']);
         }
         // --- MODIFIED LOGIC END ---
     
-        // Update the item
         $item->update($updateData);
     
         return redirect()->route('systemconfiguration0.items.index')
@@ -217,7 +202,7 @@ class BLSItemController extends Controller
      */
     public function destroy(BLSItem $item)
     {
-        // 1. Check if the ITEM itself is used in Billing transactions
+        // 1. Check usage in Billing Transactions
         $isUsed = false;
         if (BILInvoiceItem::where('item_id', $item->id)->exists()) $isUsed = true;
         elseif (BILOrderItem::where('item_id', $item->id)->exists()) $isUsed = true;
@@ -229,7 +214,7 @@ class BLSItemController extends Controller
                 ->with('error', 'Cannot delete item: It has been used in existing billing transactions.');
         }
 
-        // 2. Check Inventory Linkage and Usage
+        // 2. Check Inventory Linkage
         if ($item->product_id) {
             $productIsUsed = false;
             if (IVIssueItem::where('product_id', $item->product_id)->exists()) $productIsUsed = true;
@@ -244,8 +229,7 @@ class BLSItemController extends Controller
             }
         }
 
-        // 3. Check Clinical Linkages (Lab, Radiology, Theatre)
-        // We prevent deletion here to force the user to delete from the source module
+        // 3. Check Clinical Linkages (Prevent deletion from here)
         if ($item->lab_panel_id) {
             return redirect()->route('systemconfiguration0.items.index')
                 ->with('error', 'Cannot delete: This item is linked to a Laboratory Panel. Please delete the Panel in Lab Setup.');
@@ -261,19 +245,21 @@ class BLSItemController extends Controller
                 ->with('error', 'Cannot delete: This item is linked to a Theatre Procedure. Please delete the Procedure in Theatre Setup.');
         }
 
+        if ($item->ipd_ward_id) { // <--- Added IPD Ward Check
+            return redirect()->route('systemconfiguration0.items.index')
+                ->with('error', 'Cannot delete: This item is linked to an IPD Ward. Please delete the Ward in Facility Setup.');
+        }
+
         // 4. Attempt deletion 
-        // Note: For Inventory ($item->product_id), we delete both here because Inventory 
-        // is often tightly coupled with billing as "Goods". Services are "Definitions".
         try {
             DB::transaction(function () use ($item) {
-                // If there is a linked product, delete it first (or second, depending on FK constraints)
+                // For Inventory, we delete associated product as they are tightly coupled
                 if ($item->product_id) {
                     $linkedProduct = SIV_Product::find($item->product_id);
                     if ($linkedProduct) {
                         $linkedProduct->delete();
                     }
                 }
-                // Delete the Item
                 $item->delete();
             });
         } catch (QueryException $e) {
@@ -295,12 +281,10 @@ class BLSItemController extends Controller
         $priceCategoryId = $request->input('pricecategory_id', 'price1'); 
         $storeId = $request->input('store_id', null); 
 
-        // Ensure only allowed price columns are used
         if (!in_array($priceCategoryId, ['price1', 'price2', 'price3', 'price4'])) {
             $priceCategoryId = 'price1';
         }
 
-        // Start building the query on BLSItem
         $itemsQuery = BLSItem::where('bls_items.name', 'like', '%' . $query . '%')
             ->select(
                 'bls_items.id', 
@@ -309,7 +293,6 @@ class BLSItemController extends Controller
                 "bls_items.$priceCategoryId as price"
             );
 
-        // Append Stock Quantity Logic
         if ($storeId && is_numeric($storeId) && (int)$storeId > 0) {
             $qtyColumn = 'iv_productcontrol.qty_' . (int)$storeId;
 
@@ -330,7 +313,6 @@ class BLSItemController extends Controller
      */
     public function updatePrices(Request $request, BLSItem $item)
     {
-        // Dynamically build validation rules
         $rules = [];
         $priceKeys = ['price1', 'price2', 'price3', 'price4'];
         
@@ -345,8 +327,6 @@ class BLSItemController extends Controller
         }
 
         $validated = $request->validate($rules);
-
-        // Update the item
         $item->update($validated);
 
         return response()->json([
@@ -356,20 +336,17 @@ class BLSItemController extends Controller
     }
 
     /**
-     * Check which stores have stock > 0 for a specific item.
+     * Check availability.
      */
     public function checkAvailability($itemId)
     {
         $item = BLSItem::find($itemId);
 
-        // If item doesn't exist or isn't linked to inventory product, return empty
         if (!$item || !$item->product_id) {
             return response()->json([]);
         }
 
         $stores = SIV_Store::all();
-        
-        // Fetch the inventory control record for this product
         $productControl = DB::table('iv_productcontrol')
                             ->where('product_id', $item->product_id)
                             ->first();

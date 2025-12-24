@@ -8,7 +8,7 @@ use App\Models\Billing\BLSCustomer;
 use App\Models\Billing\BLSItem;
 use App\Models\Patient\Patient;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class BillingService
 {
@@ -20,21 +20,20 @@ class BillingService
         // 1. Find the Billing Customer
         $customer = BLSCustomer::where('patient_code', $patientCode)->first();
         if (!$customer) {
-            // Should not happen if registration flows are correct, but safety check
             return; 
         }
 
-        // 2. Find an OPEN Order (Stage 3 = Pending/Proforma) for today
-        // If the patient paid (Stage 5), we create a NEW order.
+        // 2. Find an OPEN Order (Stage 3 = Pending) for today
         $order = BILOrder::where('customer_id', $customer->id)
-            ->where('stage', 3) // 3 = Pending
+            ->where('stage', 3) 
             ->whereDate('created_at', Carbon::today())
             ->first();
 
         // 3. Create Order if it doesn't exist
         if (!$order) {
-            $patient = Patient::where('code', $patientCode)->first();
-            // Determine default store (e.g., Main Store or based on user)
+            // FIX: Handle CLI/Console execution where auth() is null.
+            // We fallback to User ID 1 (System Admin) and Store ID 1 (Main Store).
+            $userId = auth()->id() ?? 1; 
             $defaultStoreId = auth()->user()->store_id ?? 1; 
 
             $order = BILOrder::create([
@@ -42,8 +41,8 @@ class BillingService
                 'store_id' => $defaultStoreId,
                 'customer_id' => $customer->id,
                 'stage' => 3, // Pending
-                'total' => 0, // Will recalculate
-                'user_id' => auth()->id(),
+                'total' => 0, // Will recalculate below
+                'user_id' => $userId, // <--- Fixed: Now guaranteed to have a value
             ]);
         }
 
@@ -51,19 +50,15 @@ class BillingService
         $item = BLSItem::find($billItemId);
         if (!$item) return;
 
-        // Logic for Price Category (Cash vs Insurance) can go here
-        // For now, defaulting to price1
         $price = $item->price1; 
 
         // 5. Add or Update the Item in the Order
-        // Check if this specific source (e.g., Lab Request #50) is already there to prevent dupes
         $existingLine = BILOrderItem::where('order_id', $order->id)
             ->where('source_type', $sourceType)
             ->where('source_id', $sourceId)
             ->first();
 
         if ($existingLine) {
-            // Update quantity if needed, or skip
             $existingLine->update([
                 'quantity' => $quantity,
                 'price' => $price
@@ -72,17 +67,18 @@ class BillingService
             BILOrderItem::create([
                 'order_id' => $order->id,
                 'item_id' => $billItemId,
-                'item_name' => $item->name, // Snapshot name
+                'item_name' => $item->name,
                 'quantity' => $quantity,
                 'price' => $price,
-                'source_store_id' => $order->store_id, // Or specific store logic
-                'source_type' => $sourceType, // 'consultation', 'laboratory', 'pharmacy'
-                'source_id' => $sourceId,     // The ID of the request
+                'source_store_id' => $order->store_id, 
+                'source_type' => $sourceType, 
+                'source_id' => $sourceId,
+                'price_ref' => 'Standard'     
             ]);
         }
 
         // 6. Recalculate Order Total
-        $order->total = $order->orderitems()->sum(\DB::raw('price * quantity'));
+        $order->total = $order->orderitems()->sum(DB::raw('price * quantity'));
         $order->save();
     }
 }

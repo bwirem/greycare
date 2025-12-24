@@ -18,10 +18,10 @@ import IpdOrdersTab from './Tabs/IpdOrdersTab';
 import PharmacyTab from './Tabs/PharmacyTab';
 
 export default function WardRound({ 
-    admission, patient, previous_rounds = [], 
+    admission, patient, previous_rounds = [],    
     opd_consultation = null, // <--- Receive New Prop
     diagnosis_history = [], // <--- Receive Prop
-    ordered_labs = [], ordered_rads = [], ordered_meds = [],
+    ordered_labs = [], ordered_rads = [],ordered_surgeries = [],ordered_blood = [], ordered_meds = [],
     lab_panels = [], rad_procedures = [], drugs_list = [], bb_components = [],
     pharmacy_frequencies = [], pharmacy_durations = [],
     surgery_procedures = [],
@@ -97,6 +97,8 @@ export default function WardRound({
     // Safely access arrays from the OPD booking relationship
     const opd_labs = opd_consultation?.lab_requests || [];
     const opd_rads = opd_consultation?.radiology_requests || [];
+    const opd_surgeries = opd_consultation?.theatre_bookings || []; 
+
     const opd_meds = opd_consultation?.prescriptions || [];
 
     const [activeTab, setActiveTab] = useState('assessment');
@@ -229,10 +231,13 @@ export default function WardRound({
                                     // IPD Orders
                                     ordered_labs={ordered_labs} 
                                     ordered_rads={ordered_rads}
+                                    ordered_surgeries={ordered_surgeries}
+                                    ordered_blood={ordered_blood}
 
                                     // OPD Orders
                                     opd_labs={opd_labs}
                                     opd_rads={opd_rads}
+                                    opd_surgeries={opd_surgeries}
 
                                     onViewResult={(res, type) => { setResultType(type); setViewResult(res); }}
                                 />
@@ -278,28 +283,61 @@ export default function WardRound({
                 </div>
             </div>
 
-            {/* --- RESULT MODAL --- */}
+            {/* --- RESULT VIEW MODAL (Lab/Radiology) --- */}
             <Modal show={!!viewResult} onClose={() => setViewResult(null)} maxWidth="lg">
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-4 border-b pb-2">
-                        <h3 className="text-xl font-bold text-gray-900">{resultType === 'lab' ? 'Lab Result' : 'Radiology Report'}</h3>
-                        <button onClick={() => setViewResult(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+                        <h3 className="text-xl font-bold text-gray-900">
+                            {resultType === 'lab' ? 'Laboratory Result' : 'Radiology Report'}
+                        </h3>
+                        <button onClick={() => setViewResult(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold transition">✕</button>
                     </div>
                     
-                    {resultType === 'lab' ? (
-                        <table className="w-full text-sm">
-                            <thead><tr className="text-left bg-gray-100"><th className="p-2">Param</th><th className="p-2">Value</th></tr></thead>
-                            <tbody>
-                                {viewResult?.sample?.results?.map(res => (
-                                    <tr key={res.id}><td className="p-2">{res.parameter?.name}</td><td className="p-2 font-bold">{res.result_value} {res.parameter?.units}</td></tr>
-                                ))}
-                                {!viewResult?.sample?.results?.length && <tr><td colSpan="2" className="p-4 text-center italic">Pending Results</td></tr>}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <div className="text-sm whitespace-pre-wrap bg-gray-50 p-4 rounded">{viewResult?.report?.findings || 'No report yet.'}</div>
-                    )}
-                    <div className="mt-4 flex justify-end"><PrimaryButton onClick={() => setViewResult(null)}>Close</PrimaryButton></div>
+                    <div className="bg-gray-50 p-4 rounded text-sm mb-4 border border-gray-200">
+                        <p><strong className="text-gray-600">Test:</strong> <span className="font-medium text-gray-900">{resultType === 'lab' ? viewResult?.panel?.name : viewResult?.procedure?.name}</span></p>
+                        <p><strong className="text-gray-600">Date:</strong> {new Date(viewResult?.created_at).toLocaleString()}</p>
+                    </div>
+
+                    <div className="mt-4 max-h-[400px] overflow-y-auto">
+                        {resultType === 'lab' ? (
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-left bg-gray-100 border-b"><th className="p-2 font-semibold">Parameter</th><th className="p-2 font-semibold">Value</th><th className="p-2 font-semibold">Ref Range</th></tr>
+                                </thead>
+                                <tbody>
+                                    {viewResult?.sample?.results?.map(res => (
+                                        <tr key={res.id} className="border-b last:border-0 hover:bg-gray-50">
+                                            <td className="p-2 font-medium text-gray-800">{res.parameter?.name}</td>
+                                            <td className="p-2 font-bold text-blue-700">{res.result_value} {res.parameter?.units}</td>
+                                            <td className="p-2 text-gray-500 text-xs">
+                                                M: {res.parameter?.ranges?.[0]?.male_min}-{res.parameter?.ranges?.[0]?.male_max}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {(!viewResult?.sample?.results || viewResult.sample.results.length === 0) && (
+                                        <tr><td colSpan="3" className="p-6 text-center italic text-gray-500">
+                                            Results pending or not yet entered by lab technician.
+                                        </td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div className="space-y-4 text-sm text-gray-800 bg-white p-4 border rounded">
+                                {viewResult?.report ? (
+                                    <>
+                                        <div className="border-b pb-2"><strong className="block text-gray-500 text-xs uppercase tracking-wide mb-1">Findings</strong><p className="whitespace-pre-wrap">{viewResult?.report?.findings}</p></div>
+                                        <div className="border-b pb-2"><strong className="block text-gray-500 text-xs uppercase tracking-wide mb-1">Impression</strong><p className="font-medium text-indigo-900">{viewResult?.report?.impression}</p></div>
+                                        <div><strong className="block text-gray-500 text-xs uppercase tracking-wide mb-1">Recommendation</strong><p>{viewResult?.report?.suggestion}</p></div>
+                                    </>
+                                ) : (
+                                    <p className="text-center text-gray-500 italic p-6">Report has not been written by radiologist yet.</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <div className="mt-6 flex justify-end">
+                        <PrimaryButton onClick={() => setViewResult(null)} className="bg-gray-500 hover:bg-gray-600">Close</PrimaryButton>
+                    </div>
                 </div>
             </Modal>
 
