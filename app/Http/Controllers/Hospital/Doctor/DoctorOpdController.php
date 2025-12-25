@@ -406,19 +406,7 @@ class DoctorOpdController extends Controller
                             'quantity_prescribed' => $rx['quantity'], 
                             'status' => 'Prescribed',
                             'payment_status' => 'unpaid'
-                        ]);
-
-                        // B. Push to Billing
-                        $product = SIV_Product::with('blsItem')->find($rx['product_id']);
-                        if ($product && $product->blsItem) {
-                            $billingService->addToBill(
-                                $booking->patientcode,
-                                $product->blsItem->id,
-                                $rx['quantity'], // Quantity from prescription
-                                'pharmacy',
-                                $pharmRecord->id
-                            );
-                        }
+                        ]);                        
                     }
                 }
             }

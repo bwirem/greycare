@@ -581,7 +581,7 @@ class BilPostController extends Controller
 
        
         $sale = $this->createSaleRecord($data, $transdate, $receiptNo, $invoiceNo);
-        $this->createInventoryRequisition($data, $transdate, $order->orderitems, $sale);
+        //$this->createInventoryRequisition($data, $transdate, $order->orderitems, $sale);
 
         if ($isCreditSale) {
             $this->handleInvoicingAndDebtors($data, $transdate, $invoiceNo, $receiptNo);

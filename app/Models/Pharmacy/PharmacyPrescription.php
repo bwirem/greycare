@@ -7,7 +7,7 @@ use App\Models\Opd\OpdBooking;
 use App\Models\Ipd\IpdAdmission;
 use App\Models\Patient\Patient;
 use App\Models\User;
-use App\Models\SIV_Product;
+use App\Models\Inventory\SIV_Product;
 
 class PharmacyPrescription extends Model
 {

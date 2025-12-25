@@ -253,19 +253,29 @@ Route::prefix('radiology1')->name('radiology1.')->group(function () {
 |--------------------------------------------------------------------------
 | Pharmacy Module Routes
 |--------------------------------------------------------------------------
-*/
+*/    
 
     // --- pharmacy0: Drug Dispensing (Counter) ---
     Route::prefix('pharmacy0')->name('pharmacy0.')->group(function () {
-        // List Pending Prescriptions (Waiting for Dispensing)
+        
+        // 1. Dashboard / Queue
         Route::get('/', [PharmacyDispenseController::class, 'index'])->name('index');
+
+        // 2. STAGE 1: Generate Bill (For Cash Patients - Verify Qty & Push to Billing)
+        // This is called when the Pharmacist clicks "Bill"
+        Route::post('/dispense/{prescription}/bill', [PharmacyDispenseController::class, 'generateBill'])
+            ->name('bill');
+
+        // 3. STAGE 2: Dispensing Form (Physical Handover)
+        // Only accessible if Paid or Insurance
+        Route::get('/dispense/{prescription}', [PharmacyDispenseController::class, 'create'])->name('create');
         
-        // Dispensing Form (Process Prescription)
-        Route::get('/{prescription}/dispense', [PharmacyDispenseController::class, 'create'])->name('create');
-        
-        // Save Dispensation
-        Route::post('/{prescription}', [PharmacyDispenseController::class, 'store'])->name('store');
-    });
+        // 4. Save Dispensation (Deduct Stock)
+        Route::post('/dispense/{prescription}', [PharmacyDispenseController::class, 'store'])->name('store');
+
+        Route::get('/check-stock', [PharmacyDispenseController::class, 'checkStock'])->name('check_stock');
+
+   });
 
     // --- pharmacy1: Prescription Management (History/Corrections) ---
     Route::prefix('pharmacy1')->name('pharmacy1.')->group(function () {

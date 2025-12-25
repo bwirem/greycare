@@ -79,6 +79,6 @@ class BillingService
 
         // 6. Recalculate Order Total
         $order->total = $order->orderitems()->sum(DB::raw('price * quantity'));
-        $order->save();
+        $order->saveQuietly(); 
     }
 }
