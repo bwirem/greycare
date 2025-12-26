@@ -4,7 +4,7 @@ import HospitalLayout from '@/Layouts/HospitalLayout';
 import TextInput from '@/Components/TextInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 import Pagination from '@/Components/Pagination';
-import Modal from '@/Components/Modal'; // Ensure you have a generic Modal component
+import Modal from '@/Components/Modal';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -14,7 +14,11 @@ import {
     faBan, 
     faExclamationTriangle,
     faSearch,
-    faTimes
+    faTimes,
+    faIdCard,
+    faBuilding,
+    faHandHoldingHeart,
+    faProcedures // <--- 1. Added Bed Icon
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function RadRequestsIndex({ requests, filters, flash }) {
@@ -48,7 +52,7 @@ export default function RadRequestsIndex({ requests, filters, flash }) {
     };
 
     const openRejectModal = (id) => {
-        setRejectReason(''); // Reset reason
+        setRejectReason(''); 
         setModalState({ type: 'reject', isOpen: true, selectedId: id });
     };
 
@@ -123,7 +127,7 @@ export default function RadRequestsIndex({ requests, filters, flash }) {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Details</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procedure / Modality</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
@@ -136,11 +140,39 @@ export default function RadRequestsIndex({ requests, filters, flash }) {
                                     </tr>
                                 ) : (
                                     requests.data.map((req) => {
-                                        const isPaid = req.payment_status === 'paid' || req.payment_status === 'waived';
-                                        const canProceed = isPaid; 
+                                        // --- 1. DETERMINE CATEGORY & FLAGS ---
+                                        const billingGroup = req.booking?.billing_group || req.booking?.billingGroup; 
+                                        
+                                        // Check Admission
+                                        const isAdmitted = req.patient?.is_admitted; // <--- 2. Get Admission Status
+
+                                        let category = req.patient?.payment_category || 'Cash';
+
+                                        if (!req.patient?.payment_category && billingGroup) {
+                                            if (billingGroup.isexemption) category = 'Exemption';
+                                            else if (billingGroup.isinsurance) category = 'Insurance';
+                                        }
+
+                                        const isCash      = category === 'Cash';
+                                        const isInsurance = category === 'Insurance';
+                                        const isExemption = category === 'Exemption';
+                                        const isCorporate = category === 'Invoice'; 
+
+                                        // --- 2. PAYMENT STATUS ---
+                                        const isPaid = req.payment_status === 'paid';
+                                        const isWaived = req.payment_status === 'waived' || isExemption;
+
+                                        // --- 3. ACCESS CONTROL ---
+                                        // Allow if: Paid OR Waived OR Insurance OR Corporate OR ADMITTED
+                                        const canProceed = !isCash || isPaid || isWaived || isAdmitted; // <--- 3. Updated Logic
+
+                                        // Determine Row Class
+                                        let rowClass = "hover:bg-gray-50 transition-colors";
+                                        if (isAdmitted) rowClass = "bg-orange-50 hover:bg-orange-100 transition-colors";
+                                        else if (!canProceed) rowClass = "bg-red-50/30 hover:bg-red-50/50 transition-colors";
 
                                         return (
-                                            <tr key={req.id} className={`hover:bg-gray-50 transition-colors ${!canProceed ? 'bg-red-50/30' : ''}`}>
+                                            <tr key={req.id} className={rowClass}>
                                                 
                                                 <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                                                     {new Date(req.created_at).toLocaleString([], {
@@ -151,8 +183,8 @@ export default function RadRequestsIndex({ requests, filters, flash }) {
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm font-bold text-gray-900">{req.patient?.first_name} {req.patient?.last_name}</div>
                                                     <div className="text-xs text-gray-500 font-mono">{req.patientcode}</div>
-                                                    <div className="text-xs text-blue-600 mt-1 font-medium">
-                                                        {req.opdBooking?.billingGroup?.name || 'Cash'}
+                                                    <div className="text-xs text-blue-600 mt-1 font-bold">
+                                                        {billingGroup?.name || category}
                                                     </div>
                                                 </td>
 
@@ -168,12 +200,31 @@ export default function RadRequestsIndex({ requests, filters, flash }) {
                                                     </div>
                                                 </td>
                                                 
+                                                {/* Payment / Admission Status Badge */}
                                                 <td className="px-6 py-4 text-center whitespace-nowrap">
-                                                    {isPaid ? (
+                                                    {isAdmitted ? (
+                                                        // <--- 4. New Admitted Badge
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                                                            <FontAwesomeIcon icon={faProcedures} className="mr-1.5" /> Admitted
+                                                        </span>
+                                                    ) : isPaid ? (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                                             <FontAwesomeIcon icon={faCheckCircle} className="mr-1.5" /> Paid
                                                         </span>
+                                                    ) : isExemption || isWaived ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                            <FontAwesomeIcon icon={faHandHoldingHeart} className="mr-1.5" /> Exempt
+                                                        </span>
+                                                    ) : isInsurance ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                            <FontAwesomeIcon icon={faIdCard} className="mr-1.5" /> Insurance
+                                                        </span>
+                                                    ) : isCorporate ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                            <FontAwesomeIcon icon={faBuilding} className="mr-1.5" /> Corporate
+                                                        </span>
                                                     ) : (
+                                                        // Cash + Unpaid
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                                             <FontAwesomeIcon icon={faTimesCircle} className="mr-1.5" /> Unpaid
                                                         </span>

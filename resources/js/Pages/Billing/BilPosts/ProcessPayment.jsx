@@ -7,7 +7,7 @@ import '@fortawesome/fontawesome-svg-core/styles.css';
 import axios from 'axios'; 
 import Modal from '@/Components/CustomModal.jsx';
 import { toast } from 'react-toastify';
-import Swal from 'sweetalert2'; // Add this at the top
+import Swal from 'sweetalert2'; 
 
 const debounce = (func, delay) => {
     let timeout;
@@ -43,14 +43,14 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
     const isProcessingRef = useRef(false);
     const [amountDisplay, setAmountDisplay] = useState(formatCurrency(orderData.total || 0));
     
-    const [showCustomerSelection, setShowCustomerSelection] = useState(false);
-
+    // Search States
     const [customerSearchQuery, setCustomerSearchQuery] = useState('');
     const [customerSearchResults, setCustomerSearchResults] = useState([]);
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [isCustomerSearchLoading, setIsCustomerSearchLoading] = useState(false);
     const customerDropdownRef = useRef(null);
 
+    // Modal States
     const [newCustomerModalOpen, setNewCustomerModalOpen] = useState(false);
     const [newCustomer, setNewCustomer] = useState({ customer_type: 'individual', first_name: '', other_names: '', surname: '', company_name: '', email: '', phone: '', });
     const [newCustomerModalLoading, setNewCustomerModalLoading] = useState(false);   
@@ -71,36 +71,7 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
         return uniquePrices.size > 1; 
     }, [data.orderitems]);
 
-    // --- 1. UPDATED: Logic for Hiding/Showing Customer Section ---
-    useEffect(() => {
-        if (data.sale_type === 'cash') {
-            // Check if we are currently using the default customer or no customer
-            const isDefaultOrEmpty = !data.customer_id || (facilityoption?.default_customer_id && data.customer_id === facilityoption.default_customer_id);
-
-            if (isDefaultOrEmpty) {
-                // If it was default, keep it default and hide section
-                if (facilityoption?.default_customer_id) {
-                    setData('customer_id', facilityoption.default_customer_id);
-                }
-                setShowCustomerSelection(false); 
-                setCustomerSearchQuery('');
-            } else {
-                // If a CUSTOM customer was selected, keep the section open and keep the ID
-                setShowCustomerSelection(true);
-            }
-        } else {
-            // For Credit or Partial, always show section
-            setShowCustomerSelection(true);
-            
-            // If the current ID is the default "Cash Customer", clear it to force specific selection
-            if (facilityoption?.default_customer_id && data.customer_id === facilityoption.default_customer_id) {
-                setData('customer_id', null); 
-                setCustomerSearchQuery('');
-            }
-        }
-    }, [data.sale_type, facilityoption]);
-
-    // --- 2. UPDATED: Logic for Paid Amount Resetting ---
+    // --- Logic for Paid Amount Resetting ---
     useEffect(() => {
         if (data.sale_type === 'credit') {
             // Credit: Always 0
@@ -112,24 +83,7 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
             setAmountDisplay(formatCurrency(data.total));
         } 
         // Partial: Do NOTHING. Keep whatever value is currently in paid_amount.
-        // This prevents the rollback when switching from Cash (with edited amount) -> Partial.
     }, [data.sale_type, data.total]);
-
-    const handleCustomerToggle = (e) => {
-        const isChecked = e.target.checked;
-        setShowCustomerSelection(isChecked);
-
-        if (!isChecked && data.sale_type === 'cash' && facilityoption?.default_customer_id) {
-            setData('customer_id', facilityoption.default_customer_id);
-            setCustomerSearchQuery('');
-        } else if (isChecked) {
-            // If opening the box, clear ID if it was default to prompt search
-            if (data.customer_id === facilityoption?.default_customer_id) {
-                setData('customer_id', null);
-                setCustomerSearchQuery('');
-            }
-        }
-    };
 
     const handlePaidAmountChange = (e) => {
         const value = e.target.value;
@@ -215,36 +169,13 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
                                      
                     const { invoice_url, auto_print, backend_printed } = response.data;
 
-                    // Scenario 1: Server handled it (SumatraPDF)
                     if (backend_printed) {
                         console.log("Printed via Server/SumatraPDF");
-                        // Just show the alert, no window opening needed
                     } 
-                    // Scenario 2: Cloud/Browser needs to print
                     else if (invoice_url) {
                         if (auto_print) {
-                            // Scenario 2a: Silent/Auto Print Configured (Iframe)
-
-                            // "Silent" Printing Note
-                            // Even with auto_print set to true, browsers will still pop up the Print Preview dialog by default. Javascript cannot bypass the print dialog for security reasons.
-                            // If you want truly silent printing (no dialog, prints immediately) via the browser, you must configure the browser launch arguments on the client machine (Kiosk Mode):
-                            // For Chrome/Edge shortcut:
-                            // --kiosk-printing
-                            // If you cannot change browser settings on the client machine, the standard Print Dialog pop-up is unavoidable with this Javascript method.
-                                    
                             const iframe = document.createElement('iframe');
                             iframe.style.display = 'none';
-
-                            // --- CRITICAL CHANGE HERE ---
-                            // Don't use display: none. Move it off-screen instead.
-                            // iframe.style.position = 'fixed';
-                            // iframe.style.right = '0';
-                            // iframe.style.bottom = '0';
-                            // iframe.style.width = '0';
-                            // iframe.style.height = '0';
-                            // iframe.style.border = '0';
-                            // -----------------------------
-
                             iframe.src = invoice_url;
                             document.body.appendChild(iframe);
 
@@ -255,15 +186,12 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
                                 } catch (e) {
                                     console.error(e);
                                 }
-                                // Cleanup
                                 setTimeout(() => document.body.removeChild(iframe), 60000);
                             };
                         } else {
-                            // Scenario 2b: Preview Configured (New Tab)
                             window.open(invoice_url, '_blank');
                         }
                     }                  
-                    
                 }
                 
                 setShowSuccessModal(true);
@@ -271,8 +199,6 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
                 setTimeout(() => {
                     router.visit(route('billing1.index'));
                 }, 1500);
-
-                
             })
             .catch((error) => {
                 isProcessingRef.current = false;
@@ -299,17 +225,14 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
 
     const handlePaymentConfirmation = () => {
         setPaymentConfirmationModal({ isOpen: false });
-        // NOTE: The useEffect logic ensures paid_amount is NOT reset when type becomes 'partial'
         setData(data => ({
             ...data,
             sale_type: 'partial',
-            // Do NOT clear customer_id here automatically if it was default,
-            // let useEffect handle logic, but usually partial implies a specific customer is needed.
-            // We force clear it if it was default to ensure they pick someone.
-            customer_id: (facilityoption?.default_customer_id && data.customer_id === facilityoption.default_customer_id) ? null : data.customer_id
+            // Keep the selected customer
+            customer_id: data.customer_id
         }));
         
-        toast.info('Switched to Partial Payment. Please select the customer who owes the balance.');
+        toast.info('Switched to Partial Payment.');
     };
 
     const submitPayment = (e) => {
@@ -317,7 +240,6 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
         
         if (!data.customer_id) { 
             toast.error('Please select a customer before proceeding.');
-            setShowCustomerSelection(true); 
             return; 
         }
 
@@ -326,13 +248,12 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
             return; 
         }
 
-        // 2. SweetAlert2 Popup (Replaces your <Modal>)
         Swal.fire({
             title: 'Are you sure?',
             text: "Do you want to process this payment?",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#16a34a', // Matches Tailwind green-600
+            confirmButtonColor: '#16a34a', 
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, process it!',
             cancelButtonText: 'No, cancel'
@@ -449,52 +370,35 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
                                 </div>
                             </section>
 
-                            {data.sale_type === 'cash' && (
-                                <div className="flex items-center space-x-2 px-4">
-                                    <input 
-                                        type="checkbox" 
-                                        id="toggleCustomer" 
-                                        checked={showCustomerSelection} 
-                                        onChange={handleCustomerToggle}
-                                        className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                                    />
-                                    <label htmlFor="toggleCustomer" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
-                                        Add/Change Customer Details (Default: Walk-in)
-                                    </label>
-                                </div>
-                            )}
-
-                            {showCustomerSelection && (
-                                <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg animate-fade-in-down">
-                                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Customer Details</h3>
-                                    <div className="flex items-center space-x-2">
-                                        <div className="relative flex-grow" ref={customerDropdownRef}>
-                                            <input
-                                                id="customer_search" type="text" placeholder="Search customer..."
-                                                value={customerSearchQuery}
-                                                onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                                                onFocus={() => setShowCustomerDropdown(true)}
-                                                className={`w-full border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${errors.customer_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
-                                                autoComplete="off"
-                                            />
-                                            {isCustomerSearchLoading && <FontAwesomeIcon icon={faSpinner} spin className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />}
-                                            {showCustomerDropdown && (
-                                                <ul className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                                    {customerSearchResults.length > 0 ? customerSearchResults.map((c) => (
-                                                        <li key={c.id} onClick={() => selectCustomer(c)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
-                                                            {c.customer_type === 'company' ? c.company_name : `${c.first_name || ''} ${c.surname || ''}`.trim()} ({c.phone || c.email || 'No Contact'})
-                                                        </li>
-                                                    )) : !isCustomerSearchLoading && <li className="p-2 text-gray-500 dark:text-gray-400 text-sm">No customers found.</li>}
-                                                </ul>
-                                            )}
-                                        </div>
-                                        <button type="button" onClick={handleNewCustomerClick} className="bg-green-500 hover:bg-green-600 text-white rounded p-2.5 flex items-center space-x-2 text-sm">
-                                            <FontAwesomeIcon icon={faPlus} /> <span className="hidden sm:inline">New</span>
-                                        </button>
+                            <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg animate-fade-in-down">
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Customer Details</h3>
+                                <div className="flex items-center space-x-2">
+                                    <div className="relative flex-grow" ref={customerDropdownRef}>
+                                        <input
+                                            id="customer_search" type="text" placeholder="Search customer..."
+                                            value={customerSearchQuery}
+                                            onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                                            onFocus={() => setShowCustomerDropdown(true)}
+                                            className={`w-full border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${errors.customer_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
+                                            autoComplete="off"
+                                        />
+                                        {isCustomerSearchLoading && <FontAwesomeIcon icon={faSpinner} spin className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />}
+                                        {showCustomerDropdown && (
+                                            <ul className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                {customerSearchResults.length > 0 ? customerSearchResults.map((c) => (
+                                                    <li key={c.id} onClick={() => selectCustomer(c)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-700 dark:text-gray-200">
+                                                        {c.customer_type === 'company' ? c.company_name : `${c.first_name || ''} ${c.surname || ''}`.trim()} ({c.phone || c.email || 'No Contact'})
+                                                    </li>
+                                                )) : !isCustomerSearchLoading && <li className="p-2 text-gray-500 dark:text-gray-400 text-sm">No customers found.</li>}
+                                            </ul>
+                                        )}
                                     </div>
-                                    {errors.customer_id && <p className="text-red-500 text-xs mt-1">{errors.customer_id}</p>}
-                                </section>
-                            )}
+                                    <button type="button" onClick={handleNewCustomerClick} className="bg-green-500 hover:bg-green-600 text-white rounded p-2.5 flex items-center space-x-2 text-sm">
+                                        <FontAwesomeIcon icon={faPlus} /> <span className="hidden sm:inline">New</span>
+                                    </button>
+                                </div>
+                                {errors.customer_id && <p className="text-red-500 text-xs mt-1">{errors.customer_id}</p>}
+                            </section>
 
                             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                 <Link href={route('billing1.create')} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Back</Link>

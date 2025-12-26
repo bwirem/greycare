@@ -28,9 +28,9 @@ class RadRequestController extends Controller
                 'requestedBy', 
                 'booking.billingGroup'
             ])
-            ->where('status', 'ordered') // Only show pending/ordered requests
+            ->where('status','ordered') // Only show pending/ordered requests            
             ->orderBy('created_at', 'asc');
-
+            
         if ($request->search) {
             $query->whereHas('patient', function ($q) use ($request) {
                 $q->where('first_name', 'like', "%{$request->search}%")
@@ -51,12 +51,12 @@ class RadRequestController extends Controller
      */
     public function process(Request $request, RadRequest $radRequest)
     {
-        // --- SECURITY CHECK: Prevent processing if unpaid ---
-        // This stops technicians from proceeding via URL manipulation or if the button was enabled by mistake.
-        if ($radRequest->payment_status === 'unpaid') {
-            return redirect()->back()->with('error', 'Cannot capture image. The request has not been paid for.');
-        }
-        // ----------------------------------------------------
+        // // --- SECURITY CHECK: Prevent processing if unpaid ---
+        // // This stops technicians from proceeding via URL manipulation or if the button was enabled by mistake.
+        // if ($radRequest->payment_status === 'unpaid') {
+        //     return redirect()->back()->with('error', 'Cannot capture image. The request has not been paid for.');
+        // }
+        // // ----------------------------------------------------
         
         $radRequest->update([
             'status' => 'captured', // Updates status to move to next stage

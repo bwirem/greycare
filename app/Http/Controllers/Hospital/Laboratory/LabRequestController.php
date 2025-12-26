@@ -46,11 +46,11 @@ class LabRequestController extends Controller
      */
     public function create(LabPrescription $prescription)
     {
-        // --- SECURITY CHECK: Prevent access if unpaid ---
-        if ($prescription->payment_status === 'unpaid') {
-            return redirect()->route('laboratory0.index')
-                ->with('error', 'Cannot collect sample. The request has not been paid for.');
-        }
+        // // --- SECURITY CHECK: Prevent access if unpaid ---
+        // if ($prescription->payment_status === 'unpaid') {
+        //     return redirect()->route('laboratory0.index')
+        //         ->with('error', 'Cannot collect sample. The request has not been paid for.');
+        // }
         // ------------------------------------------------
 
         $prescription->load(['patient', 'panel.defaultSample']);
@@ -70,10 +70,10 @@ class LabRequestController extends Controller
        
     public function store(Request $request, LabPrescription $prescription)
     {
-       // --- DOUBLE CHECK: Prevent processing if unpaid ---
-        if ($prescription->payment_status === 'unpaid') {
-            return back()->withErrors(['error' => 'Payment required before collection.']);
-        }
+    //    // --- DOUBLE CHECK: Prevent processing if unpaid ---
+    //     if ($prescription->payment_status === 'unpaid') {
+    //         return back()->withErrors(['error' => 'Payment required before collection.']);
+    //     }
 
         $request->validate([
             'lab_nature_of_sample_id' => 'required|exists:lab_nature_of_samples,id',

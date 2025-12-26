@@ -18,7 +18,7 @@ const CheckboxInput = ({ id, label, checked, onChange }) => (
     </div>
 );
 
-export default function FacilityOptionForm({ option = null, chartOfAccounts, customers }) {
+export default function FacilityOptionForm({ option = null, chartOfAccounts, billinggroups }) {
     // Initialize form data with new fields
     const { data, setData, post, processing, errors, reset } = useForm({
         name: option?.name || '',
@@ -31,7 +31,7 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, cus
         logo: null, // For the file input
         
         chart_of_account_id: option?.chart_of_account_id || '',
-        default_customer_id: option?.default_customer_id || '',
+        default_cash_billing_group_id: option?.default_cash_billing_group_id || '',
         
         // Booleans
         affectstockatcashier: option ? Boolean(option.affectstockatcashier) : false,
@@ -203,21 +203,21 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, cus
                         {errors.chart_of_account_id && <p className="text-red-500 text-xs mt-1">{errors.chart_of_account_id}</p>}
                     </div>
                     <div>
-                        <label htmlFor="default_customer_id" className="block text-sm font-medium text-gray-700">Default Customer*</label>
+                        <label htmlFor="default_cash_billing_group_id" className="block text-sm font-medium text-gray-700">Default Billing Group*</label>
                         <select
-                            id="default_customer_id"
-                            value={data.default_customer_id}
-                            onChange={e => setData('default_customer_id', e.target.value)}
+                            id="default_cash_billing_group_id"
+                            value={data.default_cash_billing_group_id}
+                            onChange={e => setData('default_cash_billing_group_id', e.target.value)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
-                            <option value="">Select a customer</option>
-                            {customers.map(customer => (
-                                <option key={customer.id} value={customer.id}>
-                                    {customer.display_name}
+                            <option value="">Select a Billing Group</option>
+                            {billinggroups.map(billinggroup => (
+                                <option key={billinggroup.id} value={billinggroup.id}>
+                                    {billinggroup.name}
                                 </option>
                             ))}
                         </select>
-                        {errors.default_customer_id && <p className="text-red-500 text-xs mt-1">{errors.default_customer_id}</p>}
+                        {errors.default_cash_billing_group_id && <p className="text-red-500 text-xs mt-1">{errors.default_cash_billing_group_id}</p>}
                     </div>
                 </div>
             </div>

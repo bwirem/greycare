@@ -18,10 +18,11 @@ use App\Models\Patient\PatientBillingGroup;
 use App\Models\MedicalRecord\MrVitalSign;
 use App\Models\User;
 use App\Models\Billing\BLSCustomer;
+use App\Models\Facility\FacilityOption; 
 
 // Services
 use App\Services\ConsultationPricingService;
-use App\Services\BillingService; // <--- NEW IMPORT
+use App\Services\BillingService; 
 
 class OpdRegistrationController extends Controller
 {
@@ -129,39 +130,45 @@ class OpdRegistrationController extends Controller
         try {
             DB::beginTransaction();
 
-            $patientCode = null;
-
             // --- 1. DETERMINE PAYMENT CATEGORY ---
             $billingGroup = PatientBillingGroup::findOrFail($validated['billinggroup_id']);
-            $isCash = stripos($billingGroup->name, 'Cash') !== false;
-            $paymentCategory = $isCash ? 'Cash' : 'Insurance';
-            $insuranceProviderId = $isCash ? null : $billingGroup->id;
-            $insuranceProviderName = $isCash ? null : $billingGroup->name;
-            $insuranceMemberNo = $isCash ? null : ($validated['billinggroupmembershipno'] ?? null);
+            $facilityOption = FacilityOption::first();
+
+            $paymentCategory = 'Cash';
+            $insuranceProviderId = null;
+            $insuranceProviderName = null;
+            $insuranceMemberNo = null;
+
+            if ($billingGroup->isexemption) {
+                $paymentCategory = 'Exemption';
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            } elseif ($billingGroup->isinsurance) {
+                $paymentCategory = 'Insurance';
+                $insuranceProviderId = $billingGroup->id;
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            } elseif ($facilityOption && $billingGroup->id != $facilityOption->default_cash_billing_group_id) {
+                $paymentCategory = 'Invoice';
+                $insuranceProviderId = $billingGroup->id;
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            } else {
+                $paymentCategory = 'Cash';
+            }
 
             // --- 2. HANDLE PATIENT & CUSTOMER ---
+            $patientCode = null;
+
             if ($isRevisit) {
                 $patientCode = $request->existing_patient_code;
                 
-                // Update Patient Master
                 Patient::where('code', $patientCode)->update([
                     'payment_category'        => $paymentCategory,
                     'insurance_provider_id'   => $insuranceProviderId,
                     'insurance_provider_name' => $insuranceProviderName,
                     'insurance_member_no'     => $insuranceMemberNo,
                 ]);
-
-                // Ensure Billing Customer exists
-                $existingPatient = Patient::find($patientCode);
-                if ($existingPatient) {
-                    BLSCustomer::firstOrCreate(['patient_code' => $patientCode], [
-                        'customer_type' => 'individual',
-                        'first_name' => $existingPatient->first_name,
-                        'surname' => $existingPatient->last_name,
-                        'other_names' => $existingPatient->middle_name,
-                        'phone' => $existingPatient->phone_number,
-                    ]);
-                }
 
             } else {
                 $patientCode = 'PAT-' . date('y') . '-' . strtoupper(Str::random(6)); 
@@ -175,23 +182,28 @@ class OpdRegistrationController extends Controller
                     'date_of_birth' => $validated['date_of_birth'],
                     'national_id'   => $validated['national_id'] ?? null,
                     'phone_number'  => $validated['phone_number'],
+                    
                     'payment_category'        => $paymentCategory,
                     'insurance_provider_id'   => $insuranceProviderId,
                     'insurance_provider_name' => $insuranceProviderName,
                     'insurance_member_no'     => $insuranceMemberNo,
                 ]);
-
-                BLSCustomer::create([
-                    'patient_code'  => $patientCode,
-                    'customer_type' => 'individual',
-                    'first_name'    => $validated['first_name'],
-                    'surname'       => $validated['last_name'],
-                    'other_names'   => $request->middle_name,
-                    'phone'         => $validated['phone_number'],
-                ]);
             }
 
-            // --- 3. CALCULATE CHARGE (New/Revisit) ---
+            // Ensure Billing Customer exists
+            BLSCustomer::firstOrCreate(
+                ['patient_code' => $patientCode], 
+                [
+                    'customer_type' => 'individual',
+                    'first_name'    => $validated['first_name'] ?? Patient::where('code', $patientCode)->value('first_name'),
+                    'surname'       => $validated['last_name'] ?? Patient::where('code', $patientCode)->value('last_name'),
+                    'other_names'   => $request->middle_name ?? Patient::where('code', $patientCode)->value('middle_name'),
+                    'phone'         => $validated['phone_number'] ?? Patient::where('code', $patientCode)->value('phone_number'),
+                    'billing_group_id' => $billingGroup->id,
+                ]
+            );
+
+            // --- 3. CALCULATE CHARGE ---
             $chargeDetails = $pricingService->determineConsultationCharge(
                 $patientCode, 
                 $validated['doctor_user_id']
@@ -218,6 +230,9 @@ class OpdRegistrationController extends Controller
                 'vitalsignstatus'    => $hasVitals ? 'Closed' : 'Pending',
                 'consultation_status'=> 'Pending',
                 
+                // Store the Price Category on the Booking Record
+                'pricecategory'            => $billingGroup->pricecategory ?? 'price1', 
+                
                 'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null, 
                 'authorizationno'          => $validated['authorizationno'] ?? null,          
                 'schemeid'                 => $request->schemeid ?? null,
@@ -239,15 +254,15 @@ class OpdRegistrationController extends Controller
                 ]);
             }
 
-            // --- 6. PUSH TO BILLING (The Magic Step) ---
+            // --- 6. PUSH TO BILLING ---
             if ($booking->bill_item_id) {
-                               
                 $billingService->addToBill(
-                    $booking->patientcode,      // Patient Code
-                    $booking->bill_item_id,     // Billing Item ID (from Pricing Service)
-                    1,                          // Quantity
-                    'consultation',             // Source Type (Matches Schema)
-                    $booking->id                // Source ID (OpdBooking ID)
+                    $booking->patientcode,      
+                    $booking->bill_item_id,     
+                    1,                          
+                    'consultation',             
+                    $booking->id,               
+                    $booking->pricecategory // Pass price category (e.g., price1, price2)
                 );
             }
 
@@ -312,13 +327,32 @@ class OpdRegistrationController extends Controller
 
         DB::transaction(function () use ($validated, $booking, $patient, $pricingService, $billingService, $request) {
             
-            // 1. Payment Category Logic
+            // 1. PAYMENT CATEGORY LOGIC
             $billingGroup = PatientBillingGroup::findOrFail($validated['billinggroup_id']);
-            $isCash = stripos($billingGroup->name, 'Cash') !== false;
-            $paymentCategory = $isCash ? 'Cash' : 'Insurance';
-            $insuranceProviderId = $isCash ? null : $billingGroup->id;
-            $insuranceProviderName = $isCash ? null : $billingGroup->name;
-            $insuranceMemberNo = $isCash ? null : ($validated['billinggroupmembershipno'] ?? null);
+            $facilityOption = FacilityOption::first();
+
+            $paymentCategory = 'Cash';
+            $insuranceProviderId = null;
+            $insuranceProviderName = null;
+            $insuranceMemberNo = null;
+
+            if ($billingGroup->isexemption) {
+                $paymentCategory = 'Exemption';
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            } elseif ($billingGroup->isinsurance) {
+                $paymentCategory = 'Insurance';
+                $insuranceProviderId = $billingGroup->id;
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            } elseif ($facilityOption && $billingGroup->id != $facilityOption->default_cash_billing_group_id) {
+                $paymentCategory = 'Invoice';
+                $insuranceProviderId = $billingGroup->id;
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            } else {
+                $paymentCategory = 'Cash';
+            }
 
             // 2. Update Patient
             $patient->update([
@@ -340,15 +374,20 @@ class OpdRegistrationController extends Controller
                 'surname'     => $validated['last_name'],
                 'other_names' => $validated['middle_name'],
                 'phone'       => $validated['contact'] ?? $patient->phone_number,
+                'billing_group_id' => $billingGroup->id,
             ]);
 
-            // 4. Update Booking & Re-Bill if Doctor Changed
+            // 4. Update Booking & Re-Bill
             $doctorName = $booking->DoctorName; 
             $updateData = [
                 'treatmentpoint_id' => $validated['treatmentpoint_id'],
                 'billinggroup_id'   => $validated['billinggroup_id'],
                 'doctor_user_id'    => $validated['doctor_user_id'],
                 'wheretaken'        => OpdTreatmentPoint::find($validated['treatmentpoint_id'])->name,
+                
+                // Update price category on the booking
+                'pricecategory'            => $billingGroup->pricecategory ?? 'price1',
+                
                 'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null,
             ];
 
@@ -358,7 +397,6 @@ class OpdRegistrationController extends Controller
                 $doctorName = User::find($validated['doctor_user_id'])?->name;
                 $updateData['DoctorName'] = $doctorName;
 
-                // Recalculate only if unpaid
                 if ($booking->payment_status === 'unpaid') {
                     $chargeDetails = $pricingService->determineConsultationCharge(
                         $patient->code, 
@@ -373,16 +411,18 @@ class OpdRegistrationController extends Controller
                 }
             }
 
+            // Perform Update
             $booking->update($updateData);
 
             // 5. Push Updated Charge to Billing
             if ($shouldUpdateBill && $booking->bill_item_id) {
                 $billingService->addToBill(
                     $booking->patientcode,
-                    $booking->bill_item_id, // New Item ID
+                    $booking->bill_item_id, 
                     1,
                     'consultation',
-                    $booking->id
+                    $booking->id,
+                    $booking->pricecategory // Use the updated price category
                 );
             }
         });
@@ -399,3 +439,4 @@ class OpdRegistrationController extends Controller
         return view('prints.opd_slip', compact('booking'));
     }
 }
+

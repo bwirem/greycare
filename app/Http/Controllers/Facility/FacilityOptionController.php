@@ -5,7 +5,7 @@ use App\Http\Controllers\Controller;
 
 use App\Models\Facility\FacilityOption;
 use App\Models\Accounting\ChartOfAccount;
-use App\Models\Billing\BLSCustomer;
+use App\Models\Patient\PatientBillingGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage; // Import Storage
 
@@ -42,11 +42,11 @@ class FacilityOptionController extends Controller
         }
 
         $chartOfAccounts = ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
-        $customers = BLSCustomer::where('customer_type', 'company')->orderBy('company_name')->get();
+        $billinggroups = PatientBillingGroup::where('isinsurance', false)->orderBy('name')->get();
 
         return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Create', [
             'chartOfAccounts' => $chartOfAccounts,
-            'customers' => $customers,
+            'billinggroups' => $billinggroups,
         ]);
     }
 
@@ -65,7 +65,7 @@ class FacilityOptionController extends Controller
             'vrn' => 'nullable|string|max:50',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validate Image
             'chart_of_account_id' => 'nullable|integer|exists:chart_of_accounts,id',
-            'default_customer_id' => 'nullable|integer|exists:bls_customers,id',
+            'default_cash_billing_group_id' => 'nullable|integer|exists:patient_billing_groups,id',
             'affectstockatcashier' => 'boolean',
             'doubleentryissuing' => 'boolean',
             'allownegativestock' => 'boolean',
@@ -90,12 +90,12 @@ class FacilityOptionController extends Controller
     public function edit(FacilityOption $facilityoption)
     {
         $chartOfAccounts = ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
-        $customers = BLSCustomer::where('customer_type', 'company')->orderBy('company_name')->get();
+        $billinggroups = PatientBillingGroup::where('isinsurance', false)->orderBy('name')->get();
 
         return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Edit', [
             'facilityoption' => $facilityoption,
             'chartOfAccounts' => $chartOfAccounts,
-            'customers' => $customers,
+            'billinggroups' => $billinggroups,
         ]);
     }
 
@@ -114,7 +114,7 @@ class FacilityOptionController extends Controller
             'vrn' => 'nullable|string|max:50',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'chart_of_account_id' => 'nullable|integer|exists:chart_of_accounts,id',
-            'default_customer_id' => 'nullable|integer|exists:bls_customers,id',
+            'default_cash_billing_group_id' => 'nullable|integer|exists:patient_billing_groups,id',
             'affectstockatcashier' => 'boolean',
             'doubleentryissuing' => 'boolean',
             'allownegativestock' => 'boolean',

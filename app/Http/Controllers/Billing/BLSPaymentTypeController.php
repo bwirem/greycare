@@ -3,7 +3,7 @@ namespace App\Http\Controllers\Billing;
 
 use App\Http\Controllers\Controller;
 use App\Models\Billing\BLSPaymentType;
-use App\Models\ChartOfAccount;
+use App\Models\Accounting\ChartOfAccount;
 use Illuminate\Http\Request;
 
 class BLSPaymentTypeController extends Controller

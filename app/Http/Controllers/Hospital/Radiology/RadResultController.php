@@ -20,7 +20,7 @@ class RadResultController extends Controller
     public function index(Request $request)
     {
         $query = RadRequest::with(['patient', 'procedure.modality'])
-            ->where('status', 'captured') // Ready for reporting
+            ->whereIn('status', ['captured', 'reporting']) // Ready for reporting
             ->orderBy('performed_at', 'desc');
 
         if ($request->search) {

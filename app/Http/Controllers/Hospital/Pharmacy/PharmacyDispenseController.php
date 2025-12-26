@@ -17,7 +17,7 @@ use App\Models\Inventory\SIV_Product;
 use App\Models\Inventory\SIV_Store;
 use App\Models\Inventory\IVRequistion;
 use App\Models\Facility\FacilityOption;
-use App\Models\Billing\BLSCustomer; 
+use App\Models\Billing\BLSCustomer;
 
 // Enums
 use App\Enums\StoreType;
@@ -56,13 +56,19 @@ class PharmacyDispenseController extends Controller
      */
     public function generateBill(Request $request, PharmacyPrescription $prescription, BillingService $billingService)
     {
-        $request->validate(['verified_qty' => 'required|numeric|min:0']);
+        $request->validate(['verified_qty' => 'required|numeric|min:0.1']);
 
         DB::transaction(function () use ($request, $prescription, $billingService) {
+            
             $prescription->update([
                 'quantity_prescribed' => $request->verified_qty,
-                'status' => 'Billed'
+                'status' => 'Billed' 
             ]);
+
+            $priceCategory = 'price1';
+            if ($prescription->visit && $prescription->visit->billingGroup) {
+                $priceCategory = $prescription->visit->billingGroup->pricecategory ?? 'price1';
+            }
 
             $product = SIV_Product::with('blsItem')->find($prescription->product_id);
 
@@ -72,7 +78,8 @@ class PharmacyDispenseController extends Controller
                     $product->blsItem->id,
                     $request->verified_qty,
                     'pharmacy',
-                    $prescription->id
+                    $prescription->id,
+                    $priceCategory
                 );
             }
         });
@@ -88,17 +95,39 @@ class PharmacyDispenseController extends Controller
         $facility = FacilityOption::first();
         $allowNegative = (bool)($facility->allownegativestock ?? false);
 
-        $isCash = false;
-        if ($prescription->visit && $prescription->visit->billingGroup) {
-            $isCash = stripos($prescription->visit->billingGroup->name, 'Cash') !== false;
+        // --- ROBUST SECURITY CHECK (No Hardcoding) ---
+        $prescription->load(['patient', 'visit.billingGroup']);
+        
+        $isCash = true; // Default assumption
+        
+        // 1. Check Patient Payment Category (Best source of truth)
+        if ($prescription->patient && $prescription->patient->payment_category) {
+            $isCash = ($prescription->patient->payment_category === 'Cash');
+        } 
+        // 2. Fallback: Check Billing Group Configuration
+        elseif ($prescription->visit && $prescription->visit->billingGroup) {
+            $bg = $prescription->visit->billingGroup;
+            
+            if ($bg->isinsurance || $bg->isexemption) {
+                $isCash = false; // Insurance or Exemption
+            } elseif ($facility && $bg->id != $facility->default_cash_billing_group_id) {
+                $isCash = false; // Corporate / Invoice Client
+            }
         }
 
-        if ($isCash && $prescription->payment_status !== 'paid') {
+        // 3. Check Admission Status
+        // Admitted patients are allowed to proceed even if unpaid (billed later)
+        $isAdmitted = $prescription->patient->is_admitted ?? false;
+
+        // Block if Cash AND Unpaid AND Not Admitted
+        if ($isCash && $prescription->payment_status !== 'paid' && !$isAdmitted) {
             return redirect()->route('pharmacy0.index')
-                ->with('error', 'Access Denied: Patient must pay at the cashier before dispensing.');
+                ->with('error', 'Access Denied: Cash patients must pay before dispensing.');
         }
-
-        $prescription->load(['patient', 'product.drugDetails', 'doctor']);
+        // ---------------------------------------------
+        
+    
+        $prescription->load(['product.drugDetails', 'doctor']);
         $stores = SIV_Store::all();
         $defaultStoreId = Auth::user()->store_id; 
         if (!$defaultStoreId && $stores->isNotEmpty()) {
@@ -133,9 +162,9 @@ class PharmacyDispenseController extends Controller
     }
 
     /**
-     * STAGE 2: Store (Issue Stock)
+     * STAGE 2: Deduct Stock & Auto-Bill Non-Cash
      */
-    public function store(Request $request, PharmacyPrescription $prescription)
+    public function store(Request $request, PharmacyPrescription $prescription, BillingService $billingService)
     {
         $facility = FacilityOption::first();
         $allowNegative = $facility->allownegativestock ?? false;
@@ -167,16 +196,60 @@ class PharmacyDispenseController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $prescription) {
+        DB::transaction(function () use ($request, $prescription, $billingService, $facility) {
             
-            // 2. Inventory Logic via Helper
+            // --- 2. DETERMINE IF WE NEED TO POST A BILL (NON-CASH OR ADMITTED) ---
+            // Logic to ensure we catch Insurance/Corporate/Admitted patients who skipped the "Bill" stage.
+            
+            // A. Determine Basic Payment Category
+            $isCash = true; 
+            
+            if ($prescription->patient && $prescription->patient->payment_category) {
+                $isCash = ($prescription->patient->payment_category === 'Cash');
+            } elseif ($prescription->visit && $prescription->visit->billingGroup) {
+                $bg = $prescription->visit->billingGroup;
+                if ($bg->isinsurance || $bg->isexemption) {
+                    $isCash = false;
+                } elseif ($facility && $bg->id != $facility->default_cash_billing_group_id) {
+                    $isCash = false; // Corporate
+                }
+            }
+
+            // B. Check Admission Status
+            // Admitted patients behave like Credit patients: they get the drug now, bill is settled on discharge.
+            $isAdmitted = $prescription->patient->is_admitted ?? false;
+
+            // C. Auto-Bill Execution
+            // If NOT Cash (Insurance/Corporate) OR IS Admitted, we must ensure the financial record exists.
+            if (!$isCash || $isAdmitted) {
+                $priceCategory = 'price1';
+                if ($prescription->visit && $prescription->visit->billingGroup) {
+                    $priceCategory = $prescription->visit->billingGroup->pricecategory ?? 'price1';
+                }
+
+                $product = SIV_Product::with('blsItem')->find($prescription->product_id);
+
+                if ($product && $product->blsItem) {
+                    $billingService->addToBill(
+                        $prescription->patientcode,
+                        $product->blsItem->id,
+                        $request->quantity_issued, // Use actual issued quantity
+                        'pharmacy',
+                        $prescription->id,
+                        $priceCategory
+                    );
+                }
+            }
+            // --------------------------------------------------------
+
+            // 3. Inventory Logic (Requisition + Issue)
             $this->createInventoryRequisition(
                 (int)$request->store_id,
                 $prescription, 
                 (float)$request->quantity_issued
             );
 
-            // 3. Pharmacy Audit Record
+            // 4. Pharmacy Audit Record
             PharmacyDispensation::create([
                 'pharmacy_prescription_id' => $prescription->id,
                 'quantity_issued' => $request->quantity_issued,
@@ -186,13 +259,12 @@ class PharmacyDispenseController extends Controller
                 'dispensed_at' => now(),
             ]);
 
-            // 4. Update Status
+            // 5. Update Status
             $prescription->update(['status' => 'Dispensed']);
         });
 
         return redirect()->route('pharmacy0.index')->with('success', 'Medication issued successfully.');
     }
-
     /**
      * Helper to bridge Pharmacy logic with Inventory Service
      */
@@ -201,74 +273,60 @@ class PharmacyDispenseController extends Controller
         $inventoryService = new InventoryService();
         $transdate = Carbon::now();
 
-        // --- RESOLVE ENTITY ID (Using Billing Customer) ---
         $patientCode = $prescription->patientcode;
         $patient = $prescription->patient;
 
-        // Try to find existing customer
         $customer = BLSCustomer::where('patient_code', $patientCode)->first();
-
-        // If not found, create one on the fly (Sync Patient -> Customer)
         if (!$customer && $patient) {
             $customer = BLSCustomer::create([
                 'patient_code' => $patientCode,
                 'customer_type' => 'individual',
                 'first_name' => $patient->first_name,
                 'surname' => $patient->last_name,
-                'other_names' => $patient->middle_name ?? '',
-                'phone' => $patient->phone_number ?? '',
+                'phone' => $patient->phone_number,
             ]);
         }
 
-        // Use the Customer ID (int) or 0 if something failed
         $toEntityId = $customer ? $customer->id : 0;
-        $toEntityName = $customer 
-            ? "{$customer->first_name} {$customer->surname}" 
-            : ($patientCode ?? 'Unknown Patient');
+        $toEntityName = $customer ? "{$customer->first_name} {$customer->surname}" : 'Unknown Patient';
 
-        // --- PREPARE DATA ---
         $product = SIV_Product::find($prescription->product_id);
         $cost = $product ? $product->costprice : 0;
         $totalCost = $qty * $cost;
 
-        // 1. Create Requisition
         $requisition = IVRequistion::create([
             'transdate' => $transdate,
-            'tostore_id' => $toEntityId, // Explicit INT
-            'tostore_type' => StoreType::Customer->value, // <--- CHANGED TO CUSTOMER
+            'tostore_id' => $toEntityId, 
+            'tostore_type' => StoreType::Customer->value, 
             'fromstore_id' => $storeId,
             'stage' => 4, 
-            'total' => 0, // Temporary, will update later
+            'total' => 0,
             'user_id' => Auth::id(),
             'remarks' => "Pharmacy Rx #{$prescription->id}", 
         ]);
 
-        // 2. Create Requisition Item
         $requisition->requistionitems()->create([
             'product_id' => $prescription->product_id,
             'quantity' => $qty,
             'price' => $cost,
         ]);
-        
-        // Update total cost
-        $requisition->total = $totalCost;
-        $requisition->saveQuietly(); 
 
-        // 3. Prepare Issue Items
+        $requisition->total = $totalCost;
+        $requisition->saveQuietly();
+        
+        // Issue the items
         $issueItems = [[
             'product_id' => $prescription->product_id,
             'quantity' => $qty,
             'price' => $cost,
         ]];
 
-        // 4. Generate Delivery No
         $deliveryNo = 'PHARM-' . $requisition->id . '-' . time();
 
-        // 5. Call Inventory Service
         $inventoryService->issue(
             $storeId,
-            $toEntityId, 
-            StoreType::Customer->value, // <--- CHANGED TO CUSTOMER
+            $toEntityId,
+            StoreType::Customer->value, 
             $toEntityName,
             $issueItems,
             $deliveryNo,
@@ -276,9 +334,6 @@ class PharmacyDispenseController extends Controller
         );
     }
 
-    /**
-     * AJAX Check Stock
-     */
     public function checkStock(Request $request)
     {
         $productId = $request->product_id;

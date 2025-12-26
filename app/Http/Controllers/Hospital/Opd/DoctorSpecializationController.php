@@ -38,7 +38,15 @@ class DoctorSpecializationController extends Controller
     {
         return Inertia::render('SystemConfiguration/FacilitySetup/Specializations/Create', [
             // Fetch Bill Items that are likely Consultations (You might want to filter by Item Group here)
-            'billItems' => BLSItem::select('id', 'name', 'price1')->orderBy('name')->get()
+            'billItems' => BLSItem::query()
+                ->whereNull('product_id')
+                ->whereNull('rad_procedure_id')
+                ->whereNull('lab_panel_id')
+                ->whereNull('theatre_procedure_id')
+                ->whereNull('ipd_ward_id')
+                ->select('id', 'name', 'price1')
+                ->orderBy('name')
+                ->get()
         ]);
     }
 
@@ -101,7 +109,15 @@ class DoctorSpecializationController extends Controller
 
         return Inertia::render('SystemConfiguration/FacilitySetup/Specializations/Edit', [
             'specialization' => $specialization,
-            'billItems' => BLSItem::select('id', 'name', 'price1')->orderBy('name')->get()
+            'billItems' => BLSItem::query()
+            ->whereNull('product_id')
+            ->whereNull('rad_procedure_id')
+            ->whereNull('lab_panel_id')
+            ->whereNull('theatre_procedure_id')
+            ->whereNull('ipd_ward_id')
+            ->select('id', 'name', 'price1')
+            ->orderBy('name')
+            ->get()          
         ]);
     }
 

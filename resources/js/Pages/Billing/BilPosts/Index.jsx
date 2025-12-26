@@ -205,7 +205,7 @@ export default function Index({ auth, orders, filters, success }) {
                                         {orders.data.length > 0 ? (
                                             orders.data.map((order) => {
                                                 const isEditStage = order.stage === 3;
-                                                const actionButtonText = isEditStage ? "Edit" : "Preview";
+                                                const actionButtonText = isEditStage ? "Process" : "Preview";
                                                 const actionButtonTitle = isEditStage ? "Edit Item" : "Preview Item";
                                                 const actionButtonIcon = isEditStage ? faEdit : faEye;
                                                 const actionButtonBgColor = isEditStage ? "bg-yellow-500 hover:bg-yellow-600" : "bg-sky-500 hover:bg-sky-600";
@@ -237,7 +237,7 @@ export default function Index({ auth, orders, filters, success }) {
                                                                     <FontAwesomeIcon icon={actionButtonIcon} className="mr-1.5 h-3 w-3" />
                                                                     {actionButtonText}
                                                                 </Link>
-                                                                <button
+                                                                {/* <button
                                                                     onClick={() => handleDelete(order.id)}
                                                                     className="flex items-center rounded bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-700"
                                                                     disabled={processing}
@@ -245,7 +245,7 @@ export default function Index({ auth, orders, filters, success }) {
                                                                 >
                                                                     <FontAwesomeIcon icon={faTrash} className="mr-1.5 h-3 w-3" />
                                                                     Delete
-                                                                </button>
+                                                                </button> */}
                                                             </div>
                                                         </td>
                                                     </tr>

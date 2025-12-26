@@ -3,7 +3,15 @@ import { Head, Link } from '@inertiajs/react';
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import Pagination from '@/Components/Pagination';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faTimesCircle, faMoneyBillWave } from '@fortawesome/free-solid-svg-icons';
+import { 
+    faCheckCircle, 
+    faTimesCircle, 
+    faMoneyBillWave, 
+    faStethoscope, 
+    faIdCard,
+    faBuilding,
+    faHandHoldingHeart
+} from '@fortawesome/free-solid-svg-icons';
 
 export default function DoctorOpdIndex({ queue }) {
     return (
@@ -20,7 +28,7 @@ export default function DoctorOpdIndex({ queue }) {
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Details</th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vitals</th>
                                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     </tr>
@@ -32,56 +40,97 @@ export default function DoctorOpdIndex({ queue }) {
                                         </tr>
                                     ) : (
                                         queue.data.map((booking) => {
-                                            // Determine if access is allowed
-                                            // You might allow 'insurance' or 'waived' statuses as well
-                                            const isPaid = booking.payment_status === 'paid' || booking.payment_status === 'waived';
-                                            const isInsurance = booking.billingGroup?.name?.toLowerCase().includes('insurance'); 
-                                            const canConsult = isPaid || isInsurance; // Logic: Allow if Paid OR Insurance
+                                            // --- 1. DETERMINE CATEGORY DYNAMICALLY ---
+                                            // Priority: Use the category stored on the patient record during registration
+                                            let category = booking.patient?.payment_category || 'Cash';
+                                            
+                                            // Fallback: If patient category isn't set, infer from Billing Group flags
+                                            if (!booking.patient?.payment_category && booking.billingGroup) {
+                                                if (booking.billingGroup.isexemption) category = 'Exemption';
+                                                else if (booking.billingGroup.isinsurance) category = 'Insurance';
+                                                // Note: 'Invoice' fallback is harder without facility ID, so default to Cash implies pay first
+                                            }
+
+                                            // Booleans for UI logic
+                                            const isCash      = category === 'Cash';
+                                            const isInsurance = category === 'Insurance';
+                                            const isExemption = category === 'Exemption';
+                                            const isInvoice   = category === 'Invoice'; // Corporate
+
+                                            // --- 2. PAYMENT STATUS ---
+                                            const isPaid   = booking.payment_status === 'paid';
+                                            const isWaived = booking.payment_status === 'waived' || isExemption;
+
+                                            // --- 3. ACCESS CONTROL LOGIC ---
+                                            // Logic: If it is CASH, they MUST pay. Everyone else (Insurance/Corp/Exempt) can proceed.
+                                            const canConsult = !isCash || isPaid || isWaived;
 
                                             return (
-                                                <tr key={booking.id} className={!canConsult ? "bg-gray-50 opacity-75" : "hover:bg-gray-50"}>
+                                                <tr key={booking.id} className={!canConsult ? "bg-red-50 opacity-90" : "hover:bg-gray-50"}>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         {new Date(booking.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="text-sm font-bold text-gray-900">{booking.patient?.first_name} {booking.patient?.last_name}</div>
                                                         <div className="text-xs text-gray-500 font-mono">{booking.patientcode}</div>
-                                                        <div className="text-xs text-blue-600">{booking.billingGroup?.name || 'Cash'}</div>
+                                                        <div className="text-xs font-bold text-blue-600 mt-1 flex items-center">
+                                                            {/* Dynamic Icon based on Category */}
+                                                            {isInsurance && <FontAwesomeIcon icon={faIdCard} className="mr-1"/>}
+                                                            {isInvoice && <FontAwesomeIcon icon={faBuilding} className="mr-1"/>}
+                                                            {isExemption && <FontAwesomeIcon icon={faHandHoldingHeart} className="mr-1"/>}
+                                                            {booking.billingGroup?.name || category}
+                                                        </div>
                                                     </td>
                                                     
-                                                    {/* Payment Status Column */}
+                                                    {/* Payment Status Badge */}
                                                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                            booking.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 
-                                                            booking.payment_status === 'waived' ? 'bg-blue-100 text-blue-800' :
-                                                            'bg-red-100 text-red-800'
-                                                        }`}>
-                                                            {booking.payment_status ? booking.payment_status.toUpperCase() : 'UNPAID'}
-                                                        </span>
+                                                        {isPaid ? (
+                                                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800">
+                                                                <FontAwesomeIcon icon={faCheckCircle} className="mr-1"/> PAID
+                                                            </span>
+                                                        ) : isExemption || isWaived ? (
+                                                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-gray-100 text-gray-800">
+                                                                EXEMPTION
+                                                            </span>
+                                                        ) : isInsurance ? (
+                                                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-blue-100 text-blue-800">
+                                                                INSURANCE
+                                                            </span>
+                                                        ) : isInvoice ? (
+                                                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-purple-100 text-purple-800">
+                                                                CORPORATE
+                                                            </span>
+                                                        ) : (
+                                                            // Only Cash + Unpaid gets the red flag
+                                                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800">
+                                                                <FontAwesomeIcon icon={faTimesCircle} className="mr-1"/> UNPAID
+                                                            </span>
+                                                        )}
                                                     </td>
 
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         {booking.latest_vital_sign ? (
-                                                            <div className="flex flex-col">
+                                                            <div className="flex flex-col text-xs">
                                                                 <span className={(booking.latest_vital_sign.blood_pressure || '').startsWith('14') ? 'text-red-600 font-bold' : ''}>
                                                                     BP: {booking.latest_vital_sign.blood_pressure || '-'}
                                                                 </span>
                                                                 <span>Pulse: {booking.latest_vital_sign.pulse || '-'}</span>
+                                                                <span>Temp: {booking.latest_vital_sign.temperature || '-'}</span>
                                                             </div>
                                                         ) : (
-                                                            <span className="text-yellow-600 italic text-xs">Vitals Pending</span>
+                                                            <span className="text-amber-600 italic text-xs">Vitals Pending</span>
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                                                         {canConsult ? (
                                                             <Link 
                                                                 href={route('doctor0.create', booking.id)} 
-                                                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 shadow-sm"
                                                             >
-                                                                Consult
+                                                                <FontAwesomeIcon icon={faStethoscope} className="mr-2"/> Consult
                                                             </Link>
                                                         ) : (
-                                                            <span className="inline-flex items-center px-4 py-2 bg-gray-300 border border-transparent rounded-md font-semibold text-xs text-gray-500 uppercase tracking-widest cursor-not-allowed">
+                                                            <span className="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-400 uppercase tracking-widest cursor-not-allowed">
                                                                 <FontAwesomeIcon icon={faMoneyBillWave} className="mr-2"/> Pay First
                                                             </span>
                                                         )}

@@ -6,16 +6,23 @@ use App\Models\Billing\BILOrder;
 use App\Models\Billing\BILOrderItem;
 use App\Models\Billing\BLSCustomer;
 use App\Models\Billing\BLSItem;
-use App\Models\Patient\Patient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class BillingService
 {
     /**
      * Add a line item to the patient's active bill.
+     *
+     * @param string $patientCode
+     * @param int $billItemId
+     * @param float $quantity
+     * @param string $sourceType
+     * @param int $sourceId
+     * @param string $priceCategory (e.g. 'price1', 'price5')
      */
-    public function addToBill($patientCode, $billItemId, $quantity, $sourceType, $sourceId)
+    public function addToBill($patientCode, $billItemId, $quantity, $sourceType, $sourceId, $priceCategory = 'price1')
     {
         // 1. Find the Billing Customer
         $customer = BLSCustomer::where('patient_code', $patientCode)->first();
@@ -31,26 +38,36 @@ class BillingService
 
         // 3. Create Order if it doesn't exist
         if (!$order) {
-            // FIX: Handle CLI/Console execution where auth() is null.
-            // We fallback to User ID 1 (System Admin) and Store ID 1 (Main Store).
-            $userId = auth()->id() ?? 1; 
-            $defaultStoreId = auth()->user()->store_id ?? 1; 
+            $userId = Auth::id() ?? 1; 
+            $defaultStoreId = Auth::user()?->store_id ?? 1; 
 
             $order = BILOrder::create([
                 'transdate' => now(),
                 'store_id' => $defaultStoreId,
                 'customer_id' => $customer->id,
                 'stage' => 3, // Pending
-                'total' => 0, // Will recalculate below
-                'user_id' => $userId, // <--- Fixed: Now guaranteed to have a value
+                'total' => 0, 
+                'user_id' => $userId,
             ]);
         }
 
-        // 4. Get Item Details (Price)
+        // 4. Get Item Details & Determine Price
         $item = BLSItem::find($billItemId);
         if (!$item) return;
 
-        $price = $item->price1; 
+        $priceColumn = 'price1'; // Default Fallback
+        
+        // FIX: Use array_key_exists on loaded attributes instead of Schema::hasColumn
+        // This avoids the 'generation_expression' MySQL error while still supporting future columns.
+        if (!empty($priceCategory) && array_key_exists($priceCategory, $item->getAttributes())) {
+            $priceColumn = $priceCategory;
+        }
+
+        // Extract Price dynamically
+        $price = $item->{$priceColumn}; 
+        
+        // Set Reference (e.g., 'Price1', 'Price5') for the receipt
+        $priceRef = ucfirst($priceColumn);
 
         // 5. Add or Update the Item in the Order
         $existingLine = BILOrderItem::where('order_id', $order->id)
@@ -61,7 +78,8 @@ class BillingService
         if ($existingLine) {
             $existingLine->update([
                 'quantity' => $quantity,
-                'price' => $price
+                'price' => $price,
+                'price_ref' => $priceRef 
             ]);
         } else {
             BILOrderItem::create([
@@ -73,7 +91,7 @@ class BillingService
                 'source_store_id' => $order->store_id, 
                 'source_type' => $sourceType, 
                 'source_id' => $sourceId,
-                'price_ref' => 'Standard'     
+                'price_ref' => $priceRef     
             ]);
         }
 

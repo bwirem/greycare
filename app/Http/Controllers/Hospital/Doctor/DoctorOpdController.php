@@ -52,7 +52,7 @@ class DoctorOpdController extends Controller
      */
     public function index()
     {
-        $queue = OpdBooking::with(['patient', 'latestVitalSign'])
+        $queue = OpdBooking::with(['patient','billingGroup', 'latestVitalSign'])
             ->whereDate('created_at', today())
             // --- FILTER OUT ADMITTED PATIENTS ---
             ->where('consultation_status', '!=', 'Admitted')             
@@ -73,12 +73,12 @@ class DoctorOpdController extends Controller
     {
         // --- SECURITY CHECK ---
         // Check if Cash patient and Unpaid
-        $isCash = stripos($booking->billingGroup?->name ?? 'Cash', 'Cash') !== false;
+        // $isCash = stripos($booking->billingGroup?->name ?? 'Cash', 'Cash') !== false;
         
-        if ($isCash && $booking->payment_status !== 'paid' && $booking->payment_status !== 'waived') {
-            return redirect()->route('doctor0.index')
-                ->with('error', 'Patient must clear the consultation bill before being seen.');
-        }
+        // if ($isCash && $booking->payment_status !== 'paid' && $booking->payment_status !== 'waived') {
+        //     return redirect()->route('doctor0.index')
+        //         ->with('error', 'Patient must clear the consultation bill before being seen.');
+        // }
 
         // 1. Load Relationships
         $booking->load([
@@ -342,7 +342,8 @@ class DoctorOpdController extends Controller
                                 $panel->blsItem->id, // Bill Item ID
                                 1, // Qty
                                 'laboratory', // Source Type
-                                $labRecord->id // Source ID
+                                $labRecord->id, // Source ID
+                                $booking->pricecategory
                             );
                         }
                     }
@@ -377,7 +378,8 @@ class DoctorOpdController extends Controller
                                 $procedure->blsItem->id,
                                 1,
                                 'radiology',
-                                $radRecord->id
+                                $radRecord->id,
+                                $booking->pricecategory
                             );
                         }
                     }
@@ -438,7 +440,8 @@ class DoctorOpdController extends Controller
                             $procedure->blsItem->id,
                             1,
                             'theatre',
-                            $surgRecord->id
+                            $surgRecord->id,
+                            $booking->pricecategory
                         );
                     }
                 }

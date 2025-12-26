@@ -10,10 +10,14 @@ return new class extends Migration
     {
         Schema::table('facilityoptions', function (Blueprint $table) {
             // This column will hold the ID of the default Cash/Bank account for this facility.
-            $table->foreignId('chart_of_account_id')->nullable()->constrained('chart_of_accounts')->onDelete('set null');
-            $table->foreignId('default_customer_id')
+            $table->foreignId('chart_of_account_id')
             ->nullable()
-            ->constrained('bls_customers')
+            ->after('logo_path')
+            ->constrained('chart_of_accounts')->onDelete('set null');
+            $table->foreignId('default_cash_billing_group_id')
+            ->after('chart_of_account_id')
+            ->nullable()
+            ->constrained('patient_billing_groups')
             ->onDelete('set null');
         });
     }
@@ -23,8 +27,8 @@ return new class extends Migration
         Schema::table('facilityoptions', function (Blueprint $table) {
             $table->dropForeign(['chart_of_account_id']);
             $table->dropColumn('chart_of_account_id');
-            $table->dropForeign(['default_customer_id']);
-            $table->dropColumn('default_customer_id');
+            $table->dropForeign(['default_cash_billing_group_id']);
+            $table->dropColumn('default_cash_billing_group_id');
         });
     }
 };

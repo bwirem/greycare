@@ -25,10 +25,10 @@ class FacilityOption extends Model
         'vrn',     // Added
         'logo_path', // Added
         'chart_of_account_id',
+        'default_cash_billing_group_id',
         'affectstockatcashier',
         'doubleentryissuing',
-        'allownegativestock',
-        'default_customer_id',
+        'allownegativestock',        
         'show_register_button', // Newly added field
     ];
 
