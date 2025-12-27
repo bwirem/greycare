@@ -1,9 +1,11 @@
 import React from 'react';
 import Modal from '@/Components/Modal'; 
+import InputLabel from '@/Components/InputLabel';
+import TextInput from '@/Components/TextInput';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
     faStethoscope, faFileInvoice, faCheck, faTimes, 
-    faUserTag, faIdCard, faHashtag 
+    faIdCard, faHashtag, faSpinner 
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function Booking({ 
@@ -13,14 +15,32 @@ export default function Booking({
     data, 
     setData, 
     errors, 
-    treatmentPoints, 
-    billingGroups, 
-    doctors, 
-    processing 
+    treatmentPoints = [], 
+    billingGroups = [], 
+    doctors = [], 
+    processing,
+    defaultCashGroupId = null
 }) {
     
-    // Determine if fields should be read-only (e.g., if Authorization was obtained via API)
-    // You can adjust this logic based on your strictness requirements.
+    // --- 1. Determine Payment Category Logic ---
+    const selectedGroup = billingGroups.find(bg => bg.id == data.billinggroup_id);
+    
+    // Default to 'Cash' (True) until proven otherwise by flags
+    let isCash = true; 
+
+    if (selectedGroup) {
+        const isExemption = Boolean(selectedGroup.isexemption);
+        const isInsurance = Boolean(selectedGroup.isinsurance);
+        
+        // If Facility has a default cash group, and this group is NOT it, it might be an Invoice/Company
+        const isInvoice = defaultCashGroupId && selectedGroup.id != defaultCashGroupId;
+
+        if (isExemption || isInsurance || isInvoice) {
+            isCash = false;
+        }
+    }
+
+    // --- 2. Auth Link Check ---
     const isAuthLinked = data.authorizationno && data.authorizationno.length > 0;
 
     return (
@@ -67,7 +87,7 @@ export default function Booking({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Clinic */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Clinic / Treatment Point *</label>
+                                <InputLabel value="Clinic / Treatment Point *" className="mb-1" />
                                 <select
                                     value={data.treatmentpoint_id}
                                     onChange={e => setData('treatmentpoint_id', e.target.value)}
@@ -84,7 +104,7 @@ export default function Booking({
                             
                             {/* Doctor */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Assign Doctor</label>
+                                <InputLabel value="Assign Doctor" className="mb-1" />
                                 <select
                                     value={data.doctor_user_id}
                                     onChange={e => setData('doctor_user_id', e.target.value)}
@@ -108,7 +128,7 @@ export default function Booking({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Payment Mode */}
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Mode *</label>
+                                <InputLabel value="Payment Mode *" className="mb-1" />
                                 <select
                                     value={data.billinggroup_id}
                                     onChange={e => setData('billinggroup_id', e.target.value)}
@@ -123,47 +143,52 @@ export default function Booking({
                                 {errors.billinggroup_id && <p className="text-red-500 text-xs mt-1">{errors.billinggroup_id}</p>}
                             </div>
 
-                            {/* Insurance Details (Visible for check) */}
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">
-                                    <FontAwesomeIcon icon={faIdCard} className="mr-1"/> Card Number
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.billinggroupmembershipno}
-                                    onChange={e => setData('billinggroupmembershipno', e.target.value)}
-                                    className="w-full rounded-md border-gray-300 bg-gray-50 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                                    placeholder="N/A"
-                                />
-                            </div>
+                            {/* --- HIDE IF CASH --- */}
+                            {!isCash && (
+                                <>
+                                    {/* Insurance Details */}
+                                    <div>
+                                        <InputLabel className="mb-1">
+                                            <FontAwesomeIcon icon={faIdCard} className="mr-1 text-gray-500"/> Card Number
+                                        </InputLabel>
+                                        <TextInput
+                                            type="text"
+                                            value={data.billinggroupmembershipno}
+                                            onChange={e => setData('billinggroupmembershipno', e.target.value)}
+                                            className="w-full bg-gray-50 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                            placeholder="N/A"
+                                        />
+                                    </div>
 
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">
-                                    <FontAwesomeIcon icon={faCheck} className="mr-1"/> Auth Number
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.authorizationno}
-                                    onChange={e => setData('authorizationno', e.target.value)}
-                                    className={`w-full rounded-md border-gray-300 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500 font-bold ${isAuthLinked ? 'bg-green-50 text-green-800' : 'bg-gray-50'}`}
-                                    placeholder="N/A"
-                                    readOnly={isAuthLinked} // Prevent editing if came from API
-                                />
-                            </div>
+                                    <div>
+                                        <InputLabel className="mb-1">
+                                            <FontAwesomeIcon icon={faCheck} className="mr-1 text-gray-500"/> Auth Number
+                                        </InputLabel>
+                                        <TextInput
+                                            type="text"
+                                            value={data.authorizationno}
+                                            onChange={e => setData('authorizationno', e.target.value)}
+                                            className={`w-full text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500 font-bold ${isAuthLinked ? 'bg-green-50 text-green-800' : 'bg-gray-50'}`}
+                                            placeholder="N/A"
+                                            readOnly={isAuthLinked} 
+                                        />
+                                    </div>
 
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-medium text-gray-500 mb-1">
-                                    <FontAwesomeIcon icon={faHashtag} className="mr-1"/> Scheme / Product ID
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.schemeid}
-                                    onChange={e => setData('schemeid', e.target.value)}
-                                    className="w-full rounded-md border-gray-300 bg-gray-50 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                                    placeholder="N/A"
-                                    readOnly={isAuthLinked}
-                                />
-                            </div>
+                                    <div className="md:col-span-2">
+                                        <InputLabel className="mb-1">
+                                            <FontAwesomeIcon icon={faHashtag} className="mr-1 text-gray-500"/> Scheme / Product ID
+                                        </InputLabel>
+                                        <TextInput
+                                            type="text"
+                                            value={data.schemeid}
+                                            onChange={e => setData('schemeid', e.target.value)}
+                                            className="w-full bg-gray-50 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                            placeholder="N/A"
+                                            readOnly={isAuthLinked}
+                                        />
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -183,7 +208,9 @@ export default function Booking({
                         className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow-sm text-sm font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         {processing ? (
-                            <>Processing...</>
+                            <>
+                                <FontAwesomeIcon icon={faSpinner} spin /> Processing...
+                            </>
                         ) : (
                             <>
                                 <FontAwesomeIcon icon={faCheck} /> Confirm Registration

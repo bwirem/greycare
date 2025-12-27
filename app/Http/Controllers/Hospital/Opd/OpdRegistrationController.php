@@ -65,10 +65,14 @@ class OpdRegistrationController extends Controller
      */
     public function create()
     {
+        // Get default cash ID
+        $defaultCashId = FacilityOption::value('default_cash_billing_group_id');
+
         return Inertia::render('Hospital/Opd/Registrations/Create', [
-            'treatmentPoints' => OpdTreatmentPoint::select('id', 'name')->get(),
-            'billingGroups'   => PatientBillingGroup::select('id', 'name')->get(),
+            'treatmentPoints' => OpdTreatmentPoint::select('id', 'name')->get(),         
+            'billingGroups'   => PatientBillingGroup::select('id', 'name', 'isexemption', 'isinsurance')->get(),
             'doctors'         => User::select('id', 'name')->get(), 
+            'defaultCashId'   => $defaultCashId,
         ]);
     }
 

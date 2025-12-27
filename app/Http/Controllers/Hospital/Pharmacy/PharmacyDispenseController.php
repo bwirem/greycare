@@ -197,35 +197,56 @@ class PharmacyDispenseController extends Controller
         }
 
         DB::transaction(function () use ($request, $prescription, $billingService, $facility) {
+    
+            // --- 1. DETERMINE PAYMENT & ADMISSION CONTEXT ---
             
-            // --- 2. DETERMINE IF WE NEED TO POST A BILL (NON-CASH OR ADMITTED) ---
-            // Logic to ensure we catch Insurance/Corporate/Admitted patients who skipped the "Bill" stage.
+            // Check if truly admitted based on the prescription link (most accurate)
+            $isAdmitted = !empty($prescription->ipd_admission_id);
             
-            // A. Determine Basic Payment Category
-            $isCash = true; 
-            
-            if ($prescription->patient && $prescription->patient->payment_category) {
-                $isCash = ($prescription->patient->payment_category === 'Cash');
-            } elseif ($prescription->visit && $prescription->visit->billingGroup) {
-                $bg = $prescription->visit->billingGroup;
-                if ($bg->isinsurance || $bg->isexemption) {
+            // Initialize defaults
+            $isCash = true;
+            $priceCategory = 'price1';
+            $billingGroup = null;
+
+            // A. Extract Context (IPD vs OPD)
+            if ($isAdmitted && $prescription->admission) {
+                // --- IPD CONTEXT ---
+                $billingGroup = $prescription->admission->billingGroup;
+                $priceCategory = $prescription->admission->pricecategory 
+                                ?? $billingGroup?->pricecategory 
+                                ?? 'price1';
+
+            } elseif ($prescription->opd_booking_id && $prescription->visit) {
+                // --- OPD CONTEXT ---
+                $billingGroup = $prescription->visit->billingGroup;
+                $priceCategory = $prescription->visit->pricecategory 
+                                ?? $billingGroup?->pricecategory 
+                                ?? 'price1';
+            }
+
+            // B. Determine if Cash
+            // If we found a billing group from the encounter, use it to decide cash status
+            if ($billingGroup) {
+                if ($billingGroup->isinsurance || $billingGroup->isexemption) {
                     $isCash = false;
-                } elseif ($facility && $bg->id != $facility->default_cash_billing_group_id) {
-                    $isCash = false; // Corporate
+                } elseif ($facility && $billingGroup->id != $facility->default_cash_billing_group_id) {
+                    $isCash = false; // Corporate / Invoice
+                }
+            } else {
+                // Fallback to Patient Master if no encounter billing group found
+                if ($prescription->patient && $prescription->patient->payment_category) {
+                    $isCash = ($prescription->patient->payment_category === 'Cash');
                 }
             }
 
-            // B. Check Admission Status
-            // Admitted patients behave like Credit patients: they get the drug now, bill is settled on discharge.
-            $isAdmitted = $prescription->patient->is_admitted ?? false;
-
-            // C. Auto-Bill Execution
-            // If NOT Cash (Insurance/Corporate) OR IS Admitted, we must ensure the financial record exists.
-            if (!$isCash || $isAdmitted) {
-                $priceCategory = 'price1';
-                if ($prescription->visit && $prescription->visit->billingGroup) {
-                    $priceCategory = $prescription->visit->billingGroup->pricecategory ?? 'price1';
-                }
+            // --- 2. BILLING EXECUTION ---
+            
+            // LOGIC:
+            // 1. If IPD ($isAdmitted): Always add to bill (it accumulates till discharge).
+            // 2. If OPD & NOT Cash: Add to bill (Insurance/Company pays).
+            // 3. If OPD & Cash: Usually skipped here (paid at POS), unless you want a record.
+            
+            if ($isAdmitted || !$isCash) {
 
                 $product = SIV_Product::with('blsItem')->find($prescription->product_id);
 
@@ -236,20 +257,21 @@ class PharmacyDispenseController extends Controller
                         $request->quantity_issued, // Use actual issued quantity
                         'pharmacy',
                         $prescription->id,
-                        $priceCategory
+                        $priceCategory 
                     );
                 }
             }
-            // --------------------------------------------------------
 
-            // 3. Inventory Logic (Requisition + Issue)
+            // --- 3. INVENTORY & LOGGING ---
+
+            // Inventory Requisition (Deduct Stock)
             $this->createInventoryRequisition(
                 (int)$request->store_id,
                 $prescription, 
                 (float)$request->quantity_issued
             );
 
-            // 4. Pharmacy Audit Record
+            // Pharmacy Audit Record
             PharmacyDispensation::create([
                 'pharmacy_prescription_id' => $prescription->id,
                 'quantity_issued' => $request->quantity_issued,
@@ -259,7 +281,7 @@ class PharmacyDispenseController extends Controller
                 'dispensed_at' => now(),
             ]);
 
-            // 5. Update Status
+            // Update Status
             $prescription->update(['status' => 'Dispensed']);
         });
 

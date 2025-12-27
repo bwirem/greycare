@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 // Models
 use App\Models\Ipd\IpdAdmission;
@@ -15,11 +17,19 @@ use App\Models\Opd\OpdBooking;
 use App\Models\Ipd\IpdWard;
 use App\Models\Ipd\IpdBed;
 use App\Models\Patient\Patient;
+use App\Models\Patient\PatientBillingGroup;
+use App\Models\Billing\BLSCustomer;
+use App\Models\Facility\FacilityOption; 
+
+// Services
+use App\Services\ConsultationPricingService; // You might need a specific AdmissionPricingService if logic differs
+use App\Services\BillingService; 
 
 class IpdAdmissionController extends Controller
 {
-    // ... index and create methods remain the same ...
-
+    /**
+     * Display listing of Admissions.
+     */
     public function index(Request $request)
     {
         $query = IpdAdmission::with(['patient', 'ward', 'bed'])
@@ -45,6 +55,10 @@ class IpdAdmissionController extends Controller
         ]);
     }
 
+    /**
+     * Show form for creating admission.
+     */    
+
     public function create(Request $request)
     {
         $patient = null;
@@ -63,32 +77,57 @@ class IpdAdmissionController extends Controller
             $q->where('status', 'Free'); 
         }])->orderBy('name')->get();
 
+        // Get Facility Option for Default Cash Group
+        $defaultCashId = FacilityOption::value('default_cash_billing_group_id');
+
         return Inertia::render('Hospital/Ipd/Admissions/Create', [
-            'patient' => $patient,
+            'patient' => $patient,           
+            'wards' => $wards,
             'pendingAdmission' => $pendingAdmission,
-            'wards' => $wards
+            // Select specific columns needed for logic
+            'billingGroups' => PatientBillingGroup::select('id', 'name', 'isexemption', 'isinsurance')->get(),
+            'defaultCashGroupId' => $defaultCashId
         ]);
     }
 
     /**
-     * Store (Create New or Update Pending)
+     * Store (Create New, Register Patient if New, or Update Pending)
      */
-    public function store(Request $request)
+    public function store(Request $request, BillingService $billingService)
     {
-        // 1. Validation: Make Room and Bed NULLABLE
-        $request->validate([
-            'patient_code' => 'required|exists:patients,code',
+        // 1. Validation
+        $isExistingPatient = $request->filled('patient_code');
+
+        $rules = [
             'ward_id' => 'required|exists:ipd_wards,id',
             'admission_date' => 'required|date',
             
-            // FIX: Allow these to be empty for Doctor's Request
             'room_id' => 'nullable|exists:ipd_rooms,id',
             'bed_id' => 'nullable|exists:ipd_beds,id',
-            
-            'pending_admission_id' => 'nullable|exists:ipd_admissions,id'
-        ]);
+            'pending_admission_id' => 'nullable|exists:ipd_admissions,id',
 
-        // If a bed IS selected, verify it is free
+            'billinggroup_id' => 'required|exists:patient_billing_groups,id',
+            'billinggroupmembershipno' => 'nullable|string|max:100',
+            'authorizationno' => 'nullable|string|max:50',
+            'schemeid' => 'nullable|string',
+        ];
+
+        // If New Patient, validate demographics
+        if (!$isExistingPatient) {
+            $rules = array_merge($rules, [
+                'first_name'    => 'required|string|max:255',
+                'last_name'     => 'required|string|max:255',
+                'gender'        => 'required|string|in:Male,Female',
+                'date_of_birth' => 'required|date',
+                'national_id'   => 'nullable|string|max:50|unique:patients,national_id',
+                'phone_number'  => 'required|string|max:50',
+                'middle_name'   => 'nullable|string|max:255',
+            ]);
+        }
+
+        $validated = $request->validate($rules);
+
+        // Bed Availability Check
         if ($request->filled('bed_id')) {
             $bed = IpdBed::find($request->bed_id);
             if ($bed->status !== 'Free') {
@@ -96,14 +135,82 @@ class IpdAdmissionController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request) {
-            
-            // Determine Status: If Bed is selected -> Admitted, Else -> Pending
-            $status = $request->filled('bed_id') ? 'Admitted' : 'Pending';
+        try {
+            DB::beginTransaction();
 
+            // --- A. DETERMINE PAYMENT CATEGORY ---
+            $billingGroup = PatientBillingGroup::findOrFail($validated['billinggroup_id']);
+            $facilityOption = FacilityOption::first();
+
+            $paymentCategory = 'Cash';
+            $insuranceProviderId = null;
+            $insuranceProviderName = null;
+            $insuranceMemberNo = null;
+
+            if ($billingGroup->isexemption) {
+                $paymentCategory = 'Exemption';
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            } elseif ($billingGroup->isinsurance) {
+                $paymentCategory = 'Insurance';
+                $insuranceProviderId = $billingGroup->id;
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            } elseif ($facilityOption && $billingGroup->id != $facilityOption->default_cash_billing_group_id) {
+                $paymentCategory = 'Invoice';
+                $insuranceProviderId = $billingGroup->id;
+                $insuranceProviderName = $billingGroup->name;
+                $insuranceMemberNo = $validated['billinggroupmembershipno'] ?? null;
+            }
+
+            // --- B. HANDLE PATIENT (Update or Create) ---
+            $patientCode = null;
+
+            if ($isExistingPatient) {
+                $patientCode = $request->patient_code;
+                Patient::where('code', $patientCode)->update([
+                    'payment_category'        => $paymentCategory,
+                    'insurance_provider_id'   => $insuranceProviderId,
+                    'insurance_provider_name' => $insuranceProviderName,
+                    'insurance_member_no'     => $insuranceMemberNo,
+                ]);
+            } else {
+                $patientCode = 'PAT-' . date('y') . '-' . strtoupper(Str::random(6)); 
+                Patient::create([
+                    'code'          => $patientCode,
+                    'first_name'    => $validated['first_name'],
+                    'last_name'     => $validated['last_name'],
+                    'middle_name'   => $request->middle_name,
+                    'gender'        => $validated['gender'],
+                    'date_of_birth' => $validated['date_of_birth'],
+                    'national_id'   => $validated['national_id'] ?? null,
+                    'phone_number'  => $validated['phone_number'],
+                    
+                    'payment_category'        => $paymentCategory,
+                    'insurance_provider_id'   => $insuranceProviderId,
+                    'insurance_provider_name' => $insuranceProviderName,
+                    'insurance_member_no'     => $insuranceMemberNo,
+                ]);
+            }
+
+            // Ensure Billing Customer Exists
+            BLSCustomer::firstOrCreate(
+                ['patient_code' => $patientCode], 
+                [
+                    'customer_type' => 'individual',
+                    'first_name'    => $validated['first_name'] ?? Patient::where('code', $patientCode)->value('first_name'),
+                    'surname'       => $validated['last_name'] ?? Patient::where('code', $patientCode)->value('last_name'),
+                    'other_names'   => $request->middle_name ?? Patient::where('code', $patientCode)->value('middle_name'),
+                    'phone'         => $validated['phone_number'] ?? Patient::where('code', $patientCode)->value('phone_number'),
+                    'billing_group_id' => $billingGroup->id,
+                ]
+            );
+
+            // --- C. ADMISSION LOGIC ---
+            $status = $request->filled('bed_id') ? 'Admitted' : 'Pending';
             $admission = null;
 
-            // Scenario A: Finalize Pending Admission (Assigning Bed)
+            // Scenario 1: Update Existing Pending Admission
             if ($request->pending_admission_id) {
                 $admission = IpdAdmission::find($request->pending_admission_id);
                 $admission->update([
@@ -111,13 +218,20 @@ class IpdAdmissionController extends Controller
                     'room_id' => $request->room_id,
                     'bed_id'  => $request->bed_id,
                     'admission_date' => $request->admission_date,
-                    'status' => $status, 
+                    'status' => $status,
+                    
+                    // Update Billing Info
+                    'billinggroup_id' => $validated['billinggroup_id'],
+                    'pricecategory'   => $billingGroup->pricecategory ?? 'price1',
+                    'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null,
+                    'authorizationno' => $validated['authorizationno'] ?? null,
+                    'schemeid' => $request->schemeid ?? null,
                 ]);
             } 
-            // Scenario B: Create New Admission (Doctor Request or Direct Admit)
+            // Scenario 2: Create New Admission
             else {
-                // Ensure patient isn't already ACTIVE
-                $isActive = IpdAdmission::where('patientcode', $request->patient_code)
+                // Check if already active
+                $isActive = IpdAdmission::where('patientcode', $patientCode)
                     ->whereIn('status', ['Admitted', 'Pending'])->exists();
                 
                 if($isActive) {
@@ -125,18 +239,27 @@ class IpdAdmissionController extends Controller
                 }
 
                 $admission = IpdAdmission::create([
-                    'patientcode' => $request->patient_code,
+                    'patientcode' => $patientCode,
                     'opd_booking_id' => $request->opd_booking_id ?? null,
                     'ward_id' => $request->ward_id,
                     'room_id' => $request->room_id,
                     'bed_id' => $request->bed_id,
                     'admission_date' => $request->admission_date,
                     'user_id' => Auth::id(),
-                    'status' => $status
+                    'status' => $status,
+
+                    // Billing Fields
+                    'billinggroup_id' => $validated['billinggroup_id'],
+                    'pricecategory'   => $billingGroup->pricecategory ?? 'price1',
+                    'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null,
+                    'authorizationno' => $validated['authorizationno'] ?? null,
+                    'schemeid' => $request->schemeid ?? null,
                 ]);
             }
 
-            // 2. Create Audit Log
+            // --- D. LOGGING & STATUS UPDATES ---
+
+            // 1. Audit Log
             IpdAdmissionLog::create([
                 'patientcode' => $admission->patientcode,
                 'opd_booking_id' => $admission->opd_booking_id,
@@ -149,26 +272,42 @@ class IpdAdmissionController extends Controller
                 'registrystatus' => $request->urgency ?? 'Routine'
             ]);
 
-            // 3. Update Bed Status (Only if bed assigned)
+            // 2. Bed & Patient Status Update
             if ($request->filled('bed_id')) {
                 IpdBed::where('id', $request->bed_id)->update(['status' => 'Occupied']);
-                Patient::where('code', $request->patient_code)->update(['is_admitted' => true]);
+                Patient::where('code', $patientCode)->update(['is_admitted' => true]);
             }
 
-            // --- 4. NEW: UPDATE OPD BOOKING STATUS ---
-            // This removes them from the Doctor's OPD Queue
+            // 3. Update Source OPD Booking (if applicable)
             if ($request->opd_booking_id) {
                 OpdBooking::where('id', $request->opd_booking_id)
                     ->update([
-                        'consultation_status' => 'Admitted', // Mark as Admitted
-                        'ipdstart' => now(),                 // Log start time
+                        'consultation_status' => 'Admitted',
+                        'ipdstart' => now(),
                     ]);
             }
 
-            // 5. Update Patient Master Flag
-            Patient::where('code', $request->patient_code)->update(['is_admitted' => true]);
-        });
+            // --- E. BILLING (Optional: Add Admission Fee) ---
+            // If you have a specific bill item for "Admission Fee" or "Daily Bed Charge", trigger it here.
+            // Example:
+            /*
+            $billingService->addToBill(
+                $admission->patientcode,
+                $admissionFeeItemId, 
+                1,
+                'admission',
+                $admission->id,
+                $admission->pricecategory
+            );
+            */
 
-        return redirect()->back()->with('success', 'Admission request processed successfully.');
+            DB::commit();
+            return redirect()->route('inpatient0.index')->with('success', 'Admission Processed Successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Admission Error: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Admission failed: ' . $e->getMessage()]);
+        }
     }
 }

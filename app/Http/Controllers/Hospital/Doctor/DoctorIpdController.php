@@ -253,7 +253,8 @@ class DoctorIpdController extends Controller
                             $panel->blsItem->id,
                             1,
                             'laboratory',
-                            $labRecord->id
+                            $labRecord->id,
+                            $admission->pricecategory
                         );
                     }
                 }
@@ -281,7 +282,8 @@ class DoctorIpdController extends Controller
                             $procedure->blsItem->id,
                             1,
                             'radiology',
-                            $radRecord->id
+                            $radRecord->id,
+                            $admission->pricecategory
                         );
                     }
                 }
@@ -311,7 +313,8 @@ class DoctorIpdController extends Controller
                         $procedure->blsItem->id,
                         1,
                         'theatre',
-                        $surgRecord->id
+                        $surgRecord->id,
+                        $admission->pricecategory
                     );
                 }
             }
