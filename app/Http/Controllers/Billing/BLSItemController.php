@@ -58,7 +58,7 @@ class BLSItemController extends Controller
         $priceCategorySettings = BLSPriceCategory::first();
 
         if ($priceCategorySettings) {
-            for ($i = 1; $i <= 4; $i++) {
+            for ($i = 1; $i <= 10; $i++) {
                 if ($priceCategorySettings->{'useprice' . $i}) {
                     $activePriceCategories[] = [
                         'key' => 'price' . $i,

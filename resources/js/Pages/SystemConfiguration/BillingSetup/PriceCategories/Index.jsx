@@ -83,6 +83,18 @@ export default function Index({ auth, pricecategories, filters, success }) {
                                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enabled</th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price Level 4</th>
                                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enabled</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price Level 5</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enabled</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price Level 6</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enabled</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price Level 7</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enabled</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price Level 8</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enabled</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price Level 9</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enabled</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price Level 10</th>
+                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enabled</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -96,6 +108,18 @@ export default function Index({ auth, pricecategories, filters, success }) {
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-center"><StatusIndicator isActive={item.useprice3} /></td>
                                             <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.price4}</td>
                                             <td className="px-4 py-4 whitespace-nowrap text-sm text-center"><StatusIndicator isActive={item.useprice4} /></td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.price5}</td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-center"><StatusIndicator isActive={item.useprice5} /></td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.price6}</td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-center"><StatusIndicator isActive={item.useprice6} /></td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.price7}</td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-center"><StatusIndicator isActive={item.useprice7} /></td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.price8}</td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-center"><StatusIndicator isActive={item.useprice8} /></td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.price9}</td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-center"><StatusIndicator isActive={item.useprice9} /></td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.price10}</td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-center"><StatusIndicator isActive={item.useprice10} /></td>
                                         </tr>
                                     ) : (
                                         <tr><td colSpan="8" className="text-center py-10 text-gray-500">Click "Create" to define your price categories.</td></tr>

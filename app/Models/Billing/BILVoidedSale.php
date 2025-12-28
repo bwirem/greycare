@@ -19,7 +19,10 @@ class BILVoidedSale extends Model
                            'totaldue','totalpaid','balancedue','paidforinvoice','status',
                            'voidsource','voided','voidsysdate','voidtransdate','voidno','voiduser_id',
                            'currency_id','yearpart','monthpart','transtype', 'user_id',
-                           'paytype000001','paytype000002','paytype000003','paytype000004','reasons'];
+                           'paytype000001','paytype000002','paytype000003','paytype000004',
+                           'paytype000005','paytype000006','paytype000007','paytype000008',
+                           'paytype000009','paytype000010',
+                           'reasons'];
 
     
     public function items()

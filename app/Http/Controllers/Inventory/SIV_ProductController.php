@@ -46,7 +46,7 @@ class SIV_ProductController extends Controller
         $priceCategorySettings = BLSPriceCategory::first();
 
         if ($priceCategorySettings) {
-            for ($i = 1; $i <= 4; $i++) {
+            for ($i = 1; $i <= 10; $i++) {
                 if ($priceCategorySettings->{'useprice' . $i}) {
                     $activePriceCategories[] = [
                         'key' => 'price' . $i,
@@ -149,6 +149,12 @@ class SIV_ProductController extends Controller
             'price2' => 'nullable|numeric|min:0',
             'price3' => 'nullable|numeric|min:0',
             'price4' => 'nullable|numeric|min:0',
+            'price5' => 'nullable|numeric|min:0',
+            'price6' => 'nullable|numeric|min:0',
+            'price7' => 'nullable|numeric|min:0',
+            'price8' => 'nullable|numeric|min:0',
+            'price9' => 'nullable|numeric|min:0',
+            'price10' => 'nullable|numeric|min:0',
         ]);     
 
         // Set cost fields automatically
@@ -185,6 +191,12 @@ class SIV_ProductController extends Controller
                 'price2' => $request->input('price2', 0),
                 'price3' => $request->input('price3', 0),
                 'price4' => $request->input('price4', 0), 
+                'price5' => $request->input('price5', 0),
+                'price6' => $request->input('price6', 0),
+                'price7' => $request->input('price7', 0),
+                'price8' => $request->input('price8', 0),
+                'price9' => $request->input('price9', 0),
+                'price10' => $request->input('price10', 0),
                 'addtocart' => $validated['addtocart'],
                 'defaultqty' => $validated['defaultqty'],
                 'itemgroup_id' => $itemGroup->id,  
@@ -236,6 +248,13 @@ class SIV_ProductController extends Controller
             'price2' => 'nullable|numeric|min:0',
             'price3' => 'nullable|numeric|min:0',
             'price4' => 'nullable|numeric|min:0',
+            'price5' => 'nullable|numeric|min:0',
+            'price6' => 'nullable|numeric|min:0',
+            'price7' => 'nullable|numeric|min:0',
+            'price8' => 'nullable|numeric|min:0',
+            'price9' => 'nullable|numeric|min:0',
+            'price10' => 'nullable|numeric|min:0',
+
         ]);    
 
         $newCostPrice = (float) $validated['costprice'];
@@ -283,6 +302,12 @@ class SIV_ProductController extends Controller
                 if ($request->has('price2')) $blsUpdateData['price2'] = $request->input('price2');
                 if ($request->has('price3')) $blsUpdateData['price3'] = $request->input('price3');
                 if ($request->has('price4')) $blsUpdateData['price4'] = $request->input('price4');
+                if ($request->has('price5')) $blsUpdateData['price5'] = $request->input('price5');
+                if ($request->has('price6')) $blsUpdateData['price6'] = $request->input('price6');
+                if ($request->has('price7')) $blsUpdateData['price7'] = $request->input('price7');
+                if ($request->has('price8')) $blsUpdateData['price8'] = $request->input('price8');
+                if ($request->has('price9')) $blsUpdateData['price9'] = $request->input('price9');
+                if ($request->has('price10')) $blsUpdateData['price10'] = $request->input('price10');
 
                 $product->blsItem->update($blsUpdateData);
 
@@ -296,6 +321,12 @@ class SIV_ProductController extends Controller
                     'price2' => $request->input('price2', 0),
                     'price3' => $request->input('price3', 0),
                     'price4' => $request->input('price4', 0), 
+                    'price5' => $request->input('price5', 0),
+                    'price6' => $request->input('price6', 0),
+                    'price7' => $request->input('price7', 0),
+                    'price8' => $request->input('price8', 0),
+                    'price9' => $request->input('price9', 0),
+                    'price10' => $request->input('price10', 0),
                     'itemgroup_id' => $itemGroup->id,
                     'addtocart' => $validated['addtocart'],
                     'defaultqty' => $validated['defaultqty'],                    

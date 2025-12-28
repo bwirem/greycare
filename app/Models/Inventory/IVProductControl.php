@@ -15,7 +15,7 @@ class IVProductControl extends Model
     protected $table = 'iv_productcontrol';
   
 
-    protected $fillable = ['product_id','qty_1','qty_2','qty_3','qty_4'];
+    protected $fillable = ['product_id','qty_1','qty_2','qty_3','qty_4','qty_5','qty_6','qty_7','qty_8','qty_9','qty_10'];
 
     public function product()
     {

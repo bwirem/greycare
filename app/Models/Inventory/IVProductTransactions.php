@@ -40,6 +40,18 @@ class IVProductTransactions extends Model
         'qtyout_3',
         'qtyin_4',
         'qtyout_4',
+        'qtyin_5',
+        'qtyout_5',
+        'qtyin_6',
+        'qtyout_6',
+        'qtyin_7',
+        'qtyout_7',
+        'qtyin_8',
+        'qtyout_8',
+        'qtyin_9',
+        'qtyout_9',
+        'qtyin_10',
+        'qtyout_10',
         'user_id', // Added user_id to fillable
     ];
 

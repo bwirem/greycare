@@ -46,15 +46,28 @@ class BLSPriceCategoryController extends Controller
             'price2' => 'nullable|string|max:255',
             'price3' => 'nullable|string|max:255',
             'price4' => 'nullable|string|max:255',
+            'price5' => 'nullable|string|max:255',
+            'price6' => 'nullable|string|max:255',
+            'price7' => 'nullable|string|max:255', 
+            'price8' => 'nullable|string|max:255',
+            'price9' => 'nullable|string|max:255',
+            'price10' => 'nullable|string|max:255',
 
             'useprice1' => 'boolean',
             'useprice2' => 'boolean',
             'useprice3' => 'boolean',
             'useprice4' => 'boolean',
+            'useprice5' => 'boolean',
+            'useprice6' => 'boolean',
+            'useprice7' => 'boolean',
+            'useprice8' => 'boolean',
+            'useprice9' => 'boolean',
+            'useprice10' => 'boolean',
+            
         ]);
 
         // Ensure checkbox boolean values are cast properly
-        foreach (['useprice1', 'useprice2', 'useprice3', 'useprice4'] as $field) {
+        foreach (['useprice1', 'useprice2', 'useprice3', 'useprice4', 'useprice5', 'useprice6', 'useprice7', 'useprice8', 'useprice9', 'useprice10'] as $field) {
             $validated[$field] = $request->boolean($field);
         }
 
@@ -84,14 +97,26 @@ class BLSPriceCategoryController extends Controller
             'price2' => 'nullable|string|max:255',
             'price3' => 'nullable|string|max:255',
             'price4' => 'nullable|string|max:255',
+            'price5' => 'nullable|string|max:255',
+            'price6' => 'nullable|string|max:255',
+            'price7' => 'nullable|string|max:255',
+            'price8' => 'nullable|string|max:255',  
+            'price9' => 'nullable|string|max:255',
+            'price10' => 'nullable|string|max:255',
 
             'useprice1' => 'boolean',
             'useprice2' => 'boolean',
             'useprice3' => 'boolean',
             'useprice4' => 'boolean',
+            'useprice5' => 'boolean',
+            'useprice6' => 'boolean',
+            'useprice7' => 'boolean',
+            'useprice8' => 'boolean',
+            'useprice9' => 'boolean',   
+            'useprice10' => 'boolean',
         ]);
 
-        foreach (['useprice1', 'useprice2', 'useprice3', 'useprice4'] as $field) {
+        foreach (['useprice1', 'useprice2', 'useprice3', 'useprice4', 'useprice5', 'useprice6', 'useprice7', 'useprice8', 'useprice9', 'useprice10'] as $field) {
             $validated[$field] = $request->boolean($field);
         }
 

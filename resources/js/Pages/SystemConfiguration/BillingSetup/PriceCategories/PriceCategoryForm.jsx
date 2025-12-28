@@ -14,6 +14,18 @@ export default function PriceCategoryForm({ pricecategory = null }) {
         useprice3: pricecategory ? Boolean(pricecategory.useprice3) : false,
         price4: pricecategory?.price4 || 'Price Level 4',
         useprice4: pricecategory ? Boolean(pricecategory.useprice4) : false,
+        price5: pricecategory?.price5 || 'Price Level 5',
+        useprice5: pricecategory ? Boolean(pricecategory.useprice5) : false,
+        price6: pricecategory?.price6 || 'Price Level 6',
+        useprice6: pricecategory ? Boolean(pricecategory.useprice6) : false,
+        price7: pricecategory?.price7 || 'Price Level 7',
+        useprice7: pricecategory ? Boolean(pricecategory.useprice7) : false,
+        price8: pricecategory?.price8 || 'Price Level 8',
+        useprice8: pricecategory ? Boolean(pricecategory.useprice8) : false,
+        price9: pricecategory?.price9 || 'Price Level 9',
+        useprice9: pricecategory ? Boolean(pricecategory.useprice9) : false,
+        price10: pricecategory?.price10 || 'Price Level 10',
+        useprice10: pricecategory ? Boolean(pricecategory.useprice10) : false,
     });
 
     const handleSubmit = (e) => {
@@ -63,7 +75,7 @@ export default function PriceCategoryForm({ pricecategory = null }) {
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-                {[1, 2, 3, 4].map(renderPriceInput)}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(renderPriceInput)}
             </div>
 
             <div className="flex justify-end items-center gap-4 pt-4 border-t">

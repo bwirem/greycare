@@ -18,6 +18,8 @@ class BILCollection extends Model
     protected $fillable = ['transdate','receiptno','customer_id','paymentsource',
                            'refunded','refundsysdate','refundtransdate','refunduser_id',
                            'paytype000001','paytype000002','paytype000003','paytype000004', 
+                           'paytype000005','paytype000006','paytype000007','paytype000008',
+                           'paytype000009','paytype000010',
                            'yearpart','monthpart','transtype', 'user_id'];
 
     public function customer()
