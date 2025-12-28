@@ -39,7 +39,7 @@ const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-20
 const allowedFinanceItemKeys = [     
     
     //Outpatient Module Items
-    'outpatient0', 'outpatient1', 'outpatient2', 'outpatient3',
+    'outpatient0', 'outpatient1', 'outpatient2', 'outpatient3', 'outpatient4',
     //Inpatient Module Items
     'inpatient0', 'inpatient1', 'inpatient2', 
     //Nursing Module Items
@@ -86,6 +86,7 @@ const iconMap = {
 
     file_signature: faFileSignature,
     ambulance: faAmbulance,
+    cash_register: faSackDollar,
     bed: faBed,
     door_open: faDoorOpen,
     exchange_alt: faExchangeAlt,

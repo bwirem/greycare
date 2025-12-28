@@ -39,7 +39,18 @@ return new class extends Migration
             $table->decimal('qtyout_3', 15, 2)->default(0);
             $table->decimal('qtyin_4', 15, 2)->default(0);
             $table->decimal('qtyout_4', 15, 2)->default(0);
-
+            $table->decimal('qtyin_5', 15, 2)->default(0);
+            $table->decimal('qtyout_5', 15, 2)->default(0);
+            $table->decimal('qtyin_6', 15, 2)->default(0);
+            $table->decimal('qtyout_6', 15, 2)->default(0);
+            $table->decimal('qtyin_7', 15, 2)->default(0);
+            $table->decimal('qtyout_7', 15, 2)->default(0);
+            $table->decimal('qtyin_8', 15, 2)->default(0);
+            $table->decimal('qtyout_8', 15, 2)->default(0);
+            $table->decimal('qtyin_9', 15, 2)->default(0);
+            $table->decimal('qtyout_9', 15, 2)->default(0);
+            $table->decimal('qtyin_10', 15, 2)->default(0);
+            $table->decimal('qtyout_10', 15, 2)->default(0);
 
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
         

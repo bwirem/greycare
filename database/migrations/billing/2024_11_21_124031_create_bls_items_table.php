@@ -19,6 +19,12 @@ return new class extends Migration
             $table->decimal('price2', 10, 2);
             $table->decimal('price3', 10, 2);
             $table->decimal('price4', 10, 2);
+            $table->decimal('price5', 10, 2);
+            $table->decimal('price6', 10, 2);
+            $table->decimal('price7', 10, 2);
+            $table->decimal('price8', 10, 2);
+            $table->decimal('price9', 10, 2);
+            $table->decimal('price10', 10, 2);
             $table->integer('defaultqty'); ;
             $table->integer('addtocart'); 
             $table->timestamps();

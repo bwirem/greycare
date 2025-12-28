@@ -38,6 +38,12 @@ return new class extends Migration
             $table->decimal('paytype000002', 15, 2)->default(0);                      
             $table->decimal('paytype000003', 15, 2)->default(0);                       
             $table->decimal('paytype000004', 15, 2)->default(0);
+            $table->decimal('paytype000005', 15, 2)->default(0);                       
+            $table->decimal('paytype000006', 15, 2)->default(0);                       
+            $table->decimal('paytype000007', 15, 2)->default(0);                       
+            $table->decimal('paytype000008', 15, 2)->default(0);                       
+            $table->decimal('paytype000009', 15, 2)->default(0);                       
+            $table->decimal('paytype000010', 15, 2)->default(0);
                 
             $table->timestamps();
         });

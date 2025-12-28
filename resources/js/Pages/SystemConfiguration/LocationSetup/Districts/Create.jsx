@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/SystemAndUserLayout';
 import Modal from '@/Components/CustomModal';
 import { Head,Link, useForm } from '@inertiajs/react';
 import { useState, useEffect } from 'react';

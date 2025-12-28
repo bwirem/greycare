@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Head, Link, useForm, router } from "@inertiajs/react";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import AuthenticatedLayout from "@/Layouts/SystemAndUserLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {faHome, faSearch, faPlus, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import "@fortawesome/fontawesome-svg-core/styles.css";

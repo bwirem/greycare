@@ -19,7 +19,8 @@ return new class extends Migration
             $table->foreignId('customer_id')->constrained('bls_customers')->onDelete('cascade');       
             $table->integer('stage')->default(1); // Set the default value for 'stage'
             $table->index('stage'); // Add an index for 'stage'           
-            $table->decimal('total', 10, 2); // Total order amount         
+            $table->decimal('total', 10, 2); // Total order amount   
+            $table->string('payment_category')->nullable();  
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });

@@ -258,7 +258,9 @@ class UserPermissionController extends Controller
                 ['key' => 'outpatient0', 'text' => 'Registrations', 'icon' => 'clipboard_list'],                
                 ['key' => 'outpatient1', 'text' => 'Appointments', 'icon' => 'calendar_check'], 
                 ['key' => 'outpatient2', 'text' => 'Approval Request', 'icon' => 'file_signature'],
-                ['key' => 'outpatient3', 'text' => 'To Referral Hospital', 'icon' => 'ambulance'],                               
+                ['key' => 'outpatient3', 'text' => 'To Referral Hospital', 'icon' => 'ambulance'],  
+                ['key' => 'outpatient4', 'text' => 'Check Out & Claims', 'icon' => 'cash_register'],
+                                             
             ],
             'inpatient' => [
                 ['key' => 'inpatient0', 'text' => 'Admissions', 'icon' => 'bed'],

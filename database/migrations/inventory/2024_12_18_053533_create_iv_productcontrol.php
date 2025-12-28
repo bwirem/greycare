@@ -22,6 +22,12 @@ return new class extends Migration
             $table->decimal('qty_2', 15, 2)->default(0);
             $table->decimal('qty_3', 15, 2)->default(0);
             $table->decimal('qty_4', 15, 2)->default(0);
+            $table->decimal('qty_5', 15, 2)->default(0);
+            $table->decimal('qty_6', 15, 2)->default(0);  
+            $table->decimal('qty_7', 15, 2)->default(0);
+            $table->decimal('qty_8', 15, 2)->default(0);
+            $table->decimal('qty_9', 15, 2)->default(0);
+            $table->decimal('qty_10', 15, 2)->default(0);
             
             $table->timestamps();
         });

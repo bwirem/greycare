@@ -1,385 +1,438 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { Head,Link, useForm } from "@inertiajs/react";
+import React, { useState, useMemo } from "react";
+import { Head, Link } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHome } from "@fortawesome/free-solid-svg-icons";
-import Modal from '@/Components/CustomModal';
+import { 
+    faHome, 
+    faSearch, 
+    faSave, 
+    faSpinner,
+    faShieldAlt,
+    faLayerGroup,
+    faChevronRight,
+    faCheckDouble,
+    faBan
+} from "@fortawesome/free-solid-svg-icons";
 import axios from 'axios';
-import { Inertia } from '@inertiajs/inertia';
+import Modal from '@/Components/CustomModal';
+
+// 1. Only import 'toast' (Container is already in Layout)
+import { toast } from 'react-toastify';
+// You can remove the CSS import here if it's already imported in Layout or app.jsx, 
+// but keeping it here doesn't hurt if you want to be safe.
+import 'react-toastify/dist/ReactToastify.css';
+
+// --- Components ---
+
+const ToggleSwitch = ({ checked, onChange, disabled }) => (
+    <button
+        type="button"
+        disabled={disabled}
+        onClick={onChange}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            checked ? 'bg-blue-600' : 'bg-gray-200'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+        <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                checked ? 'translate-x-5' : 'translate-x-0'
+            }`}
+        />
+    </button>
+);
+
+const SearchInput = ({ value, onChange, placeholder }) => (
+    <div className="relative mb-2">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
+        </div>
+        <input
+            type="text"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            placeholder={placeholder}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+        />
+    </div>
+);
+
+const ListHeader = ({ title, count }) => (
+    <div className="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
+        <h3 className="font-bold text-gray-700 text-sm">{title}</h3>
+        {count !== undefined && (
+            <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">{count}</span>
+        )}
+    </div>
+);
 
 export default function Index({ auth, usergroups, modules, moduleitems, functionAccessData }) {
+    // --- State ---
+    const [searchRole, setSearchRole] = useState('');
     const [modalState, setModalState] = useState({ isOpen: false, message: '', isAlert: false });
-    const [selectedUserGroup, setSelectedUserGroup] = useState(null);
-    const [selectedModules, setSelectedModules] = useState([]);
-    const [selectedModuleItems, setSelectedModuleItems] = useState([]);
-    const [functionAccess, setFunctionAccess] = useState({});
-    const [activeModuleItem, setActiveModuleItem] = useState(null);
-    const [lastSelectedModule, setLastSelectedModule] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [existingPermissions, setExistingPermissions] = useState([]); // Store existing permissions in state
+    
+    // Selection State
+    const [selectedUserGroup, setSelectedUserGroup] = useState(null);
+    const [activeModuleKey, setActiveModuleKey] = useState(null);
+    const [activeModuleItem, setActiveModuleItem] = useState(null);
+    
+    // Data State
+    const [permissionsMap, setPermissionsMap] = useState({}); 
 
-    const handleModalClose = () => setModalState({ isOpen: false, message: '', isAlert: false });
+    // --- Helpers ---
+    // Fallback modal if toast fails or for critical alerts
     const showAlert = (message) => setModalState({ isOpen: true, message, isAlert: true });
+    const handleModalClose = () => setModalState({ isOpen: false, message: '', isAlert: false });
 
-    const handleUserGroupSelect = (userGroup) => {
+    // --- Handlers ---
+
+    const handleUserGroupSelect = async (userGroup) => {
+        if (selectedUserGroup?.id === userGroup.id) return;
+
         setLoading(true);
         setSelectedUserGroup(userGroup);
-        setSelectedModules([]);
-        setSelectedModuleItems([]);
-        setFunctionAccess({});
+        setActiveModuleKey(null);
         setActiveModuleItem(null);
-        setLastSelectedModule(null);
+        setPermissionsMap({});
 
-        axios.get(route('usermanagement.userpermission.getPermissions', { userGroup: userGroup.id }))
-            .then(response => {
-                const fetchedPermissions = response.data; // Fetch permissions
-                setExistingPermissions(fetchedPermissions); // Update state with fetched permissions               
+        try {
+            const response = await axios.get(route('usermanagement.userpermission.getPermissions', { userGroup: userGroup.id }));
+            const fetchedPermissions = response.data;
+            const newMap = {};
 
-                const selectedModulesFromData = [];
-                const selectedModuleItemsFromData = [];
-                const functionAccessFromData = {}; // Initialize outside loop
-
-                for (const moduleKey in moduleitems) {
-                    const moduleItemsForModule = moduleitems[moduleKey];
-
-                    moduleItemsForModule.forEach(moduleItem => {
-                        functionAccessFromData[moduleItem.key] = { ...functionAccessData[moduleItem.key] }; // Initialize with defaults
-
-                        const permissionsForItem = fetchedPermissions.filter(p => p.moduleitemkey === moduleItem.key);
-                        permissionsForItem.forEach(permission => {
-                            if (permission.value !== undefined) { // Check if value exists
-                                functionAccessFromData[moduleItem.key][permission.functionaccesskey] = permission.value;
-                            }
-                        });
-
-                        if (permissionsForItem.length > 0) {
-                            selectedModuleItemsFromData.push(moduleItem);
-                        }
-                    });
-
-                    if (moduleItemsForModule.some(moduleItem =>
-                        fetchedPermissions.some(permission => permission.moduleitemkey === moduleItem.key)
-                    )) {
-                        selectedModulesFromData.push(moduleKey);
-                    }
-                }
-
-                // Set data for SelectedModules, SelectedModuleItems, and functionAccess
-                setSelectedModules(selectedModulesFromData);
-                setSelectedModuleItems(selectedModuleItemsFromData);
-                setFunctionAccess(functionAccessFromData); // Now set outside the loop
-                setLastSelectedModule(selectedModulesFromData[0] || null); // Access first element safely
-            })
-            .catch(error => {
-                console.error("Error fetching existing permissions:", error);
-            })
-            .finally(() => setLoading(false));
-    };
-
-    const filteredModuleItems = useMemo(() => {
-        if (!selectedUserGroup) {
-            return [];
-        }
-        return lastSelectedModule ? moduleitems[lastSelectedModule] || [] : [];
-    }, [lastSelectedModule, moduleitems, selectedUserGroup]);
-
-    const handleModuleCheckboxChange = (moduleKey) => {
-        if (!selectedUserGroup) return;
-
-        setSelectedModules(prevModules => {
-            const isSelected = prevModules.includes(moduleKey);
-            const newSelectedModules = isSelected
-                ? prevModules.filter(key => key !== moduleKey)
-                : [...prevModules, moduleKey];
-
-            const relatedItems = moduleitems[moduleKey] || [];
-            const areItemsSelected = relatedItems.some(item => selectedModuleItems.some(selected => selected.key === item.key));
-
-            if (isSelected && areItemsSelected) {
-                return prevModules;
-            }
-
-            if (isSelected) {
-                setSelectedModuleItems(prevItems =>
-                    prevItems.filter(item => !relatedItems.some(mi => mi.key === item.key))
-                );
-            }
-
-            setLastSelectedModule(isSelected ? null : moduleKey);
-            return newSelectedModules;
-        });
-    };
-
-    const handleModuleRowClick = (moduleKey) => {
-        if (!selectedUserGroup) return;
-        handleModuleCheckboxChange(moduleKey);
-    
-        // Set the last selected module
-        setLastSelectedModule(moduleKey);
-    
-        // If there are module items for the selected module, set the function access for the first module item
-        const firstModuleItem = moduleitems[moduleKey]?.[0];
-        if (firstModuleItem) {
-            handleModuleItemSelect(firstModuleItem); // Select the first module item
-        }
-    };
-    
-    const handleModuleItemSelect = (moduleItem) => {
-        if (!selectedUserGroup) return;
-    
-        setSelectedModuleItems(prevItems => {
-            const isSelected = prevItems.some(item => item.key === moduleItem.key);
-            if (isSelected) {
-                setActiveModuleItem(moduleItem);
-                return prevItems; // Return existing items if already selected
-            }
-    
-            const newSelectedItems = [...prevItems, moduleItem];
-            setActiveModuleItem(moduleItem);
-    
-            setFunctionAccess(prevAccess => {
-                const newAccess = { ...prevAccess }; // Start with existing access
-    
-                // Check if moduleItem and data exist using optional chaining and hasOwnProperty to prevent issues.
-                if (moduleItem && moduleItem.key && functionAccessData.hasOwnProperty(moduleItem.key)) {
-                    // Initialize access for the new module item if it doesn't exist
-                    if (!newAccess[moduleItem.key]) {
-                        newAccess[moduleItem.key] = { ...functionAccessData[moduleItem.key] };
-                    }
-    
-                    const permissionsForItem = existingPermissions.filter(p => p?.moduleitemkey === moduleItem.key);
-                    permissionsForItem.forEach(permission => {
-                        if (permission?.value !== undefined) {
-                            newAccess[moduleItem.key][permission.functionaccesskey] = permission.value;
-                        }
-                    });
-                }
-    
-                return newAccess; // Return the updated access object
+            // 1. Initialize map structure
+            Object.keys(functionAccessData).forEach(itemKey => {
+                newMap[itemKey] = { ...functionAccessData[itemKey] };
             });
-    
-            return newSelectedItems; // Return the new selected items
-        });
+
+            // 2. Overlay DB permissions
+            fetchedPermissions.forEach(p => {
+                if (!newMap[p.moduleitemkey]) newMap[p.moduleitemkey] = {};
+                newMap[p.moduleitemkey][p.functionaccesskey] = p.value;
+            });
+
+            setPermissionsMap(newMap);
+            if(modules.length > 0) setActiveModuleKey(modules[0].modulekey);
+
+        } catch (error) {
+            console.error("Error fetching permissions:", error);
+            toast.error("Failed to load permissions."); 
+        } finally {
+            setLoading(false);
+        }
     };
-    
 
-    const handleModuleItemCheckboxChange = (moduleItem) => {
-        // This function can be used for checkbox change event
-        handleModuleItemSelect(moduleItem);
+    const handleModuleSelect = (key) => {
+        setActiveModuleKey(key);
+        setActiveModuleItem(null); 
     };
 
-    const handleFunctionAccessChange = (moduleItemKey, accessType) => {
-        if (!selectedUserGroup) return;
-
-        setFunctionAccess(prevAccess => ({
-            ...prevAccess,
-            [moduleItemKey]: {
-                ...prevAccess[moduleItemKey], // Spread existing access for the module item
-                [accessType]: !(prevAccess[moduleItemKey]?.[accessType] ?? false) // Toggle and handle missing keys
+    const togglePermission = (itemKey, accessKey) => {
+        setPermissionsMap(prev => ({
+            ...prev,
+            [itemKey]: {
+                ...prev[itemKey],
+                [accessKey]: !prev[itemKey]?.[accessKey]
             }
         }));
+    };
 
-        // Update activeModuleItem (important for UI update)
-        setActiveModuleItem(prev =>
-            prev?.key === moduleItemKey
-                ? { ...prev, ...functionAccess[moduleItemKey] }
-                : prev
-        );    
+    const toggleAllFunctions = (itemKey, shouldEnable) => {
+        const updatedAccess = {};
+        const validKeys = Object.keys(functionAccessData[itemKey] || {});
+        
+        validKeys.forEach(key => {
+            updatedAccess[key] = shouldEnable;
+        });
+
+        setPermissionsMap(prev => ({
+            ...prev,
+            [itemKey]: {
+                ...prev[itemKey], 
+                ...updatedAccess
+            }
+        }));
     };
 
     const handleSavePermissions = async () => {
         if (!selectedUserGroup) {
-            showAlert("Please select a user group.");
+            toast.warn("Please select a user group.");
             return;
         }
 
-        if (selectedModuleItems.length === 0) {
-            showAlert("Please select at least one module item before saving.");
-            return;
-        }
-
-        const permissionsToSend = selectedModuleItems.map(item => ({
-            moduleItemKey: item.key,
-            functionAccess: functionAccess[item.key] || {}, // Send the entire access object
-        }));
+        setLoading(true);
+        const permissionsPayload = [];
+        
+        Object.keys(moduleitems).forEach(modKey => {
+            moduleitems[modKey].forEach(item => {
+                if (permissionsMap[item.key]) {
+                    permissionsPayload.push({
+                        moduleItemKey: item.key,
+                        functionAccess: permissionsMap[item.key]
+                    });
+                }
+            });
+        });
 
         try {
             const response = await axios.post(route('usermanagement.userpermission.storePermissions', { userGroup: selectedUserGroup.id }), {
-                permissions: permissionsToSend,
+                permissions: permissionsPayload,
             });
-
-            showAlert(response.data.success);
-            Inertia.get(route('usermanagement.userpermission.index'));           
+            
+            // 2. Trigger Success Toast (Display handled by Layout)
+            toast.success(response.data.success || 'Permissions updated successfully!');
+            
         } catch (error) {
-            console.error("Error saving permissions:", error);
-            showAlert(error.response?.data?.message || 'Failed to save permissions. Please try again.');
+            console.error("Error saving:", error);
+            toast.error(error.response?.data?.message || 'Failed to save permissions.');
+        } finally {
+            setLoading(false);
         }
     };
 
+    // --- Derived Data ---
+
+    const filteredRoles = usergroups.data.filter(g => 
+        g.name.toLowerCase().includes(searchRole.toLowerCase())
+    );
+
+    const currentModuleItems = useMemo(() => 
+        activeModuleKey ? (moduleitems[activeModuleKey] || []) : []
+    , [activeModuleKey, moduleitems]);
+
+    const activeFunctions = useMemo(() => {
+        if (!activeModuleItem) return [];
+        const definitions = functionAccessData[activeModuleItem.key] || {};
+        return Object.keys(definitions);
+    }, [activeModuleItem, functionAccessData]);
+
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold text-gray-800">Permission</h2>}>
-            <Head title="Permission" />
-
-            {/* Header Actions */}
-            <div className="flex flex-col md:flex-row justify-between users-center mb-4">
-                <div className="flex users-center space-x-2 mb-4 md:mb-0"> 
-                    <Link
+        <AuthenticatedLayout header={
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faShieldAlt} className="text-blue-600"/> 
+                    Permission Manager
+                </h2>
+                <div className="flex gap-2">
+                     <Link
                         href={route("usermanagement.index")}
-                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm flex items-center"
+                        className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition shadow-sm flex items-center"
                     >
-                        <FontAwesomeIcon icon={faHome} className="mr-1" /> Home
-                    </Link>    
-                </div>                    
+                        <FontAwesomeIcon icon={faHome} className="mr-2" /> Back
+                    </Link>
+                    <button
+                        onClick={handleSavePermissions}
+                        disabled={loading || !selectedUserGroup}
+                        className={`px-4 py-2 rounded-md text-white text-sm font-medium shadow-sm transition flex items-center gap-2 ${
+                            loading || !selectedUserGroup 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-green-600 hover:bg-green-700'
+                        }`}
+                    >
+                        {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />}
+                        Save Changes
+                    </button>
+                </div>
             </div>
-           
-            <div className="container mx-auto p-4 flex space-x-4">
-                {/* Usergroups Table */}
-                <div className="flex-1 overflow-x-auto">
-                    <table className="min-w-full border border-gray-300 shadow-md rounded">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="border-b p-3 text-center font-medium text-gray-700"></th>
-                                <th className="border-b p-3 text-center font-medium text-gray-700">Roles</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {usergroups.data.length > 0 ? (
-                                usergroups.data.map((usergroup, index) => (
-                                    <tr key={usergroup.id} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
-                                        <td className="border-b p-3 text-gray-700 text-center">
-                                            <input
-                                                type="radio"
-                                                checked={selectedUserGroup?.id === usergroup.id}
-                                                onChange={() => handleUserGroupSelect(usergroup)}
-                                            />
-                                        </td>
-                                        <td className="border-b p-3 text-gray-700">{usergroup.name || "n/a"}</td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="2" className="border-b p-3 text-center text-gray-700">No role found.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+        }>
+            <Head title="Permissions" />
 
-                {/* Modules Table - Now always renders */}
-                <div className="flex-1 overflow-x-auto">
-                    <table className="min-w-full border border-gray-300 shadow-md rounded">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="border-b p-3 text-center font-medium text-gray-700"></th>
-                                <th className="border-b p-3 text-center font-medium text-gray-700">Modules</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {modules.map((module, index) => (
-                                <tr key={index} className={`${selectedModules.includes(module.modulekey) ? 'bg-blue-100' : (index % 2 === 0 ? 'bg-gray-50' : '')}`} onClick={() => handleModuleRowClick(module.modulekey)} style={{ cursor: selectedUserGroup ? 'pointer' : 'default' }}>
-                                    <td className="border-b p-3 text-gray-700 text-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedModules.includes(module.modulekey)}
-                                            onChange={() => handleModuleCheckboxChange(module.modulekey)}
-                                            disabled={!selectedUserGroup}
-                                        />
-                                    </td>
-                                    <td className="border-b p-3 text-gray-700">{module.moduletext || "n/a"}</td>
-                                </tr>
+            <div className="h-[calc(100vh-180px)] min-h-[500px] flex gap-4 p-4 max-w-[1920px] mx-auto overflow-hidden">
+                
+                {/* COLUMN 1: ROLES */}
+                <div className="flex flex-col w-1/5 bg-white rounded-lg shadow border border-gray-200">
+                    <div className="p-3 border-b border-gray-100 bg-gray-50">
+                        <h3 className="font-bold text-gray-700 text-sm mb-2">1. Select Role</h3>
+                        <SearchInput value={searchRole} onChange={setSearchRole} placeholder="Search..." />
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        <ul className="divide-y divide-gray-100">
+                            {filteredRoles.map(group => (
+                                <li key={group.id}>
+                                    <button
+                                        onClick={() => handleUserGroupSelect(group)}
+                                        className={`w-full text-left px-4 py-3 text-sm transition-colors border-l-4 ${
+                                            selectedUserGroup?.id === group.id
+                                                ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium'
+                                                : 'border-transparent text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {group.name}
+                                    </button>
+                                </li>
                             ))}
-                        </tbody>
-                    </table>
+                        </ul>
+                    </div>
                 </div>
 
-                {/* ModuleItems Table - Now always renders */}
-                <div className="flex-1 overflow-x-auto">
-                    <table className="min-w-full border border-gray-300 shadow-md rounded">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="border-b p-3 text-center font-medium text-gray-700"></th>
-                                <th className="border-b p-3 text-center font-medium text-gray-700">Module Items</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredModuleItems.map((moduleitem, index) => (
-                                <tr key={index}
-                                    className={`${selectedModuleItems.some(item => item.key === moduleitem.key) ? 'bg-blue-100' : (index % 2 === 0 ? 'bg-gray-50' : '')}`}
-                                    onClick={() => handleModuleItemSelect(moduleitem)} // Row click selects item
-                                    style={{ cursor: selectedUserGroup ? 'pointer' : 'default' }}
+                {/* COLUMN 2: MODULES */}
+                <div className={`flex flex-col w-1/5 bg-white rounded-lg shadow border border-gray-200 transition-opacity duration-200 ${!selectedUserGroup ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                    <ListHeader title="2. Modules" count={modules.length} />
+                    <div className="flex-1 overflow-y-auto">
+                        <ul className="divide-y divide-gray-100">
+                            {modules.map((module) => {
+                                const modItems = moduleitems[module.modulekey] || [];
+                                const hasActive = modItems.some(item => {
+                                    const p = permissionsMap[item.key];
+                                    return p && Object.values(p).some(v => v === true);
+                                });
+
+                                return (
+                                    <li key={module.modulekey}>
+                                        <button
+                                            onClick={() => handleModuleSelect(module.modulekey)}
+                                            className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors ${
+                                                activeModuleKey === module.modulekey
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                                            }`}
+                                        >
+                                            <span className="truncate">{module.moduletext}</span>
+                                            {hasActive && activeModuleKey !== module.modulekey && (
+                                                <div className="w-2 h-2 rounded-full bg-green-500 shrink-0 ml-2"></div>
+                                            )}
+                                            {activeModuleKey === module.modulekey && <FontAwesomeIcon icon={faChevronRight} className="text-xs opacity-75" />}
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                </div>
+
+                {/* COLUMN 3: MODULE ITEMS */}
+                <div className={`flex flex-col w-1/4 bg-white rounded-lg shadow border border-gray-200 transition-opacity duration-200 ${!activeModuleKey ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                    <ListHeader title="3. Module Items" count={currentModuleItems.length} />
+                    <div className="flex-1 overflow-y-auto bg-gray-50">
+                        {currentModuleItems.length === 0 ? (
+                            <div className="p-4 text-center text-gray-400 text-sm">No items available</div>
+                        ) : (
+                            <div className="divide-y divide-gray-200">
+                                {currentModuleItems.map(item => {
+                                    const perms = permissionsMap[item.key] || {};
+                                    const isActive = Object.values(perms).some(v => v === true);
+                                    
+                                    return (
+                                        <button
+                                            key={item.key}
+                                            onClick={() => setActiveModuleItem(item)}
+                                            className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between transition-colors bg-white hover:bg-gray-100 ${
+                                                activeModuleItem?.key === item.key 
+                                                ? 'ring-2 ring-inset ring-blue-500 z-10' 
+                                                : ''
+                                            }`}
+                                        >
+                                            <span className={`${isActive ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
+                                                {item.text}
+                                            </span>
+                                            {isActive && (
+                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
+                                                    Active
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* COLUMN 4: FUNCTIONS */}
+                <div className={`flex flex-col flex-1 bg-white rounded-lg shadow border border-gray-200 transition-all duration-300 ${!activeModuleItem ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                    <div className="p-3 border-b border-gray-200 bg-blue-50 flex justify-between items-center shrink-0 h-[53px]">
+                        <h3 className="font-bold text-blue-900 text-sm flex items-center gap-2">
+                             {activeModuleItem ? (
+                                <>
+                                    <FontAwesomeIcon icon={faLayerGroup} />
+                                    {activeModuleItem.text} Permissions
+                                </>
+                             ) : "4. Select an Item"}
+                        </h3>
+                        {activeModuleItem && (
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => toggleAllFunctions(activeModuleItem.key, true)}
+                                    title="Enable All"
+                                    className="text-xs bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 px-2 py-1 rounded shadow-sm flex items-center gap-1"
                                 >
-                                    <td className="border-b p-3 text-gray-700 text-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedModuleItems.some(item => item.key === moduleitem.key)}
-                                            onChange={() => handleModuleItemCheckboxChange(moduleitem)} // Checkbox change
-                                            disabled={!selectedUserGroup}
-                                        />
-                                    </td>
-                                    <td className="border-b p-3 text-gray-700">{moduleitem.text || "n/a"}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Function Access Table - Now shows only relevant functions for the active module item */}
-                <div className="flex-1 overflow-x-auto">
-                    <table className="min-w-full border border-gray-300 shadow-md rounded">
-                        <thead>
-                            <tr>
-                                <th className="border-b p-3 text-center font-medium text-gray-700"></th>
-                                <th className="border-b p-3 text-center font-medium text-gray-700">
-                                    {activeModuleItem ? `Function Access for ${activeModuleItem.text}` : "Function Access"}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {activeModuleItem && functionAccess[activeModuleItem.key] &&
-                            Object.keys(functionAccess[activeModuleItem.key]).map(accessType => (
-                                <tr key={accessType}>                                    
-                                    <td className="border-b p-3 text-gray-700 text-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={functionAccess[activeModuleItem.key][accessType] || false}
-                                            onChange={() => handleFunctionAccessChange(activeModuleItem.key, accessType)}
-                                            disabled={!selectedUserGroup}
-                                        />
-                                    </td>
-                                    <td className="border-b p-3 text-gray-700 text-left">
-                                        {accessType.charAt(0).toUpperCase() + accessType.slice(1)}:
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    <FontAwesomeIcon icon={faCheckDouble} /> All
+                                </button>
+                                <button 
+                                    onClick={() => toggleAllFunctions(activeModuleItem.key, false)}
+                                    title="Disable All"
+                                    className="text-xs bg-white text-red-600 border border-red-200 hover:bg-red-50 px-2 py-1 rounded shadow-sm flex items-center gap-1"
+                                >
+                                    <FontAwesomeIcon icon={faBan} /> None
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                        {!activeModuleItem ? (
+                            <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                <FontAwesomeIcon icon={faShieldAlt} className="text-4xl mb-2 opacity-20" />
+                                <p>Select a Module Item from the left</p>
+                            </div>
+                        ) : activeFunctions.length === 0 ? (
+                            <div className="p-4 text-center text-gray-500 italic">
+                                No configurable functions for this item.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-3">
+                                {activeFunctions.map(funcKey => {
+                                    const isChecked = permissionsMap[activeModuleItem.key]?.[funcKey] === true;
+                                    
+                                    return (
+                                        <div 
+                                            key={funcKey} 
+                                            onClick={() => togglePermission(activeModuleItem.key, funcKey)}
+                                            className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all shadow-sm ${
+                                                isChecked 
+                                                ? 'bg-white border-blue-500 ring-1 ring-blue-500' 
+                                                : 'bg-white border-gray-200 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-gray-800 capitalize">
+                                                    {funcKey.replace(/_/g, ' ')}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {isChecked ? 'Access Granted' : 'Access Denied'}
+                                                </span>
+                                            </div>
+                                            <ToggleSwitch 
+                                                checked={isChecked} 
+                                                onChange={() => {}} 
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Loading Indicator */}
-            {loading && (
-                <div className="fixed top-0 left-0 w-full h-full bg-gray-500 bg-opacity-50 flex items-center justify-center">
-                    <div className="bg-white p-4 rounded shadow">Loading...</div>
-                </div>
-            )}
-
-            {/* Buttons */}
-            <div className="flex justify-end space-x-4 mt-6">
-                <button
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                    onClick={handleSavePermissions}
-                >
-                    Save Permissions
-                </button>
-            </div>
-
+            {/* Alert Modal (Fallback) */}
             <Modal
                 isOpen={modalState.isOpen}
                 onClose={handleModalClose}
-                title={modalState.isAlert ? "Alert" : "Confirm Action"}
+                title={modalState.isAlert ? "System Message" : "Confirm"}
                 message={modalState.message}
                 isAlert={modalState.isAlert}
             />
+            
+            {/* Loading Overlay */}
+            {loading && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
+                        <FontAwesomeIcon icon={faSpinner} spin className="text-4xl text-blue-500 mb-4" />
+                        <span className="text-gray-700 font-medium">Processing...</span>
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }
