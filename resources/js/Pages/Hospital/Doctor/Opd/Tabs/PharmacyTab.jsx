@@ -187,7 +187,7 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                             onClick={handleAdd} 
                             className="w-full bg-blue-600 text-white h-[42px] rounded hover:bg-blue-700 flex items-center justify-center shadow-sm transition-colors font-semibold"
                         >
-                            <FontAwesomeIcon icon={faPlus} className="mr-2" />
+                            <FontAwesomeIcon icon={faPlus} />
                         </button>
                     </div>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Head, Link, useForm, router } from "@inertiajs/react";
-import AuthenticatedLayout from "@/Layouts/FinanceLayout";
+import AuthenticatedLayout from "@/Layouts/HospitalLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faSearch,
@@ -8,38 +8,31 @@ import {
     faEdit,
     faTrash,
     faEye,
+    faFilter, // Added icon
 } from "@fortawesome/free-solid-svg-icons";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 
 import Modal from '@/Components/CustomModal.jsx';
 
-// Define constants outside the component for clarity and performance
 const ORDER_STAGE_LABELS = {
     3: 'Pending',
-    4: 'Profoma', 
+    4: 'Proforma',
 };
 
-const DEBOUNCE_DELAY = 300; // milliseconds for search debounce
+const PAYMENT_CATEGORIES = [
+    'Insurance',
+    'Exemption',
+    'Invoice'
+];
 
-// Helper to format the queue time
-const formatQueueTime = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
-};
+const DEBOUNCE_DELAY = 300; 
 
 export default function Index({ auth, orders, filters, success }) {
-    // The form now initializes directly from the server-provided props.
+    // Added payment_category to useForm
     const { data, setData, errors, processing } = useForm({
         search: filters.search || "",
         stage: filters.stage || "",
+        payment_category: filters.payment_category || "", // New Filter State
         start_date: filters.start_date, 
         end_date: filters.end_date,   
     });
@@ -54,21 +47,19 @@ export default function Index({ auth, orders, filters, success }) {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const searchTimeoutRef = useRef(null);
 
-    // Effect to show a success modal if a success message is flashed from the server
     useEffect(() => {
         if (success) {
             setShowSuccessModal(true);
         }
     }, [success]);
 
-    // This useEffect handles user-initiated filter changes.
     useEffect(() => {
         if (searchTimeoutRef.current) {
             clearTimeout(searchTimeoutRef.current);
         }
 
         searchTimeoutRef.current = setTimeout(() => {
-            router.get(route("billing1.index"), data, {
+            router.get(route("outpatient4.index"), data, {
                 preserveState: true,
                 preserveScroll: true, 
                 replace: true,        
@@ -116,7 +107,7 @@ export default function Index({ auth, orders, filters, success }) {
     const handleModalConfirm = useCallback(() => {
         if (!modalState.orderToDeleteId) return;
 
-        router.delete(route("billing1.destroy", modalState.orderToDeleteId), {
+        router.delete(route("outpatient4.destroy", modalState.orderToDeleteId), {
             onSuccess: () => {
                 setModalState({ isOpen: false, message: '', isAlert: false, orderToDeleteId: null });
             },
@@ -171,20 +162,42 @@ export default function Index({ auth, orders, filters, success }) {
                                     </div>
                                 </div>
 
-                                {/* Row 2: Create Button and Stage Filters */}
+                                {/* Row 2: Create Button, Payment Category, and Stage Filters */}
                                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                                    <Link
-                                        href={route("billing1.create")}
-                                        className="flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 md:w-auto"
-                                    >
-                                        <FontAwesomeIcon icon={faPlus} className="mr-2 h-4 w-4" /> Create
-                                    </Link>
+                                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                                        <Link
+                                            href={route("outpatient4.create")}
+                                            className="flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 md:w-auto"
+                                        >
+                                            <FontAwesomeIcon icon={faPlus} className="mr-2 h-4 w-4" /> Create
+                                        </Link>
+
+                                        {/* NEW: Payment Category Dropdown */}
+                                        <div className="relative">
+                                            <FontAwesomeIcon icon={faFilter} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                            <select
+                                                name="payment_category"
+                                                value={data.payment_category}
+                                                onChange={handleSearchChange}
+                                                className="w-full rounded-md border-gray-300 py-2 pl-9 pr-4 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 md:w-48"
+                                            >
+                                                <option value="">All Categories</option>
+                                                {PAYMENT_CATEGORIES.map((category) => (
+                                                    <option key={category} value={category}>
+                                                        {category}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Stage Filters */}
                                     <ul className="flex flex-wrap items-center gap-2">
                                         <li
                                             className={`cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium flex items-center ${data.stage === "" ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}
                                             onClick={() => handleStageChange("")}
                                         >
-                                            All
+                                            All Stages
                                         </li>
                                         {Object.entries(ORDER_STAGE_LABELS).map(([key, label]) => (
                                             <li
@@ -204,12 +217,26 @@ export default function Index({ auth, orders, filters, success }) {
                                 <table className="min-w-full divide-y divide-gray-200 bg-white">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Customer Name</th>
-                                            {/* ADDED QUEUE TIME HEADER */}
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Queue Time</th>
-                                            <th scope="col" className="px-4 py-3.5 text-right text-sm font-semibold text-gray-900">Total</th>
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Stage</th>
-                                            <th scope="col" className="px-4 py-3.5 text-center text-sm font-semibold text-gray-900">Actions</th>
+                                            {/* 1. Queue Time Column Header (NEW) */}
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                                Queue Time
+                                            </th>
+                                            
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                                Customer Name
+                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                                Category
+                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-right text-sm font-semibold text-gray-900">
+                                                Total
+                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                                Stage
+                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-center text-sm font-semibold text-gray-900">
+                                                Actions
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
@@ -223,15 +250,33 @@ export default function Index({ auth, orders, filters, success }) {
 
                                                 return (
                                                     <tr key={order.id} className="hover:bg-gray-50">
+                                                        
+                                                        {/* 1. Queue Time Data (NEW) */}
+                                                        <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-gray-900">
+                                                                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500">
+                                                                    {new Date(order.created_at).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
                                                             {order.customer.customer_type === 'individual' ?
                                                                 `${order.customer.first_name} ${order.customer.other_names || ''} ${order.customer.surname}`.replace(/\s+/g, ' ').trim() :
                                                                 order.customer.company_name
                                                             }
                                                         </td>
-                                                        {/* ADDED QUEUE TIME CELL */}
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
-                                                            {formatQueueTime(order.created_at)}
+                                                            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                                                                order.payment_category === 'Insurance' ? 'bg-blue-50 text-blue-700 ring-blue-700/10' :
+                                                                order.payment_category === 'Exemption' ? 'bg-green-50 text-green-700 ring-green-600/20' :
+                                                                'bg-purple-50 text-purple-700 ring-purple-700/10'
+                                                            }`}>
+                                                                {order.payment_category}
+                                                            </span>
                                                         </td>
                                                         <td className="whitespace-nowrap px-4 py-4 text-right text-sm text-gray-700">
                                                             {parseFloat(order.total).toLocaleString(undefined, {
@@ -245,7 +290,7 @@ export default function Index({ auth, orders, filters, success }) {
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-center">
                                                             <div className="flex items-center justify-center space-x-2">
                                                                 <Link
-                                                                    href={route("billing1.edit", order.id)}
+                                                                    href={route("outpatient4.edit", order.id)}
                                                                     className={`flex items-center rounded px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm ${actionButtonBgColor}`}
                                                                     title={actionButtonTitle}
                                                                 >
@@ -259,8 +304,7 @@ export default function Index({ auth, orders, filters, success }) {
                                             })
                                         ) : (
                                             <tr>
-                                                {/* UPDATED COLSPAN TO 5 */}
-                                                <td colSpan="5" className="whitespace-nowrap px-4 py-10 text-center text-sm text-gray-500">
+                                                <td colSpan="6" className="whitespace-nowrap px-4 py-10 text-center text-sm text-gray-500">
                                                     No items found matching your criteria.
                                                 </td>
                                             </tr>

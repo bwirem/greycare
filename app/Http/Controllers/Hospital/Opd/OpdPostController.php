@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\Billing;
+namespace App\Http\Controllers\Hospital\Opd;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\HandlesOrdering;
@@ -46,7 +46,7 @@ use App\Enums\{
     BillingTransTypes, InvoiceStatus, PaymentSources, InvoiceTransTypes, StoreType
 };
 
-class BilPostController extends Controller
+class OpdPostController extends Controller
 {
     use HandlesOrdering;
     use GeneratesUniqueNumbers;
@@ -62,36 +62,45 @@ class BilPostController extends Controller
 
         $query = BILOrder::with(['orderitems', 'customer']);
 
+        // 1. Search Filter
         if ($request->filled('search')) {
             $query->whereHas('customer', function ($q) use ($request) {
                 $q->where('first_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('surname', 'like', '%' . $request->search . '%')
-                  ->orWhere('other_names', 'like', '%' . $request->search . '%')
-                  ->orWhere('company_name', 'like', '%' . $request->search . '%');
+                ->orWhere('surname', 'like', '%' . $request->search . '%')
+                ->orWhere('other_names', 'like', '%' . $request->search . '%')
+                ->orWhere('company_name', 'like', '%' . $request->search . '%');
             });
         }
 
+        // 2. Date Filter
         $parsedStartDate = Carbon::parse($startDate)->startOfDay();
         $parsedEndDate = Carbon::parse($endDate)->endOfDay();
         $query->whereBetween('created_at', [$parsedStartDate, $parsedEndDate]);
 
+        // 3. Stage Filter
         if ($request->filled('stage')) {
             $query->where('stage', $request->stage);
         }
+        
+        // 4. NEW: Payment Category Filter
+        if ($request->filled('payment_category')) {
+            $query->where('payment_category', $request->payment_category);
+        }
 
+        // Base Constraints
         $query->whereIn('stage', [3, 4]); // Proforma (3) and Saved for Later (4)
-
-        $query->where('payment_category', 'Cash'); // Proforma (3) and Saved for Later (4)
+        $query->where('payment_category', '!=', 'Cash');
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
-        return inertia('Billing/BilPosts/Index', [
+        return inertia('Hospital/Opd/OpdPostBills/Index', [
             'orders' => $orders,
             'filters' => [
-                'search'     => $request->input('search'),
-                'stage'      => $request->input('stage'),
-                'start_date' => $startDate,
-                'end_date'   => $endDate,
+                'search'           => $request->input('search'),
+                'stage'            => $request->input('stage'),
+                'payment_category' => $request->input('payment_category'), // Pass back to view
+                'start_date'       => $startDate,
+                'end_date'         => $endDate,
             ],
         ]);
     }
@@ -101,7 +110,7 @@ class BilPostController extends Controller
      */
     public function create()
     {
-        return inertia('Billing/BilPosts/Create', [
+        return inertia('Hospital/Opd/OpdPostBills/Create', [
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(),
             'facilityOptions' => FacilityOption::first(),
@@ -132,7 +141,7 @@ class BilPostController extends Controller
             'orderitems.*.price_ref' => 'nullable|string',
         ]);
 
-        return inertia('Billing/BilPosts/SaveOrderConfirmation', [
+        return inertia('Hospital/Opd/OpdPostBills/SaveOrderConfirmation', [
             'orderData' => $validatedData
         ]);
     }
@@ -143,7 +152,7 @@ class BilPostController extends Controller
     public function store(Request $request)
     {
         $this->createOrder($request); // Uses HandlesOrdering trait
-        return redirect()->route('billing1.index')->with('success', 'Order created successfully.');
+        return redirect()->route('outpatient4.index')->with('success', 'Order created successfully.');
     }
 
     /**
@@ -195,7 +204,7 @@ class BilPostController extends Controller
             }
         });
 
-        return inertia('Billing/BilPosts/Edit', [
+        return inertia('Hospital/Opd/OpdPostBills/Edit', [
             'order' => $order,
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(),
@@ -211,7 +220,7 @@ class BilPostController extends Controller
         $orderData = $request->all();
         $orderData['id'] = $order->id; // Pass the order ID along
 
-        return inertia('Billing/BilPosts/ConfirmOrderUpdate', [
+        return inertia('Hospital/Opd/OpdPostBills/ConfirmOrderUpdate', [
             'orderData' => $orderData,
             'originalOrder' => $order->load('customer'), // Show original details for comparison
         ]);
@@ -223,7 +232,7 @@ class BilPostController extends Controller
     public function update(Request $request, BILOrder $order)
     {
         $this->updateOrder($request, $order); // Uses HandlesOrdering trait
-        return redirect()->route('billing1.index')->with('success', 'Order updated successfully.');
+        return redirect()->route('outpatient4.index')->with('success', 'Order updated successfully.');
     }
 
     /**
@@ -247,7 +256,7 @@ class BilPostController extends Controller
             'orderitems.*.price_ref' => 'nullable|string',
         ]);
 
-        return inertia('Billing/BilPosts/ProcessPayment', [
+        return inertia('Hospital/Opd/OpdPostBills/ProcessPayment', [
             'orderData' => $validatedData,
             'facilityoption' => FacilityOption::first(),
             'paymentMethods' => BLSPaymentType::all(),
@@ -263,7 +272,7 @@ class BilPostController extends Controller
         $orderData = $request->all();
         $orderData['id'] = $order->id;
 
-        return inertia('Billing/BilPosts/ProcessExistingOrderPayment', [
+        return inertia('Hospital/Opd/OpdPostBills/ProcessExistingOrderPayment', [
             'orderData' => $orderData,
             'originalOrder' => $order->load('customer'),
             'paymentMethods' => BLSPaymentType::all(),
@@ -344,7 +353,7 @@ class BilPostController extends Controller
 
             $backendPrinted = false;
             $frontendAutoPrint = false;           
-            $invoiceUrl = route('billing1.invoice_preview');// Default URL
+            $invoiceUrl = route('outpatient4.invoice_preview');// Default URL
 
             
              // IF Configuration exists
@@ -513,7 +522,7 @@ class BilPostController extends Controller
     {
         $saleId = session('latest_sale_id');
         if (!$saleId) {
-            return redirect()->route('billing1.index')->with('error', 'No sale to display.');
+            return redirect()->route('outpatient4.index')->with('error', 'No sale to display.');
         }
 
         $sale = BILSale::findOrFail($saleId);

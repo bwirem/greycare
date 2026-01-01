@@ -4,42 +4,59 @@ namespace App\Imports;
 
 use App\Models\Diagnosis\DxtDiagnosesIcd;
 use App\Models\Diagnosis\DxtDiagnosesGroup;
-use Maatwebsite\Excel\Concerns\ToModel;
+use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithValidation;
-use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 
-class IcdDiagnosesImport implements ToModel, WithHeadingRow, WithValidation
+class IcdDiagnosesImport implements ToCollection, WithHeadingRow, WithChunkReading
 {
-    /**
-    * @param array $row
-    *
-    * @return \Illuminate\Database\Eloquent\Model|null
-    */
-    public function model(array $row)
+    protected array $groups = [];
+
+    public function collection(Collection $rows)
     {
-        // 1. Find or Create the Group (e.g., "Infectious Diseases")
-        $group = null;
-        if (!empty($row['group'])) {
-            $group = DxtDiagnosesGroup::firstOrCreate(
-                ['name' => trim($row['group'])]
-            );
+        // Cache groups once
+        if (empty($this->groups)) {
+            $this->groups = DxtDiagnosesGroup::pluck('id', 'name')->toArray();
         }
 
-        // 2. Create the ICD Diagnosis
-        return new DxtDiagnosesIcd([
-            'code'                   => $row['code'],
-            'name'                   => $row['name'],
-            'dxt_diagnoses_group_id' => $group ? $group->id : null,
-        ]);
+        $insert = [];
+
+        foreach ($rows as $row) {
+            if (empty($row['code']) || empty($row['name'])) {
+                continue;
+            }
+
+            $groupId = null;
+
+            if (!empty($row['group'])) {
+                $groupName = trim($row['group']);
+
+                if (!isset($this->groups[$groupName])) {
+                    $group = DxtDiagnosesGroup::create(['name' => $groupName]);
+                    $this->groups[$groupName] = $group->id;
+                }
+
+                $groupId = $this->groups[$groupName];
+            }
+
+            $insert[] = [
+                'code' => trim($row['code']),
+                'name' => trim($row['name']),
+                'dxt_diagnoses_group_id' => $groupId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        // Batch insert (ignore duplicates)
+        if (!empty($insert)) {
+            DxtDiagnosesIcd::insertOrIgnore($insert);
+        }
     }
 
-    public function rules(): array
+    public function chunkSize(): int
     {
-        return [
-            'code'  => 'required|string|max:20|unique:dxt_diagnoses_icd,code',
-            'name'  => 'required|string|max:255',
-            'group' => 'nullable|string|max:255',
-        ];
+        return 500;
     }
 }

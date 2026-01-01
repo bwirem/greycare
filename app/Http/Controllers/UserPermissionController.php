@@ -26,7 +26,7 @@ class UserPermissionController extends Controller
         }
 
         // Paginate the results
-        $usergroups = $query->orderBy('created_at', 'desc')->paginate(10);
+        $usergroups = $query->orderBy('created_at', 'desc')->paginate(50);
 
         // Get modules and module items
         $modules = $this->getModules();

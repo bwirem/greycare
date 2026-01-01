@@ -22,7 +22,7 @@ class BillingService
      * @param int $sourceId
      * @param string $priceCategory (e.g. 'price1', 'price5')
      */
-    public function addToBill($patientCode, $billItemId, $quantity, $sourceType, $sourceId, $priceCategory = 'price1')
+    public function addToBill($patientCode, $billItemId, $quantity, $sourceType, $sourceId, $priceCategory = 'price1',$paymentCategory)
     {
         // 1. Find the Billing Customer
         $customer = BLSCustomer::where('patient_code', $patientCode)->first();
@@ -33,6 +33,7 @@ class BillingService
         // 2. Find an OPEN Order (Stage 3 = Pending) for today
         $order = BILOrder::where('customer_id', $customer->id)
             ->where('stage', 3) 
+            ->where('payment_category', $paymentCategory)
             ->whereDate('created_at', Carbon::today())
             ->first();
 
@@ -46,6 +47,7 @@ class BillingService
                 'store_id' => $defaultStoreId,
                 'customer_id' => $customer->id,
                 'stage' => 3, // Pending
+                'payment_category' => $paymentCategory,
                 'total' => 0, 
                 'user_id' => $userId,
             ]);

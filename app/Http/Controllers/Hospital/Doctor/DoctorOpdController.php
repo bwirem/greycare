@@ -361,7 +361,8 @@ class DoctorOpdController extends Controller
                                 1, // Qty
                                 'laboratory', // Source Type
                                 $labRecord->id, // Source ID
-                                $booking->pricecategory
+                                $booking->pricecategory,
+                                $booking->patient?->payment_category
                             );
                         }
                     }
@@ -397,7 +398,8 @@ class DoctorOpdController extends Controller
                                 1,
                                 'radiology',
                                 $radRecord->id,
-                                $booking->pricecategory
+                                $booking->pricecategory,
+                                $booking->patient?->payment_category
                             );
                         }
                     }
@@ -459,7 +461,8 @@ class DoctorOpdController extends Controller
                             1,
                             'theatre',
                             $surgRecord->id,
-                            $booking->pricecategory
+                            $booking->pricecategory,
+                            $booking->patient?->payment_category
                         );
                     }
                 }

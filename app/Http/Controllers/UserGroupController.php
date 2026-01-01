@@ -20,7 +20,7 @@ class UserGroupController extends Controller
         }
 
         // Paginate the results
-        $usergroups = $query->orderBy('created_at', 'desc')->paginate(10);
+        $usergroups = $query->orderBy('created_at', 'desc')->paginate(50);
 
         return inertia('UserManagement/UserGroups/Index', [
             'usergroups' => $usergroups,

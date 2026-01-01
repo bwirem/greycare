@@ -262,7 +262,8 @@ class DoctorIpdController extends Controller
                             1,
                             'laboratory',
                             $labRecord->id,
-                            $admission->pricecategory
+                            $admission->pricecategory,
+                            $admission->patient?->payment_category
                         );
                     }
                 }
@@ -291,7 +292,8 @@ class DoctorIpdController extends Controller
                             1,
                             'radiology',
                             $radRecord->id,
-                            $admission->pricecategory
+                            $admission->pricecategory,
+                            $admission->patient?->payment_category
                         );
                     }
                 }
@@ -322,7 +324,8 @@ class DoctorIpdController extends Controller
                         1,
                         'theatre',
                         $surgRecord->id,
-                        $admission->pricecategory
+                        $admission->pricecategory,
+                        $admission->patient?->payment_category
                     );
                 }
             }

@@ -277,7 +277,8 @@ class OpdRegistrationController extends Controller
                     1,                          
                     'consultation',             
                     $booking->id,               
-                    $booking->pricecategory // Pass price category (e.g., price1, price2)
+                    $booking->pricecategory, // Pass price category (e.g., price1, price2)
+                    $paymentCategory //e.g. Cash,Exemption,Insurance, 
                 );
             }
 
@@ -437,7 +438,8 @@ class OpdRegistrationController extends Controller
                     1,
                     'consultation',
                     $booking->id,
-                    $booking->pricecategory // Use the updated price category
+                    $booking->pricecategory, // Use the updated price category
+                    $paymentCategory //e.g. Cash,Exemption,Insurance, 
                 );
             }
         });

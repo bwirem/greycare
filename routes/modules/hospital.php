@@ -6,6 +6,7 @@ use App\Http\Controllers\Hospital\Opd\OpdRegistrationController;
 use App\Http\Controllers\Hospital\Opd\OpdAppointmentController;
 // Authorization Controllers
 use App\Http\Controllers\Hospital\Opd\OpdAuthorizationController;
+use App\Http\Controllers\Hospital\Opd\OpdPostController;
 
 // Ipd Controllers
 use App\Http\Controllers\Hospital\Ipd\IpdAdmissionController;
@@ -98,6 +99,34 @@ Route::prefix('outpatient1')->name('outpatient1.')->group(function () {
     
     // The "Check-In" Action (Converts Appointment -> Visit)
     Route::post('/{id}/checkin', [OpdAppointmentController::class, 'checkIn'])->name('checkin');
+});
+
+// outpatient4: Post Bills routes
+Route::prefix('outpatient4')->name('outpatient4.')->group(function () {
+    Route::get('/', [OpdPostController::class, 'index'])->name('index');
+    Route::get('/create', [OpdPostController::class, 'create'])->name('create');
+    Route::get('/{order}/edit', [OpdPostController::class, 'edit'])->name('edit');
+
+    // Confirmation Routes
+    Route::post('/confirm-save', [OpdPostController::class, 'confirmSave'])->name('confirmSave');
+    Route::post('/confirm-payment', [OpdPostController::class, 'confirmPayment'])->name('confirmPayment');
+    Route::get('/confirm-save', [OpdPostController::class, 'create'])->name('confirm.save');
+    Route::get('/confirm-payment', [OpdPostController::class, 'create'])->name('confirm.payment');
+
+    Route::post('/confirm-update/{order}', [OpdPostController::class, 'confirmUpdate'])->name('confirmUpdate');
+    Route::post('/confirm-existing-payment/{order}', [OpdPostController::class, 'confirmExistingPayment'])->name('confirmExistingPayment');
+    Route::get('/confirm-update/{order}', [OpdPostController::class, 'edit'])->name('confirm.update');
+    Route::get('/confirm-existing-payment/{order}', [OpdPostController::class, 'edit'])->name('confirm.existing.payment');
+
+    Route::post('/', [OpdPostController::class, 'store'])->name('store');        
+    Route::put('/{order}', [OpdPostController::class, 'update'])->name('update');
+    Route::delete('/{order}', [OpdPostController::class, 'destroy'])->name('destroy');
+
+    // Payment Handling
+    Route::post('/pay', [OpdPostController::class, 'processPayment'])->name('pay');
+    Route::put('/pay/{order}', [OpdPostController::class, 'processPayment'])->name('pay_update');
+
+    Route::get('/invoice-preview', [OpdPostController::class, 'invoicePreview'])->name('invoice_preview');
 });
 
  
