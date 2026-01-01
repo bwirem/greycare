@@ -1,5 +1,5 @@
 import React from 'react';
-import AuthenticatedLayout from '@/Layouts/ResourceLayout'; // Assumed ResourceLayout based on your Product example
+import AuthenticatedLayout from '@/Layouts/HospitalLayout'; // Assumed ResourceLayout based on your Product example
 import { Head } from '@inertiajs/react';
 import PanelForm from './PanelForm';
 

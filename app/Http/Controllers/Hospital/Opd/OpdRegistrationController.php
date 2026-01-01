@@ -48,6 +48,11 @@ class OpdRegistrationController extends Controller
                 'gender'       => $booking->patient?->gender ?? '-',
                 'payment_mode' => $booking->billingGroup?->name ?? 'Cash',
                 'doctor_name'  => $booking->DoctorName ?? 'Unassigned',
+                
+                // --- ADD THIS LINE ---
+                'treatment_point_id' => $booking->treatmentpoint_id, 
+                // ---------------------
+
                 'clinic'       => $booking->treatmentPoint?->name ?? 'General OPD', 
                 'status'       => $booking->vitalsignstatus === 'Closed' ? 'Triaged' : 'Waiting',
                 'time'         => $booking->created_at->format('h:i A'),
@@ -55,8 +60,12 @@ class OpdRegistrationController extends Controller
             ];
         });
 
+        // --- FETCH TREATMENT POINTS ---
+        $treatmentPoints = OpdTreatmentPoint::select('id', 'name')->orderBy('name')->get();
+
         return Inertia::render('Hospital/Opd/Registrations/Index', [
             'registrations' => $registrations,
+            'treatmentPoints' => $treatmentPoints,
         ]);
     }
 
@@ -71,7 +80,9 @@ class OpdRegistrationController extends Controller
         return Inertia::render('Hospital/Opd/Registrations/Create', [
             'treatmentPoints' => OpdTreatmentPoint::select('id', 'name')->get(),         
             'billingGroups'   => PatientBillingGroup::select('id', 'name', 'isexemption', 'isinsurance')->get(),
-            'doctors'         => User::select('id', 'name')->get(), 
+            'doctors'         => User::select('id', 'name')
+                                    ->whereNotNull('specialization_id')
+                                    ->get(), 
             'defaultCashId'   => $defaultCashId,
         ]);
     }

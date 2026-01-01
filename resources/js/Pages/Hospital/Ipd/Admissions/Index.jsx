@@ -5,14 +5,37 @@ import TextInput from '@/Components/TextInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 import Pagination from '@/Components/Pagination';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBed, faSearch, faExclamationCircle, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import { 
+    faBed, 
+    faSearch, 
+    faExclamationCircle, 
+    faCheckCircle, 
+    faFilter 
+} from '@fortawesome/free-solid-svg-icons';
 
-export default function AdmissionsIndex({ admissions, filters }) {
+export default function AdmissionsIndex({ admissions, filters, wards }) {
+    // Initialize state from server props (filters)
     const [search, setSearch] = useState(filters.search || '');
+    const [selectedWard, setSelectedWard] = useState(filters.ward_id || '');
 
+    // 1. Handle Search Form Submit
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get(route('inpatient0.index'), { search }, { preserveState: true });
+        router.get(route('inpatient0.index'), { 
+            search: search, 
+            ward_id: selectedWard // Keep the ward filter active
+        }, { preserveState: true });
+    };
+
+    // 2. Handle Ward Dropdown Change (Trigger immediately)
+    const handleWardChange = (e) => {
+        const wardId = e.target.value;
+        setSelectedWard(wardId);
+        
+        router.get(route('inpatient0.index'), { 
+            search: search, // Keep the search term active
+            ward_id: wardId 
+        }, { preserveState: true });
     };
 
     return (
@@ -24,18 +47,45 @@ export default function AdmissionsIndex({ admissions, filters }) {
                     
                     {/* Toolbar */}
                     <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                        <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-1/2">
-                            <TextInput 
-                                className="w-full"
-                                placeholder="Search Patient Name or Code..." 
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                            />
-                            <PrimaryButton><FontAwesomeIcon icon={faSearch} /></PrimaryButton>
-                        </form>
+                        
+                        {/* Filters Section */}
+                        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-2/3">
+                            
+                            {/* Search Input */}
+                            <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-1/2">
+                                <TextInput 
+                                    className="w-full"
+                                    placeholder="Search Patient Name or Code..." 
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                />
+                                <PrimaryButton><FontAwesomeIcon icon={faSearch} /></PrimaryButton>
+                            </form>
+
+                            {/* Ward Dropdown */}
+                            <div className="relative w-full sm:w-1/2">
+                                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                    <FontAwesomeIcon icon={faFilter} />
+                                </div>
+                                <select
+                                    className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm w-full pl-10"
+                                    value={selectedWard}
+                                    onChange={handleWardChange}
+                                >
+                                    <option value="">All Wards / Locations</option>
+                                    {wards.map((ward) => (
+                                        <option key={ward.id} value={ward.id}>
+                                            {ward.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Action Button */}
                         <Link 
                             href={route('inpatient0.create')} 
-                            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-bold flex items-center gap-2 whitespace-nowrap"
+                            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-bold flex items-center gap-2 whitespace-nowrap w-full md:w-auto justify-center"
                         >
                             <FontAwesomeIcon icon={faBed} /> New Admission
                         </Link>
@@ -56,7 +106,10 @@ export default function AdmissionsIndex({ admissions, filters }) {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {admissions.data.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">No active or pending admissions found.</td>
+                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">
+                                            No active or pending admissions found 
+                                            {selectedWard ? ' in this ward' : ''}.
+                                        </td>
                                     </tr>
                                 ) : (
                                     admissions.data.map((adm) => (

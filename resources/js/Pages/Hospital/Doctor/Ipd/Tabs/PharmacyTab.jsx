@@ -17,6 +17,7 @@ export default function PharmacyTab({
         frequency_id: '', duration_id: '', quantity: 0
     });
     const [selectedDrugDetails, setSelectedDrugDetails] = useState(null);
+    const [finalStrenthUnit, setFinalStrenthUnit] = useState('mg');
 
     // --- EFFECT: Calculation Logic ---
     useEffect(() => {
@@ -29,12 +30,16 @@ export default function PharmacyTab({
         let finalQty = 0;
 
         if (inputDosage > 0 && freqVal > 0 && durDays > 0) {
-            finalQty = inputDosage * freqVal * durDays;
+            //finalQty = inputDosage * freqVal * durDays;
 
             if (selectedDrugDetails) {
                 const type = parseInt(selectedDrugDetails.formulation_type);
                 const strength = parseFloat(selectedDrugDetails.strength_amount) || 0;
                 const bottleSize = parseFloat(selectedDrugDetails.total_volume) || 0;
+
+                if(selectedDrugDetails.strength_unit){
+                    setFinalStrenthUnit(selectedDrugDetails.strength_unit);
+                }    
 
                 if (type === 0 && strength > 0 && inputDosage >= strength) {
                     finalQty = (inputDosage / strength) * freqVal * durDays;
@@ -192,21 +197,26 @@ export default function PharmacyTab({
                     </div>
 
                     {/* 5. Calculated Qty Display */}
-                    <div className="md:col-span-1">
+                    <div className="md:col-span-2">
                         <InputLabel value="Qty" />
-                        <div className="w-full h-[42px] bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-blue-800 font-bold px-1" title="Calculated Quantity">
+                        {/* <div className="w-full h-[42px] bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-blue-800 font-bold px-1" title="Calculated Quantity">
                            {newRx.quantity}
-                        </div>
+                        </div> */}
+                        <TextInput 
+                            type="number" step="1" className="w-full" 
+                            value={newRx.quantity} 
+                            onChange={e => setNewRx({...newRx, quantity: e.target.value})} 
+                        />
                     </div>
 
                     {/* 6. Add Button */}
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-1">
                          <button 
                             type="button" 
                             onClick={handleAdd} 
                             className="w-full bg-blue-600 text-white h-[42px] rounded hover:bg-blue-700 flex items-center justify-center shadow-sm transition-colors font-semibold"
                         >
-                            <FontAwesomeIcon icon={faPlus} className="mr-2" /> Add
+                            <FontAwesomeIcon icon={faPlus} />
                         </button>
                     </div>
 
@@ -227,7 +237,7 @@ export default function PharmacyTab({
                     <span>
                         <strong className="text-gray-800">{p.name}</strong> 
                         <span className="mx-2 text-gray-400">|</span> 
-                        {p.dosage} x {p.frequency} for {p.duration}
+                        {p.dosage}{finalStrenthUnit} x {p.frequency} for {p.duration}
                     </span>
                     <div className="flex items-center gap-4">
                         <span className="font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded text-xs">Qty: {p.quantity}</span>

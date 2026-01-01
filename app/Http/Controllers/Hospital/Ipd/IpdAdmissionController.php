@@ -29,7 +29,7 @@ class IpdAdmissionController extends Controller
 {
     /**
      * Display listing of Admissions.
-     */
+     */   
     public function index(Request $request)
     {
         $query = IpdAdmission::with(['patient', 'ward', 'bed'])
@@ -37,6 +37,7 @@ class IpdAdmissionController extends Controller
             ->orderByRaw("FIELD(status, 'Pending', 'Admitted')")
             ->orderBy('created_at', 'desc');
 
+        // 1. Existing Search Filter
         if ($request->search) {
             $query->whereHas('patient', function ($q) use ($request) {
                 $q->where('first_name', 'like', "%{$request->search}%")
@@ -45,13 +46,23 @@ class IpdAdmissionController extends Controller
             });
         }
 
+        // 2. Existing Status Filter
         if ($request->status) {
             $query->where('status', $request->status);
         }
 
+        // --- 3. NEW: Ward Filter ---
+        if ($request->ward_id) {
+            $query->where('ward_id', $request->ward_id);
+        }
+
+        // 4. Fetch Wards for Dropdown
+        $wards = IpdWard::select('id', 'name')->orderBy('name')->get();
+
         return Inertia::render('Hospital/Ipd/Admissions/Index', [
             'admissions' => $query->paginate(15)->withQueryString(),
-            'filters' => $request->only(['search', 'status'])
+            'wards'      => $wards, // Pass wards to view
+            'filters'    => $request->only(['search', 'status', 'ward_id']) // Maintain state
         ]);
     }
 
@@ -94,7 +105,8 @@ class IpdAdmissionController extends Controller
      * Store (Create New, Register Patient if New, or Update Pending)
      */
     public function store(Request $request, BillingService $billingService)
-    {
+    {      
+      
         // 1. Validation
         $isExistingPatient = $request->filled('patient_code');
 
@@ -109,11 +121,12 @@ class IpdAdmissionController extends Controller
             'billinggroup_id' => 'required|exists:patient_billing_groups,id',
             'billinggroupmembershipno' => 'nullable|string|max:100',
             'authorizationno' => 'nullable|string|max:50',
-            'schemeid' => 'nullable|string',
+            // 'schemeid' => 'nullable|string',
         ];
-
+     
         // If New Patient, validate demographics
-        if (!$isExistingPatient) {
+        if (!$isExistingPatient) {          
+ 
             $rules = array_merge($rules, [
                 'first_name'    => 'required|string|max:255',
                 'last_name'     => 'required|string|max:255',
@@ -123,9 +136,10 @@ class IpdAdmissionController extends Controller
                 'phone_number'  => 'required|string|max:50',
                 'middle_name'   => 'nullable|string|max:255',
             ]);
-        }
+        }        
 
-        $validated = $request->validate($rules);
+
+        $validated = $request->validate($rules);       
 
         // Bed Availability Check
         if ($request->filled('bed_id')) {
@@ -225,7 +239,7 @@ class IpdAdmissionController extends Controller
                     'pricecategory'   => $billingGroup->pricecategory ?? 'price1',
                     'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null,
                     'authorizationno' => $validated['authorizationno'] ?? null,
-                    'schemeid' => $request->schemeid ?? null,
+                   
                 ]);
             } 
             // Scenario 2: Create New Admission

@@ -96,7 +96,8 @@ class PostDailyBedCharges extends Command
                         $admission->ward->blsItem->id, // The Bill Item ID
                         1,                             // Quantity (1 Day)
                         'ipd_bed_charge',              // Source Type
-                        $chargeRecord->id              // Source ID
+                        $chargeRecord->id,              // Source ID
+                        $admission->pricecategory // Price Category
                     );
                 });
 

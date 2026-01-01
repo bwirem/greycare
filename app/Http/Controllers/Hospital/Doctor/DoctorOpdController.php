@@ -41,6 +41,8 @@ use App\Models\Inventory\SIV_Product;
 use App\Models\Theatre\TheatreBooking;
 use App\Models\Theatre\TheatreProcedure;
 use App\Models\Ipd\IpdWard; // <--- ADDED THIS IMPORT
+use App\Models\Opd\OpdTreatmentPoint; // Import this
+
 
 // Services
 use App\Services\BillingService; // <--- NEW IMPORT
@@ -50,19 +52,35 @@ class DoctorOpdController extends Controller
     /**
      * 1. The Queue
      */
-    public function index()
+    public function index(Request $request)
     {
+        
+        // 1. Get the filter from the request
+        $treatmentPointId = $request->input('treatment_point_id');
+
         $queue = OpdBooking::with(['patient','billingGroup', 'latestVitalSign'])
             ->whereDate('created_at', today())
             // --- FILTER OUT ADMITTED PATIENTS ---
             ->where('consultation_status', '!=', 'Admitted')             
             // Optional: You might also want to hide 'Completed' or 'Cancelled'
             // ->whereNotIn('consultation_status', ['Admitted', 'Cancelled'])
+
+            // --- APPLY TREATMENT POINT FILTER ---
+            ->when($treatmentPointId, function ($query, $id) {
+                return $query->where('treatmentpoint_id', $id);
+            })
+
             ->orderBy('created_at', 'asc')
             ->paginate(20);
 
+            $treatmentPoints = OpdTreatmentPoint::select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('Hospital/Doctor/Opd/Index', [
-            'queue' => $queue
+            'queue' => $queue,
+            'treatmentPoints' => $treatmentPoints, // Pass to View
+            'filters' => $request->only(['treatment_point_id']), // Pass current selection back
         ]);
     }
 

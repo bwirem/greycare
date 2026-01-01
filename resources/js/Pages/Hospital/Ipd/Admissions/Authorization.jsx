@@ -88,6 +88,9 @@ export default function Authorization({ show, onClose, onAuthorized, billingGrou
                     scheme_name: res.data.SchemeName,
                     billing_group_id: groupId,
                     card_no: cardNo,
+
+                    // --- PASS THE CODE DIRECTLY ---
+                    existing_patient_code: patientData.existing_patient_code || '',
                     // Map API patient data to form fields if needed
                     patient_details: {
                         first_name: patientData.FirstName,

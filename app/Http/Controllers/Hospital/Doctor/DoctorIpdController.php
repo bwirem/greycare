@@ -51,6 +51,8 @@ use App\Models\Theatre\TheatreBooking;
 use App\Models\BloodBank\BbIssueRequest;
 use App\Models\BloodBank\BbComponentType;
 
+use App\Models\Ipd\IpdWard; // Import Ward Model
+
 // --- NEW IMPORT: Billing Service ---
 use App\Services\BillingService; 
 
@@ -58,18 +60,24 @@ class DoctorIpdController extends Controller
 {
     /**
      * 1. Ward List (Admitted Patients)
-     */
+     */   
     public function index(Request $request)
     {
         $query = IpdAdmission::with(['patient', 'ward', 'bed'])
             ->where('status', 'Admitted');
 
+        // Apply Ward Filter
         if($request->ward_id) {
             $query->where('ward_id', $request->ward_id);
         }
 
+        // Fetch Wards for Dropdown
+        $wards = IpdWard::select('id', 'name')->orderBy('name')->get();
+
         return Inertia::render('Hospital/Doctor/Ipd/Index', [
-            'admissions' => $query->orderBy('ward_id')->paginate(20)
+            'admissions' => $query->orderBy('ward_id')->paginate(20)->withQueryString(),
+            'wards'      => $wards, // Pass list
+            'filters'    => $request->only(['ward_id']), // Pass active filter
         ]);
     }
 

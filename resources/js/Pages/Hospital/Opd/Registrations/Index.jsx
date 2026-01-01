@@ -1,28 +1,45 @@
-import React, { useState } from 'react';
-import HospitalLayout from '@/Layouts/HospitalLayout'; // Adjust path if your layout is elsewhere
+import React, { useState, useEffect } from 'react';
+import HospitalLayout from '@/Layouts/HospitalLayout'; 
 import { Head, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
     faSearch, 
     faPlus, 
-    faFilter, 
     faEye, 
     faEdit, 
     faStethoscope,
-    faUserInjured
+    faUserInjured,
+    faClinicMedical
 } from "@fortawesome/free-solid-svg-icons";
 
-export default function OpdRegistrationsIndex({ auth, registrations }) {
+export default function OpdRegistrationsIndex({ auth, registrations, treatmentPoints }) {
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Filter logic based on search term
-    const filteredRegistrations = registrations.filter(reg => 
-        reg.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.file_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.visit_number.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // --- CHANGE 1: Initialize state from Session Storage ---
+    // This runs once when the component mounts. If a value exists in storage, use it.
+    const [selectedPoint, setSelectedPoint] = useState(() => {
+        return sessionStorage.getItem('opd_selected_point') || '';
+    });
 
-    // Helper for Status Badge Colors
+    // --- CHANGE 2: Update Storage when selection changes ---
+    // Whenever 'selectedPoint' changes, save it to the browser's session storage.
+    useEffect(() => {
+        sessionStorage.setItem('opd_selected_point', selectedPoint);
+    }, [selectedPoint]);
+
+    // Filter Logic
+    const filteredRegistrations = registrations.filter(reg => {
+        const matchesSearch = 
+            reg.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reg.file_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reg.visit_number.toLowerCase().includes(searchTerm.toLowerCase());
+
+        // Note: Use '==' to compare string (from dropdown) vs number (from DB)
+        const matchesClinic = selectedPoint === '' || reg.treatment_point_id == selectedPoint;
+
+        return matchesSearch && matchesClinic;
+    });
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'Waiting':
@@ -48,7 +65,6 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
             <Head title="OPD Registrations" />
 
             <div className="py-2">
-                {/* Stats / Quick Cards (Optional) */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-white overflow-hidden shadow-sm rounded-lg p-4 border-l-4 border-blue-500">
                         <div className="text-gray-500 text-sm font-medium">Today's Visits</div>
@@ -62,34 +78,50 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
                     </div>
                 </div>
 
-                {/* Main Content Card */}
                 <div className="bg-white overflow-hidden shadow-sm rounded-lg">
                     
                     {/* Toolbar */}
                     <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
                         
-                        {/* Search Box */}
-                        <div className="relative w-full md:w-1/3">
-                            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
-                            </span>
-                            <input
-                                type="text"
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                placeholder="Search by Name, File No..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex flex-col md:flex-row gap-4 w-full md:w-2/3">
+                            {/* Search Box */}
+                            <div className="relative w-full md:w-1/2">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
+                                </span>
+                                <input
+                                    type="text"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    placeholder="Search Name or File No..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Treatment Point Filter */}
+                            <div className="relative w-full md:w-1/2">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <FontAwesomeIcon icon={faClinicMedical} className="text-gray-400" />
+                                </span>
+                                <select
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                                    value={selectedPoint}
+                                    onChange={(e) => setSelectedPoint(e.target.value)}
+                                >
+                                    <option value="">All Clinics / Treatment Points</option>
+                                    {treatmentPoints.map((tp) => (
+                                        <option key={tp.id} value={tp.id}>
+                                            {tp.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
-                        {/* Actions */}
                         <div className="flex gap-2">
-                            <button className="inline-flex items-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
-                                <FontAwesomeIcon icon={faFilter} className="mr-2" /> Filter
-                            </button>
                             <Link 
                                 href={route('outpatient0.create')}
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-blue-700 transition ease-in-out duration-150"
                             >
                                 <FontAwesomeIcon icon={faPlus} className="mr-2" /> New Registration
                             </Link>
@@ -101,24 +133,12 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Visit Info
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Patient Details
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Doctor / Room
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Payment
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions
-                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visit Info</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Details</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor / Room</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -135,12 +155,12 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
                                                     {reg.file_number} | {reg.gender}, {reg.age} Yrs
                                                 </div>
                                             </td>                                           
-                                            {/* --- UPDATED COLUMN --- */}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-gray-900">{reg.doctor_name}</div>
-                                                <div className="text-xs text-gray-500">{reg.clinic}</div>
+                                                <div className="text-xs text-gray-500 bg-gray-100 inline-block px-2 py-0.5 rounded">
+                                                    {reg.clinic}
+                                                </div>
                                             </td>
-                                            {/* ---------------------- */}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className="text-sm text-gray-700">{reg.payment_mode}</span>
                                             </td>
@@ -149,8 +169,6 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end gap-2">
-                                                    
-                                                    {/* 1. View Details */}
                                                     <Link 
                                                         href={route('outpatient0.show', reg.id)}
                                                         className="text-gray-500 hover:text-blue-600 transition-colors" 
@@ -159,8 +177,6 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
                                                         <FontAwesomeIcon icon={faEye} />
                                                     </Link>
 
-                                                    {/* 2. Edit Registration */}
-                                                    {/* Only allow editing if status is still Waiting or Triaged */}
                                                     {reg.status !== 'Seen' && (
                                                         <Link 
                                                             href={route('outpatient0.edit', reg.id)}
@@ -171,18 +187,15 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
                                                         </Link>
                                                     )}
 
-                                                    {/* 3. Send to Triage / Print Slip */}
-                                                    {/* Uses <a> to open in new tab for printing */}
                                                     <a 
                                                         href={route('outpatient0.print_slip', reg.id)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-gray-500 hover:text-purple-600 transition-colors" 
-                                                        title="Print Slip / Send to Triage"
+                                                        title="Print Slip"
                                                     >
                                                         <FontAwesomeIcon icon={faStethoscope} />
                                                     </a>
-
                                                 </div>
                                             </td>
                                         </tr>
@@ -190,7 +203,7 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
                                 ) : (
                                     <tr>
                                         <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
-                                            No registrations found matching "{searchTerm}"
+                                            No registrations found.
                                         </td>
                                     </tr>
                                 )}
@@ -198,18 +211,9 @@ export default function OpdRegistrationsIndex({ auth, registrations }) {
                         </table>
                     </div>
                     
-                    {/* Pagination Placeholder */}
                     <div className="p-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-500">
                         <div>Showing {filteredRegistrations.length} records</div>
-                        <div className="flex gap-1">
-                            {/* You would usually use Laravel Pagination links here */}
-                            <button className="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50" disabled>Prev</button>
-                            <button className="px-3 py-1 border rounded bg-blue-50 text-blue-600">1</button>
-                            <button className="px-3 py-1 border rounded hover:bg-gray-100">2</button>
-                            <button className="px-3 py-1 border rounded hover:bg-gray-100">Next</button>
-                        </div>
                     </div>
-
                 </div>
             </div>
         </HospitalLayout>

@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Patient\PatientBillingGroup;
+use App\Models\Patient\Patient;
+
 
 class OpdAuthorizationController extends Controller
 {
@@ -41,7 +43,14 @@ class OpdAuthorizationController extends Controller
                 ->get($endpoint, ['CardNo' => $request->card_no]);
 
             if ($response->successful()) {
-                return response()->json($response->json());
+
+                $data = $response->json();     
+                // Local            
+                $localPatientCode = Patient::where('insurance_member_no', $request->card_no)
+                                            ->value('code');
+                $data['existing_patient_code'] = $localPatientCode ?? ''; 
+
+                return response()->json($data);
             }
 
             return $this->handleApiError($response, 'Verification Failed');

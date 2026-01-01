@@ -152,6 +152,8 @@ export default function Create({ patient, wards, pendingAdmission, billingGroups
 
         setData(values => ({
             ...values,
+            // --- SET THE CODE (Empty or Found Value) ---
+            patient_code: authData.existing_patient_code, 
             billinggroup_id: authData.billing_group_id,
             billinggroupmembershipno: authData.card_no,
             authorizationno: authData.authorization_no,

@@ -19,7 +19,7 @@ export default function OpdCreate({
     treatmentPoints, 
     billingGroups, 
     doctors, 
-    defaultCashGroupId // Ensure Controller passes this
+    defaultCashGroupId 
 }) {
     
     // --- UI State ---
@@ -49,7 +49,10 @@ export default function OpdCreate({
         phone_number: '',
         
         // Visit Details
-        treatmentpoint_id: '',
+        // --- MODIFICATION START: Get default from Session Storage ---
+        treatmentpoint_id: (typeof window !== 'undefined' ? sessionStorage.getItem('opd_selected_point') : '') || '',
+        // --- MODIFICATION END ---
+        
         doctor_user_id: '',
         billinggroup_id: '',
         
@@ -124,6 +127,10 @@ export default function OpdCreate({
         setSelectedPatient(null);
         setSearchQuery('');
         reset(); 
+        
+        // Optional: Re-apply the default treatment point after reset
+        const defaultPoint = sessionStorage.getItem('opd_selected_point') || '';
+        if(defaultPoint) setData('treatmentpoint_id', defaultPoint);
     };
 
     // --- 3. AGE <-> DOB LOGIC ---
@@ -168,6 +175,8 @@ export default function OpdCreate({
 
         setData(values => ({
             ...values,
+            existing_patient_code: authData.existing_patient_code, 
+
             billinggroup_id: authData.billing_group_id,
             billinggroupmembershipno: authData.card_no,
             authorizationno: authData.authorization_no,

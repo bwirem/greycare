@@ -117,12 +117,24 @@ class BLSItemController extends Controller
             'price2' => 'nullable|numeric|min:0',
             'price3' => 'nullable|numeric|min:0',
             'price4' => 'nullable|numeric|min:0',
+            'price5' => 'nullable|numeric|min:0',
+            'price6' => 'nullable|numeric|min:0',
+            'price7' => 'nullable|numeric|min:0',
+            'price8' => 'nullable|numeric|min:0',
+            'price9' => 'nullable|numeric|min:0',
+            'price10' => 'nullable|numeric|min:0',
         ]);
          
         $validated['addtocart'] = $request->boolean('addtocart');
         $validated['price2'] = $validated['price2'] ?? 0;
         $validated['price3'] = $validated['price3'] ?? 0;
         $validated['price4'] = $validated['price4'] ?? 0;
+        $validated['price5'] = $validated['price5'] ?? 0;
+        $validated['price6'] = $validated['price6'] ?? 0;
+        $validated['price7'] = $validated['price7'] ?? 0;
+        $validated['price8'] = $validated['price8'] ?? 0;
+        $validated['price9'] = $validated['price9'] ?? 0;
+        $validated['price10'] = $validated['price10'] ?? 0;
 
         BLSItem::create($validated);
 
@@ -159,6 +171,12 @@ class BLSItemController extends Controller
             'price2' => 'nullable|numeric|min:0',
             'price3' => 'nullable|numeric|min:0',
             'price4' => 'nullable|numeric|min:0',
+            'price5' => 'nullable|numeric|min:0',
+            'price6' => 'nullable|numeric|min:0',
+            'price7' => 'nullable|numeric|min:0',
+            'price8' => 'nullable|numeric|min:0',
+            'price9' => 'nullable|numeric|min:0',
+            'price10' => 'nullable|numeric|min:0',
         ]);
     
         $validated['addtocart'] = $request->boolean('addtocart');
