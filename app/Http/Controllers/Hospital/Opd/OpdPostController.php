@@ -499,10 +499,14 @@ class OpdPostController extends Controller
     {
         // A. Generate PDF
         $facility = FacilityOption::first();
+       
+        //
+        $customPaper = array(0, 0, 226.77, 1000);
+
         $pdf = Pdf::loadView('pdfs.sale_invoice', [
             'sale' => $sale,
             'facility' => $facility,
-        ]);
+        ])->setPaper($customPaper, 'portrait'); // <--- APPLY HERE
 
         // B. Save to Temp File
         $fileName = 'invoice_' . $sale->id . '_' . time() . '.pdf';
@@ -528,10 +532,12 @@ class OpdPostController extends Controller
         $sale = BILSale::findOrFail($saleId);
         $facility = FacilityOption::first();
 
+        $customPaper = array(0, 0, 226.77, 1000);
+
         $pdf = Pdf::loadView('pdfs.sale_invoice', [
             'sale' => $sale,
             'facility' => $facility,
-        ]);
+        ])->setPaper($customPaper, 'portrait'); // <--- APPLY HERE
 
         // Send PDF with correct headers so browser opens it
         return response($pdf->output(), 200)

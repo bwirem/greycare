@@ -431,6 +431,20 @@ class UserPermissionController extends Controller
             'delete' => false,
         ];
 
+        // // Add outpatient-specific permissions only for 'outpatient4'
+        if ($key === 'outpatient4') {
+           return array_merge($defaultFunctionAccess, [                
+                'charge_patient' => false,                
+            ]);
+        }
+
+        // // Add pharmacy-specific permissions only for 'pharmacy0'
+        if ($key === 'pharmacy0') {
+           return array_merge($defaultFunctionAccess, [                
+                'charge_patient' => false,                
+            ]);
+        }
+
         if ($key === 'systemconfiguration2') {
             return array_merge($defaultFunctionAccess, [                
                 'allow_price' => false,                
@@ -445,6 +459,13 @@ class UserPermissionController extends Controller
             ];
         }else{
             return $defaultFunctionAccess; // Return default for other keys
+        }        
+
+        // // Add loan-specific permissions only for 'outpatient4'
+        if ($key === 'outpatient4') {
+           return array_merge($defaultFunctionAccess, [                
+                'allow_price' => false,                
+            ]);
         }
         
     }

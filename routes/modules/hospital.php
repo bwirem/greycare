@@ -7,6 +7,8 @@ use App\Http\Controllers\Hospital\Opd\OpdAppointmentController;
 // Authorization Controllers
 use App\Http\Controllers\Hospital\Opd\OpdAuthorizationController;
 use App\Http\Controllers\Hospital\Opd\OpdPostController;
+use App\Http\Controllers\Hospital\Opd\OpdRegistrationPostBillsController;
+
 
 // Ipd Controllers
 use App\Http\Controllers\Hospital\Ipd\IpdAdmissionController;
@@ -31,6 +33,8 @@ use App\Http\Controllers\Hospital\Radiology\RadResultController;
 // Pharmacy Controllers
 use App\Http\Controllers\Hospital\Pharmacy\PharmacyDispenseController;  
 use App\Http\Controllers\Hospital\Pharmacy\PharmacyPrescriptionController;
+use App\Http\Controllers\Hospital\Pharmacy\PharmacyPostController;
+
 
 // Theatre Controllers
 use App\Http\Controllers\Hospital\Theatre\TheatreMinorController;
@@ -54,38 +58,75 @@ use App\Http\Controllers\BloodBank\BbCrossmatchController;
 */
 
 // inventory0: Requistion routes
+
 Route::prefix('outpatient0')->name('outpatient0.')->group(function () {        
-    // Registrations List
-    Route::get('/', [OpdRegistrationController::class, 'index'])
-        ->name('index');      
-    Route::get('/create', [OpdRegistrationController::class, 'create'])
-        ->name('create');
-    Route::post('/', [OpdRegistrationController::class, 'store'])
-        ->name('store');
+    
+    // ==========================================
+    // 1. STATIC ROUTES (MUST BE AT THE TOP)
+    // ==========================================
+    
+    // Main Registration List
+    Route::get('/', [OpdRegistrationController::class, 'index'])->name('index');      
+    
+    // Create & Store
+    Route::get('/create', [OpdRegistrationController::class, 'create'])->name('create');
+    Route::post('/', [OpdRegistrationController::class, 'store'])->name('store');
 
-    // ** NEW: Patient Search Route **
-    Route::get('/search-patient', [OpdRegistrationController::class, 'searchPatient'])
-        ->name('search_patient');
+    // Patient Search
+    Route::get('/search-patient', [OpdRegistrationController::class, 'searchPatient'])->name('search_patient');
     
-    // ** NEW ROUTES **
-    
-    // 1. Edit Form
-    Route::get('/{id}/edit', [OpdRegistrationController::class, 'edit'])->name('edit');
-    
-    // 2. Update Action
-    Route::put('/{id}', [OpdRegistrationController::class, 'update'])->name('update');
-    
-    // 3. Print Visit Slip (The "Send to Triage" action)
-    Route::get('/{id}/print-slip', [OpdRegistrationController::class, 'printSlip'])->name('print_slip');
-    
-    // 4. View Details
-    Route::get('/{id}', [OpdRegistrationController::class, 'show'])->name('show');    
-
-    // --- Authorization Routes ---
+    // Authorization Routes
     Route::get('/authorization/verify-card', [OpdAuthorizationController::class, 'verifyCard'])->name('auth.verify');
     Route::post('/authorization/request', [OpdAuthorizationController::class, 'requestAuthorization'])->name('auth.request');
-});
 
+    // ==========================================
+    // 2. BILLING ROUTES (Use a sub-prefix)
+    // ==========================================
+    // These must also be ABOVE the /{id} wildcard because they start with /billing
+    
+    Route::prefix('billing')->name('billing.')->group(function() {
+        // URL: /outpatient0/billing
+        Route::get('/', [OpdRegistrationPostBillsController::class, 'index'])->name('index');
+        
+        // URL: /outpatient0/billing/create
+        Route::get('/create', [OpdRegistrationPostBillsController::class, 'create'])->name('create');
+        Route::post('/', [OpdRegistrationPostBillsController::class, 'store'])->name('store');
+        
+        // URL: /outpatient0/billing/{order}/edit
+        Route::get('/{order}/edit', [OpdRegistrationPostBillsController::class, 'edit'])->name('edit');
+        Route::put('/{order}', [OpdRegistrationPostBillsController::class, 'update'])->name('update');
+        Route::delete('/{order}', [OpdRegistrationPostBillsController::class, 'destroy'])->name('destroy');
+
+        // Confirmations
+        Route::post('/confirm-save', [OpdRegistrationPostBillsController::class, 'confirmSave'])->name('confirmSave');
+        Route::post('/confirm-payment', [OpdRegistrationPostBillsController::class, 'confirmPayment'])->name('confirmPayment');
+        Route::get('/confirm-save', [OpdRegistrationPostBillsController::class, 'create'])->name('confirm.save');
+        Route::get('/confirm-payment', [OpdRegistrationPostBillsController::class, 'create'])->name('confirm.payment');
+
+        // Existing Order actions
+        Route::post('/confirm-update/{order}', [OpdRegistrationPostBillsController::class, 'confirmUpdate'])->name('confirmUpdate');
+        Route::post('/confirm-existing-payment/{order}', [OpdRegistrationPostBillsController::class, 'confirmExistingPayment'])->name('confirmExistingPayment');
+        Route::get('/confirm-update/{order}', [OpdRegistrationPostBillsController::class, 'edit'])->name('confirm.update');
+        Route::get('/confirm-existing-payment/{order}', [OpdRegistrationPostBillsController::class, 'edit'])->name('confirm.existing.payment');
+
+        // Payment Handling
+        Route::post('/pay', [OpdRegistrationPostBillsController::class, 'processPayment'])->name('pay');
+        Route::put('/pay/{order}', [OpdRegistrationPostBillsController::class, 'processPayment'])->name('pay_update');
+        Route::get('/invoice-preview', [OpdRegistrationPostBillsController::class, 'invoicePreview'])->name('invoice_preview');
+    });
+
+    // ==========================================
+    // 3. DYNAMIC WILDCARD ROUTES (MUST BE LAST)
+    // ==========================================
+    // If you put these at the top, they will "eat" the /billing URL
+    
+    Route::get('/{id}/print-slip', [OpdRegistrationController::class, 'printSlip'])->name('print_slip');
+    Route::get('/{id}/edit', [OpdRegistrationController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [OpdRegistrationController::class, 'update'])->name('update');
+    
+    // This catch-all route MUST be the very last one
+    Route::get('/{id}', [OpdRegistrationController::class, 'show'])->name('show'); 
+});
 
 // --- APPOINTMENTS MODULE (outpatient1) ---
 Route::prefix('outpatient1')->name('outpatient1.')->group(function () {
@@ -294,6 +335,9 @@ Route::prefix('radiology1')->name('radiology1.')->group(function () {
         // This is called when the Pharmacist clicks "Bill"
         Route::post('/dispense/{prescription}/bill', [PharmacyDispenseController::class, 'generateBill'])
             ->name('bill');
+        
+        Route::post('/dispense/{prescription}/pay', [PharmacyDispenseController::class, 'payBill'])
+            ->name('pay');    
 
         // 3. STAGE 2: Dispensing Form (Physical Handover)
         // Only accessible if Paid or Insurance
@@ -303,6 +347,42 @@ Route::prefix('radiology1')->name('radiology1.')->group(function () {
         Route::post('/dispense/{prescription}', [PharmacyDispenseController::class, 'store'])->name('store');
 
         Route::get('/check-stock', [PharmacyDispenseController::class, 'checkStock'])->name('check_stock');
+
+        // ==========================================
+        // 2. BILLING ROUTES (Use a sub-prefix)
+        // ==========================================
+        // These must also be ABOVE the /{id} wildcard because they start with /billing
+    
+        Route::prefix('billing')->name('billing.')->group(function() {
+            // URL: /outpatient0/billing
+            Route::get('/', [PharmacyPostController::class, 'index'])->name('index');
+            
+            // URL: /outpatient0/billing/create
+            Route::get('/create', [PharmacyPostController::class, 'create'])->name('create');
+            Route::post('/', [PharmacyPostController::class, 'store'])->name('store');
+            
+            // URL: /outpatient0/billing/{order}/edit
+            Route::get('/{order}/edit', [PharmacyPostController::class, 'edit'])->name('edit');
+            Route::put('/{order}', [PharmacyPostController::class, 'update'])->name('update');
+            Route::delete('/{order}', [PharmacyPostController::class, 'destroy'])->name('destroy');
+
+            // Confirmations
+            Route::post('/confirm-save', [PharmacyPostController::class, 'confirmSave'])->name('confirmSave');
+            Route::post('/confirm-payment', [PharmacyPostController::class, 'confirmPayment'])->name('confirmPayment');
+            Route::get('/confirm-save', [PharmacyPostController::class, 'create'])->name('confirm.save');
+            Route::get('/confirm-payment', [PharmacyPostController::class, 'create'])->name('confirm.payment');
+
+            // Existing Order actions
+            Route::post('/confirm-update/{order}', [PharmacyPostController::class, 'confirmUpdate'])->name('confirmUpdate');
+            Route::post('/confirm-existing-payment/{order}', [PharmacyPostController::class, 'confirmExistingPayment'])->name('confirmExistingPayment');
+            Route::get('/confirm-update/{order}', [PharmacyPostController::class, 'edit'])->name('confirm.update');
+            Route::get('/confirm-existing-payment/{order}', [PharmacyPostController::class, 'edit'])->name('confirm.existing.payment');
+
+            // Payment Handling
+            Route::post('/pay', [PharmacyPostController::class, 'processPayment'])->name('pay');
+            Route::put('/pay/{order}', [PharmacyPostController::class, 'processPayment'])->name('pay_update');
+            Route::get('/invoice-preview', [PharmacyPostController::class, 'invoicePreview'])->name('invoice_preview');
+        });
 
    });
 

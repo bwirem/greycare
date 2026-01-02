@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\Billing;
+namespace App\Http\Controllers\Hospital\Pharmacy;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\HandlesOrdering;
@@ -46,7 +46,7 @@ use App\Enums\{
     BillingTransTypes, InvoiceStatus, PaymentSources, InvoiceTransTypes, StoreType
 };
 
-class BilPostController extends Controller
+class PharmacyPostController extends Controller
 {
     use HandlesOrdering;
     use GeneratesUniqueNumbers;
@@ -81,11 +81,11 @@ class BilPostController extends Controller
 
         $query->whereIn('stage', [3, 4]); // Proforma (3) and Saved for Later (4)
 
-        //$query->where('payment_category', 'Cash'); // Proforma (3) and Saved for Later (4)
+        $query->where('payment_category', 'Cash-Pharmacy'); // Proforma (3) and Saved for Later (4)
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
-        return inertia('Billing/BilPosts/Index', [
+        return inertia('Hospital/Pharmacy/Dispensing/Partial/Index', [
             'orders' => $orders,
             'filters' => [
                 'search'     => $request->input('search'),
@@ -101,7 +101,7 @@ class BilPostController extends Controller
      */
     public function create()
     {
-        return inertia('Billing/BilPosts/Create', [
+        return inertia('Hospital/Pharmacy/Dispensing/Partial/Create', [
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(),
             'facilityOptions' => FacilityOption::first(),
@@ -132,7 +132,7 @@ class BilPostController extends Controller
             'orderitems.*.price_ref' => 'nullable|string',
         ]);
 
-        return inertia('Billing/BilPosts/SaveOrderConfirmation', [
+        return inertia('Hospital/Pharmacy/Dispensing/Partial/SaveOrderConfirmation', [
             'orderData' => $validatedData
         ]);
     }
@@ -143,7 +143,7 @@ class BilPostController extends Controller
     public function store(Request $request)
     {
         $this->createOrder($request); // Uses HandlesOrdering trait
-        return redirect()->route('billing1.index')->with('success', 'Order created successfully.');
+        return redirect()->route('pharmacy0.index')->with('success', 'Order created successfully.');
     }
 
     /**
@@ -195,7 +195,7 @@ class BilPostController extends Controller
             }
         });
 
-        return inertia('Billing/BilPosts/Edit', [
+        return inertia('Hospital/Pharmacy/Dispensing/Partial/Edit', [
             'order' => $order,
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(),
@@ -211,7 +211,7 @@ class BilPostController extends Controller
         $orderData = $request->all();
         $orderData['id'] = $order->id; // Pass the order ID along
 
-        return inertia('Billing/BilPosts/ConfirmOrderUpdate', [
+        return inertia('Hospital/Pharmacy/Dispensing/Partial/ConfirmOrderUpdate', [
             'orderData' => $orderData,
             'originalOrder' => $order->load('customer'), // Show original details for comparison
         ]);
@@ -223,7 +223,7 @@ class BilPostController extends Controller
     public function update(Request $request, BILOrder $order)
     {
         $this->updateOrder($request, $order); // Uses HandlesOrdering trait
-        return redirect()->route('billing1.index')->with('success', 'Order updated successfully.');
+        return redirect()->route('pharmacy0.index')->with('success', 'Order updated successfully.');
     }
 
     /**
@@ -247,7 +247,7 @@ class BilPostController extends Controller
             'orderitems.*.price_ref' => 'nullable|string',
         ]);
 
-        return inertia('Billing/BilPosts/ProcessPayment', [
+        return inertia('Hospital/Pharmacy/Dispensing/Partial/ProcessPayment', [
             'orderData' => $validatedData,
             'facilityoption' => FacilityOption::first(),
             'paymentMethods' => BLSPaymentType::all(),
@@ -263,7 +263,7 @@ class BilPostController extends Controller
         $orderData = $request->all();
         $orderData['id'] = $order->id;
 
-        return inertia('Billing/BilPosts/ProcessExistingOrderPayment', [
+        return inertia('Hospital/Pharmacy/Dispensing/Partial/ProcessExistingOrderPayment', [
             'orderData' => $orderData,
             'originalOrder' => $order->load('customer'),
             'paymentMethods' => BLSPaymentType::all(),
@@ -344,7 +344,7 @@ class BilPostController extends Controller
 
             $backendPrinted = false;
             $frontendAutoPrint = false;           
-            $invoiceUrl = route('billing1.invoice_preview');// Default URL
+            $invoiceUrl = route('pharmacy0.billing.invoice_preview');// Default URL
 
             
              // IF Configuration exists
@@ -436,7 +436,10 @@ class BilPostController extends Controller
 
                 case 'pharmacy':
                     // Updates PharmacyPrescription (Ready for Dispensing)
-                    PharmacyPrescription::where('id', $id)->update(['payment_status' => 'paid']);
+                    PharmacyPrescription::where('id', $id)->update([
+                        'payment_status' => 'paid',
+                        'status'         => 'Dispensed' 
+                    ]);                
                     break;
 
                 case 'theatre':
@@ -490,10 +493,7 @@ class BilPostController extends Controller
     {
         // A. Generate PDF
         $facility = FacilityOption::first();
-
-        // 1. Define Custom Paper Size [0, 0, Width, Height] in points
-        // 80mm = 226.77 points. 
-        // We set height to 600-1000 points to accommodate long receipts.
+        
         $customPaper = array(0, 0, 226.77, 1000);
 
         $pdf = Pdf::loadView('pdfs.sale_invoice', [
@@ -519,18 +519,18 @@ class BilPostController extends Controller
     {
         $saleId = session('latest_sale_id');
         if (!$saleId) {
-            return redirect()->route('billing1.index')->with('error', 'No sale to display.');
+            return redirect()->route('pharmacy0.index')->with('error', 'No sale to display.');
         }
 
         $sale = BILSale::findOrFail($saleId);
         $facility = FacilityOption::first();
 
-        $customPaper = array(0, 0, 226.77, 1000); 
+        $customPaper = array(0, 0, 226.77, 1000);
 
         $pdf = Pdf::loadView('pdfs.sale_invoice', [
             'sale' => $sale,
             'facility' => $facility,
-        ])->setPaper($customPaper, 'portrait');
+        ])->setPaper($customPaper, 'portrait'); // <--- APPLY HERE
 
         // Send PDF with correct headers so browser opens it
         return response($pdf->output(), 200)
@@ -591,7 +591,7 @@ class BilPostController extends Controller
 
        
         $sale = $this->createSaleRecord($data, $transdate, $receiptNo, $invoiceNo);
-        //$this->createInventoryRequisition($data, $transdate, $order->orderitems, $sale);
+        $this->createInventoryRequisition($data, $transdate, $order->orderitems, $sale);
 
         if ($isCreditSale) {
             $this->handleInvoicingAndDebtors($data, $transdate, $invoiceNo, $receiptNo);

@@ -170,7 +170,8 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end gap-2">
                                                     <Link 
-                                                        href={route('outpatient0.show', reg.id)}
+                                                        // href={route('outpatient0.show', reg.id)}
+                                                        href={route('outpatient0.billing.index')}
                                                         className="text-gray-500 hover:text-blue-600 transition-colors" 
                                                         title="View Details"
                                                     >

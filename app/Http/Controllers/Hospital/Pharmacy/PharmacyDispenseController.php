@@ -18,6 +18,9 @@ use App\Models\Inventory\SIV_Store;
 use App\Models\Inventory\IVRequistion;
 use App\Models\Facility\FacilityOption;
 use App\Models\Billing\BLSCustomer;
+//
+use App\Models\UserGroupModuleItem;
+
 
 // Enums
 use App\Enums\StoreType;
@@ -28,6 +31,22 @@ use App\Services\InventoryService;
 
 class PharmacyDispenseController extends Controller
 {
+
+     private function getUserPermissions() {
+        $user = Auth::user();
+        if (!$user) return [];
+
+        return UserGroupModuleItem::join('usergroupfunctions', 'usergroupmoduleitems.id', '=', 'usergroupfunctions.usergroupmoduleitem_id')
+            ->where('usergroupmoduleitems.usergroup_id', $user->usergroup_id)
+            ->get(['usergroupmoduleitems.moduleitemkey', 'usergroupfunctions.functionaccesskey'])
+            ->map(function ($item) {
+                // Creates strings like "systemconfiguration2.allow_price"
+                return $item->moduleitemkey . '.' . $item->functionaccesskey; 
+            })
+            ->toArray();
+    }
+
+
     /**
      * List Pending Prescriptions
      */
@@ -47,7 +66,8 @@ class PharmacyDispenseController extends Controller
 
         return Inertia::render('Hospital/Pharmacy/Dispensing/Index', [
             'prescriptions' => $query->paginate(15)->withQueryString(),
-            'filters' => $request->only(['search'])
+            'filters' => $request->only(['search']),
+            'userPermissions' => $this->getUserPermissions(),
         ]);
     }
 
@@ -257,7 +277,8 @@ class PharmacyDispenseController extends Controller
                         $request->quantity_issued, // Use actual issued quantity
                         'pharmacy',
                         $prescription->id,
-                        $priceCategory 
+                        $priceCategory,
+                        $prescription->patient->payment_category
                     );
                 }
             }
@@ -382,6 +403,131 @@ class PharmacyDispenseController extends Controller
 
         } catch (\Exception $e) {
             return response()->json(['stock' => 0], 200); 
+        }
+    }
+
+    /**
+     * STAGE 1: Generate Bill & Redirect to POS (Cash Only)
+     */   
+    /**
+     * STAGE 1: Bulk Bill Generation & Redirect (Cash Only)
+     * Processes the selected prescription AND all other pending items for the same visit.
+     */
+    public function payBill(Request $request, PharmacyPrescription $prescription, BillingService $billingService)
+    {
+        $request->validate([
+            'verified_qty' => 'required|numeric|min:0.01'
+        ]);
+
+        try {
+            $generatedOrder = null;
+            $isCash = true; 
+
+            $generatedOrder = DB::transaction(function () use ($request, $prescription, $billingService, &$isCash) {
+                
+                // 1. Determine Context (Shared by all items in this visit)
+                // -----------------------------------------------------
+                $prescription->load(['visit.billingGroup', 'admission.billingGroup', 'patient']);
+
+                $priceCategory = 'price1';
+                $paymentCategory = 'Cash'; 
+                $billingGroup = null;
+
+                // Check IPD vs OPD context
+                if ($prescription->ipd_admission_id && $prescription->admission) {
+                    $billingGroup = $prescription->admission->billingGroup;
+                    $priceCategory = $prescription->admission->pricecategory ?? 'price1';
+                } elseif ($prescription->opd_booking_id && $prescription->visit) {
+                    $billingGroup = $prescription->visit->billingGroup;
+                    $priceCategory = $prescription->visit->pricecategory ?? 'price1';
+                }
+
+                // Determine Payment Category & Cash Status
+                $facility = FacilityOption::first();
+                if ($billingGroup) {
+                    if ($billingGroup->isexemption) {
+                        $paymentCategory = 'Exemption'; $isCash = false;
+                    } elseif ($billingGroup->isinsurance) {
+                        $paymentCategory = 'Insurance'; $isCash = false;
+                    } elseif ($facility && $billingGroup->id != $facility->default_cash_billing_group_id) {
+                        $paymentCategory = 'Invoice'; $isCash = false;
+                    } else {
+                        $paymentCategory = 'Cash'; $isCash = true;
+                    }
+                } elseif ($prescription->patient) {
+                    $paymentCategory = $prescription->patient->payment_category ?? 'Cash';
+                    $isCash = ($paymentCategory === 'Cash');
+                }
+
+                // 2. Fetch All Related Items to Bill
+                // -----------------------------------------------------
+                $itemsToBill = PharmacyPrescription::query()
+                    ->where('status', '!=', 'Dispensed')
+                    ->where('status', '!=', 'Billed') // Only grab unbilled ones
+                    ->where(function($q) use ($prescription) {
+                        // Match the Visit or Admission ID to get all drugs for this encounter
+                        if ($prescription->ipd_admission_id) {
+                            $q->where('ipd_admission_id', $prescription->ipd_admission_id);
+                        } elseif ($prescription->opd_booking_id) {
+                            $q->where('opd_booking_id', $prescription->opd_booking_id);
+                        } else {
+                            // Fallback: Just this one item if no visit link exists
+                            $q->where('id', $prescription->id);
+                        }
+                    })
+                    ->get();
+
+                // 3. Process Loop (Bill Everything)
+                // -----------------------------------------------------
+                $lastOrder = null;
+
+                foreach ($itemsToBill as $rx) {
+                    
+                    // Logic: Use request quantity for the CLICKED item, 
+                    // but use the database quantity for the RELATED items.
+                    $qtyToProcess = ($rx->id === $prescription->id) 
+                        ? $request->verified_qty 
+                        : $rx->quantity_prescribed;
+
+                    // A. Update Status
+                    $rx->update([
+                        'quantity_prescribed' => $qtyToProcess,
+                        'status' => 'Billed'
+                    ]);
+
+                    // B. Add to Bill
+                    $product = SIV_Product::with('blsItem')->find($rx->product_id);
+
+                    if ($product && $product->blsItem) {
+                        // BillingService will group these into the SAME order automatically
+                        $lastOrder = $billingService->addToBill(
+                            $rx->patientcode,
+                            $product->blsItem->id,
+                            $qtyToProcess,
+                            'pharmacy',
+                            $rx->id,
+                            $priceCategory,
+                            $paymentCategory.'-Pharmacy'
+                        );
+                    }
+                }
+
+                return $lastOrder; // Return the Order object
+            });
+
+            // 4. Smart Redirect
+            // If Cash & Order Created -> Go to Payment Screen (Showing ALL items)
+            if ($isCash && $generatedOrder) {
+                return redirect()->route('pharmacy0.billing.edit', ['order' => $generatedOrder->id])
+                    ->with('success', 'All pending prescriptions billed. Redirecting to payment...');
+            }
+
+            // Fallback
+            return back()->with('success', 'All pending prescriptions sent to billing.');
+
+        } catch (\Exception $e) {
+            Log::error("Pharmacy Bulk Bill Error: " . $e->getMessage());
+            return back()->with('error', 'Failed to generate bills: ' . $e->getMessage());
         }
     }
 }

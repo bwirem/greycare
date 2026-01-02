@@ -97,7 +97,8 @@ class PostDailyBedCharges extends Command
                         1,                             // Quantity (1 Day)
                         'ipd_bed_charge',              // Source Type
                         $chargeRecord->id,              // Source ID
-                        $admission->pricecategory // Price Category
+                        $admission->pricecategory, // Price Category
+                        $admission->patient?->payment_category // Payment Category
                     );
                 });
 

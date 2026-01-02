@@ -105,7 +105,9 @@ class IpdDischargeController extends Controller
                             $admission->ward->blsItem->id, // Bill Item ID
                             1,                             // Quantity
                             'ipd_bed_charge',              // Source Type
-                            $charge->id                    // Source ID
+                            $charge->id,                                               // Source ID
+                            $admission->pricecategory,
+                            $admission->patient?->payment_category
                         );
                     }
 

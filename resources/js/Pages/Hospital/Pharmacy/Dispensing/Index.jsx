@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router , usePage} from '@inertiajs/react';
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import Pagination from '@/Components/Pagination';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -12,7 +12,19 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
-export default function DispensingIndex({ prescriptions, filters, flash }) {
+export default function DispensingIndex({ prescriptions, filters, flash,userPermissions }) {
+
+    // 1. Get Authentication/Permission Data
+    // We assume 'userPermissions' is passed as a prop, OR acts as a fallback to check global auth props.
+    // Ensure your SIV_ProductController passes a list of function permissions (e.g., ['allow_price'])
+    const { auth } = usePage().props; 
+
+    // Fallback to auth user permissions if not explicitly passed     
+    const canPostBills = userPermissions.includes('pharmacy0.charge_patient');
+    
+    console.log(canPostBills);
+
+
     const [search, setSearch] = useState(filters.search || '');
     const [showModal, setShowModal] = useState(false);
     const [selectedRx, setSelectedRx] = useState(null);
@@ -32,6 +44,30 @@ export default function DispensingIndex({ prescriptions, filters, flash }) {
         setSelectedRx(rx);
         setNegotiatedQty(rx.quantity_prescribed);
         setShowModal(true);
+    };
+
+   const openPostBills = (rx) => {
+        // 1. Validation: Ensure rx object exists
+        if (!rx || !rx.id) {
+            toast.error("Invalid prescription data.");
+            return;
+        }
+
+        // 2. Post Request
+        router.post(route('pharmacy0.pay', rx.id), {
+            // Pass the original quantity since we skipped the negotiation modal
+            verified_qty: rx.quantity_prescribed 
+        }, {
+            onSuccess: () => {
+                // Clear any lingering state just in case
+                closeNegotiation(); 
+            },
+            preserveScroll: true,
+            onError: (errors) => {
+                toast.error("Failed to process bill.");
+                console.error(errors);
+            }
+        });
     };
 
     const closeNegotiation = () => {
@@ -218,7 +254,10 @@ export default function DispensingIndex({ prescriptions, filters, flash }) {
                                                         </button>
                                                     ) : (
                                                         // Unpaid & Not Billed -> Needs to be sent to cashier
-                                                        <button onClick={() => openNegotiation(rx)} className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition flex items-center ml-auto">
+                                                        <button 
+                                                            onClick={() => canPostBills ? openPostBills(rx) : openNegotiation(rx)} 
+                                                            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition flex items-center ml-auto"
+                                                        >
                                                             <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Bill
                                                         </button>
                                                     )}

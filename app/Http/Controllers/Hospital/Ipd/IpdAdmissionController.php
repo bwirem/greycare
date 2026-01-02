@@ -189,7 +189,10 @@ class IpdAdmissionController extends Controller
                     'insurance_member_no'     => $insuranceMemberNo,
                 ]);
             } else {
-                $patientCode = 'PAT-' . date('y') . '-' . strtoupper(Str::random(6)); 
+                
+                // Generates something like: PAT-26-849201
+                $patientCode = 'PAT-' . date('y') . '-' . mt_rand(100000, 999999);
+                
                 Patient::create([
                     'code'          => $patientCode,
                     'first_name'    => $validated['first_name'],

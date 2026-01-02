@@ -2,150 +2,187 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Invoice - {{ $sale->invoiceno ?? $sale->receiptno }}</title>
+    <title>Receipt - {{ $sale->invoiceno ?? $sale->receiptno }}</title>
     <style>
-        body { font-family: sans-serif; font-size: 12px; }
-        .container { width: 100%; margin: 0 auto; }
-        .header, .footer { text-align: center; }
-        .header h1 { margin: 0; }
-        
-        /* Table Styles */
-        .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        
-        /* General cell style - Defaults to Left */
-        .items-table th, .items-table td { 
-            border: 1px solid #ddd; 
-            padding: 8px; 
-            text-align: left; 
-        } 
-        .items-table th { background-color: #f2f2f2; }
-        
-        /* --- THE FIX IS HERE --- */
-        /* We target the table cell specifically so this rule wins */
-        .items-table th.text-right,
-        .items-table td.text-right { 
-            text-align: right; 
+        /* 1. Reset Page Margins */
+        @page {
+            margin: 0px; 
+            padding: 0px;
         }
-        
-        /* Helper for the Totals table */
-        .totals-table td.text-right { text-align: right; }
 
-        .footer { margin-top: 40px; font-size: 10px; color: #777; }
-        .totals-table { width: 40%; float: right; margin-top: 20px; border-collapse: collapse; }
-        .totals-table td { padding: 5px; border: 1px solid #ddd; }
-        .clearfix::after { content: ""; clear: both; display: table; }
+        /* 2. Body fills the custom paper size defined in PHP */
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            color: #000;
+            margin: 5px; /* Small margin to prevent cutting off text */
+            width: 95%;  /* Fill available space */
+        }
+
+        .centered {
+            text-align: center;
+        }
+
+        /* Container for the logo to ensure it centers nicely */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .header-logo {
+            max-width: 60px;
+            max-height: 60px;
+        }
+
+        h1 {
+            font-size: 13px;
+            margin: 2px 0;
+            text-transform: uppercase;
+        }
+
+        .divider {
+            border-bottom: 1px dashed #000;
+            margin: 5px 0;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+
+        th {
+            border-bottom: 1px dashed #000;
+            font-size: 10px;
+            text-align: left;
+            padding-bottom: 2px;
+        }
+
+        td {
+            font-size: 10px;
+            padding: 2px 0;
+            vertical-align: top;
+        }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+
+        .totals-row {
+            display: table; /* Simulate flex since DOMPDF has poor Flexbox support */
+            width: 100%;
+            margin-bottom: 2px;
+        }
+        .totals-label {
+            display: table-cell;
+            text-align: left;
+            width: 60%;
+        }
+        .totals-value {
+            display: table-cell;
+            text-align: right;
+            width: 40%;
+        }
+
+        .grand-total {
+            border-top: 1px dashed #000;
+            border-bottom: 1px dashed #000;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 5px 0;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 9px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                <tr>
-                    {{-- LEFT COLUMN: LOGO --}}
-                    <td style="width: 30%; vertical-align: top; text-align: left; border: none;">
-                        @if(!empty($facility->logo_path))
-                            <img src="{{ storage_path('app/public/' . $facility->logo_path) }}" style="max-height: 80px; max-width: 150px;" alt="Logo">
-                        @endif
-                    </td>
 
-                    {{-- RIGHT COLUMN: FACILITY DETAILS --}}
-                    <td style="width: 70%; vertical-align: top; text-align: right; border: none;">
-                        <h1 style="margin: 0; font-size: 20px; color: #333;">{{ $facility->name ?? 'Facility Name' }}</h1>
-                        
-                        <p style="margin: 5px 0; font-size: 11px; line-height: 1.4; color: #555;">
-                            {{ $facility->address ?? '' }}<br>
-                            @if($facility->phone) Tel: {{ $facility->phone }} @endif
-                            @if($facility->email) | Email: {{ $facility->email }} @endif
-                            @if($facility->website) <br>Web: {{ $facility->website }} @endif
-                        </p>
+    <div class="logo-container">
+        @if(!empty($facility->logo_path))
+            <img src="{{ storage_path('app/public/' . $facility->logo_path) }}" class="header-logo" alt="Logo">
+        @endif
+    </div>
 
-                        @if($facility->tin)
-                            <div style="margin-top: 5px; font-size: 11px; font-weight: bold;">
-                                TIN: {{ $facility->tin }}
-                                @if($facility->vrn) | VRN: {{ $facility->vrn }} @endif
-                            </div>
-                        @endif
-                    </td>
-                </tr>
-            </table>
-
-            <div style="text-align: center; border-top: 2px solid #eee; border-bottom: 2px solid #eee; padding: 8px 0; margin-bottom: 20px;">
-                <h2 style="margin: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">
-                    {{ $sale->invoiceno ? 'TAX INVOICE' : 'CASH RECEIPT' }}
-                </h2>
-            </div>
+    <div class="centered">
+        <h1>{{ $facility->name ?? 'Facility Name' }}</h1>
+        <div style="font-size: 10px;">
+            {{ $facility->address ?? '' }}<br>
+            @if($facility->phone) Tel: {{ $facility->phone }} <br> @endif
+            @if($facility->tin) TIN: {{ $facility->tin }} | @endif
+            @if($facility->vrn) VRN: {{ $facility->vrn }} @endif
         </div>
-
-        <table style="width:100%; margin-top: 20px;">
-            <tr>
-                <td style="width:50%; vertical-align: top; border: none;">
-                    <strong>Bill To:</strong><br>
-                    @if($sale->customer)
-                        @if($sale->customer->customer_type === 'individual')
-                            {{ $sale->customer->first_name }} {{ $sale->customer->surname }}<br>
-                        @else
-                            {{ $sale->customer->company_name }}<br>
-                        @endif
-                        {{ $sale->customer->phone ?? '' }}<br>
-                        {{ $sale->customer->email ?? '' }}
-                    @else
-                        Walk-in Customer
-                    @endif
-                </td>
-                <td style="width:50%; text-align:right; vertical-align: top; border: none;">
-                    <strong>Ref No:</strong> {{ $sale->invoiceno ?? $sale->receiptno }}<br>
-                    <strong>Date:</strong> {{ $sale->created_at->format('d-M-Y') }}<br>
-                    <strong>Currency:</strong> {{ $sale->currency_code }}
-                </td>
-            </tr>
-        </table>
-
-        {{-- ITEMS TABLE --}}
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Item Description</th>                    
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($sale->items as $index => $item)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $item->item->name ?? 'N/A' }}</td>
-                    {{-- Class matches CSS rule .items-table td.text-right --}}
-                    <td class="text-right">{{ number_format($item->price, 2) }}</td>
-                    <td class="text-right">{{ number_format($item->quantity, 2) }}</td>
-                    <td class="text-right">{{ number_format($item->price * $item->quantity, 2) }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-
-        <div class="clearfix">
-            <table class="totals-table">
-                <tr>
-                    <td><strong>Total Due</strong></td>
-                    <td class="text-right">{{ number_format($sale->totaldue, 2) }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Amount Paid</strong></td>
-                    <td class="text-right">{{ number_format($sale->totalpaid, 2) }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Balance</strong></td>
-                    <td class="text-right">{{ number_format($sale->totaldue - $sale->totalpaid, 2) }}</td>
-                </tr>
-            </table>
-        </div>
-
-        <div class="footer">
-            <p>Thank you for your business!</p>
-            <p>Generated on {{ now()->format('Y-m-d H:i:s') }}</p>
+        <div class="divider"></div>
+        <div style="font-weight: bold; font-size: 12px;">
+            {{ $sale->invoiceno ? 'TAX INVOICE' : 'RECEIPT' }}
         </div>
     </div>
+
+    <div style="font-size: 10px; margin-top: 5px;">
+        <strong>Ref:</strong> {{ $sale->invoiceno ?? $sale->receiptno }}<br>
+        <strong>Date:</strong> {{ $sale->created_at->format('d-M-Y H:i') }}<br>
+        <strong>Customer:</strong> 
+        @if($sale->customer)
+             {{ $sale->customer->customer_type === 'individual' ? $sale->customer->first_name . ' ' . $sale->customer->surname : $sale->customer->company_name }}
+        @else
+            Walk-in
+        @endif
+    </div>
+
+    <div class="divider"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th width="45%">Item</th>
+                <th width="10%" class="text-center">Qty</th>
+                <th width="20%" class="text-right">Price</th>
+                <th width="25%" class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($sale->items as $item)
+            <tr>
+                <td>{{ $item->item->name ?? 'Item' }}</td>
+                <td class="text-center">{{ (float)$item->quantity }}</td>
+                <td class="text-right">{{ number_format($item->price, 0) }}</td>
+                <td class="text-right">{{ number_format($item->price * $item->quantity, 0) }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <div class="divider"></div>
+
+    <!-- DOMPDF doesn't handle Flexbox well, using Table display for totals -->
+    <div class="totals-row">
+        <span class="totals-label">Total Due</span>
+        <span class="totals-value">{{ number_format($sale->totaldue, 2) }}</span>
+    </div>
+    <div class="totals-row">
+        <span class="totals-label">Paid</span>
+        <span class="totals-value">{{ number_format($sale->totalpaid, 2) }}</span>
+    </div>
+    
+    <div class="totals-row grand-total">
+        <span class="totals-label">CHANGE</span>
+        <span class="totals-value">{{ number_format(max(0, $sale->totalpaid - $sale->totaldue), 2) }}</span>
+    </div>
+
+    @if($sale->totalpaid < $sale->totaldue)
+    <div class="totals-row" style="margin-top: 4px;">
+        <span class="totals-label">Balance</span>
+        <span class="totals-value">{{ number_format($sale->totaldue - $sale->totalpaid, 2) }}</span>
+    </div>
+    @endif
+
+    <div class="footer">
+        Thank you!<br>
+        Served by: {{ Auth::user()->name ?? 'Sys' }}
+    </div>
+
 </body>
 </html>

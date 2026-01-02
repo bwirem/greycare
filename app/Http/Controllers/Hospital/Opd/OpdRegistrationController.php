@@ -17,8 +17,10 @@ use App\Models\Opd\OpdTreatmentPoint;
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\MedicalRecord\MrVitalSign;
 use App\Models\User;
+use App\Models\UserGroupFunction;
 use App\Models\Billing\BLSCustomer;
 use App\Models\Facility\FacilityOption; 
+
 
 // Services
 use App\Services\ConsultationPricingService;
@@ -186,8 +188,10 @@ class OpdRegistrationController extends Controller
                 ]);
 
             } else {
-                $patientCode = 'PAT-' . date('y') . '-' . strtoupper(Str::random(6)); 
-              
+                
+                // Generates something like: PAT-26-849201
+                $patientCode = 'PAT-' . date('y') . '-' . mt_rand(100000, 999999);
+                
                 Patient::create([
                     'code'          => $patientCode,
                     'first_name'    => $validated['first_name'],
@@ -269,9 +273,25 @@ class OpdRegistrationController extends Controller
                 ]);
             }
 
+           
+            // --- 6. CHECK PERMISSIONS (For Redirection Logic) ---
+            $user = auth()->user();
+            $hasChargePermission = false;
+
+            if ($user && $user->usergroup_id) {
+                $hasChargePermission = UserGroupFunction::query()
+                    ->where('usergroup_id', $user->usergroup_id)
+                    ->where('functionaccesskey', 'charge_patient')
+                    ->whereHas('userGroupModuleItem', function ($query) {
+                        $query->where('moduleitemkey', 'outpatient4');
+                    })
+                    ->exists();
+            }
+
             // --- 6. PUSH TO BILLING ---
+            $generatedOrder = null; // Variable to hold the order
             if ($booking->bill_item_id) {
-                $billingService->addToBill(
+               $generatedOrder = $billingService->addToBill(
                     $booking->patientcode,      
                     $booking->bill_item_id,     
                     1,                          
@@ -282,8 +302,21 @@ class OpdRegistrationController extends Controller
                 );
             }
 
-            DB::commit();
-            return redirect()->route('outpatient0.index')->with('success', 'Registration Successful. File: ' . $patientCode);
+            DB::commit();           
+
+             // If Cash + Permission + Order Exists => Go to Edit/Payment Screen
+            if ($hasChargePermission && $paymentCategory == 'Cash' && $generatedOrder) {                
+                
+                // Redirects to BilPostController@edit logic automatically
+                return redirect()->route('outpatient0.billing.edit', ['order' => $generatedOrder->id])
+                    ->with('success', 'Registration Successful. File: ' . $patientCode);
+            }
+
+            // Otherwise (Insurance, Exemption, or User cannot collect cash), 
+            // go back to the Registration List.
+            return redirect()->route('outpatient0.index')
+                ->with('success', 'Registration Successful. File: ' . $patientCode);
+           
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -389,8 +422,7 @@ class OpdRegistrationController extends Controller
                 'first_name'  => $validated['first_name'],
                 'surname'     => $validated['last_name'],
                 'other_names' => $validated['middle_name'],
-                'phone'       => $validated['contact'] ?? $patient->phone_number,
-                'billing_group_id' => $billingGroup->id,
+                'phone'       => $validated['contact'] ?? $patient->phone_number,                
             ]);
 
             // 4. Update Booking & Re-Bill

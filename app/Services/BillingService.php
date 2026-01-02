@@ -22,15 +22,19 @@ class BillingService
      * @param int $sourceId
      * @param string $priceCategory (e.g. 'price1', 'price5')
      */
-    public function addToBill($patientCode, $billItemId, $quantity, $sourceType, $sourceId, $priceCategory = 'price1',$paymentCategory)
+    /**
+     * Add a line item to the patient's active bill.
+     * Returns the Order object so the controller can redirect to it.
+     */
+    public function addToBill($patientCode, $billItemId, $quantity, $sourceType, $sourceId, $priceCategory = 'price1', $paymentCategory)
     {
         // 1. Find the Billing Customer
         $customer = BLSCustomer::where('patient_code', $patientCode)->first();
         if (!$customer) {
-            return; 
+            return null; // Changed from return; to return null;
         }
 
-        // 2. Find an OPEN Order (Stage 3 = Pending) for today
+        // 2. Find an OPEN Order
         $order = BILOrder::where('customer_id', $customer->id)
             ->where('stage', 3) 
             ->where('payment_category', $paymentCategory)
@@ -46,59 +50,56 @@ class BillingService
                 'transdate' => now(),
                 'store_id' => $defaultStoreId,
                 'customer_id' => $customer->id,
-                'stage' => 3, // Pending
+                'stage' => 3, 
                 'payment_category' => $paymentCategory,
                 'total' => 0, 
                 'user_id' => $userId,
             ]);
         }
 
-        // 4. Get Item Details & Determine Price
+        // 4. Get Item Details
         $item = BLSItem::find($billItemId);
-        if (!$item) return;
-
-        $priceColumn = 'price1'; // Default Fallback
         
-        // FIX: Use array_key_exists on loaded attributes instead of Schema::hasColumn
-        // This avoids the 'generation_expression' MySQL error while still supporting future columns.
-        if (!empty($priceCategory) && array_key_exists($priceCategory, $item->getAttributes())) {
-            $priceColumn = $priceCategory;
+        // If item exists, process it
+        if ($item) {
+            $priceColumn = 'price1'; 
+            if (!empty($priceCategory) && array_key_exists($priceCategory, $item->getAttributes())) {
+                $priceColumn = $priceCategory;
+            }
+            $price = $item->{$priceColumn}; 
+            $priceRef = ucfirst($priceColumn);
+
+            // 5. Add or Update Item
+            $existingLine = BILOrderItem::where('order_id', $order->id)
+                ->where('source_type', $sourceType)
+                ->where('source_id', $sourceId)
+                ->first();
+
+            if ($existingLine) {
+                $existingLine->update([
+                    'quantity' => $quantity,
+                    'price' => $price,
+                    'price_ref' => $priceRef 
+                ]);
+            } else {
+                BILOrderItem::create([
+                    'order_id' => $order->id,
+                    'item_id' => $billItemId,
+                    'item_name' => $item->name,
+                    'quantity' => $quantity,
+                    'price' => $price,
+                    'source_store_id' => $order->store_id, 
+                    'source_type' => $sourceType, 
+                    'source_id' => $sourceId,
+                    'price_ref' => $priceRef     
+                ]);
+            }
+
+            // 6. Recalculate Total
+            $order->total = $order->orderitems()->sum(DB::raw('price * quantity'));
+            $order->saveQuietly(); 
         }
 
-        // Extract Price dynamically
-        $price = $item->{$priceColumn}; 
-        
-        // Set Reference (e.g., 'Price1', 'Price5') for the receipt
-        $priceRef = ucfirst($priceColumn);
-
-        // 5. Add or Update the Item in the Order
-        $existingLine = BILOrderItem::where('order_id', $order->id)
-            ->where('source_type', $sourceType)
-            ->where('source_id', $sourceId)
-            ->first();
-
-        if ($existingLine) {
-            $existingLine->update([
-                'quantity' => $quantity,
-                'price' => $price,
-                'price_ref' => $priceRef 
-            ]);
-        } else {
-            BILOrderItem::create([
-                'order_id' => $order->id,
-                'item_id' => $billItemId,
-                'item_name' => $item->name,
-                'quantity' => $quantity,
-                'price' => $price,
-                'source_store_id' => $order->store_id, 
-                'source_type' => $sourceType, 
-                'source_id' => $sourceId,
-                'price_ref' => $priceRef     
-            ]);
-        }
-
-        // 6. Recalculate Order Total
-        $order->total = $order->orderitems()->sum(DB::raw('price * quantity'));
-        $order->saveQuietly(); 
+        return $order; // <--- IMPORTANT: Return the order object
     }
 }
