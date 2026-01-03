@@ -49,6 +49,19 @@ const allowedFinanceItemKeys = [
     'reporting5', // Profit & Loss
     'reporting6', // Balance Sheet
     'reporting7', // Cash Flow     
+    
+    // --- Hospital Reports ---
+    'reporting8', // Outpatient
+    'reporting9', // Inpatient    
+    'reporting10',//
+    'reporting11',
+    'reporting12',
+    'reporting13',
+    'reporting14',
+    'reporting15',
+    'reporting16',
+    'reporting17',
+    'reporting18',    
 ];
 
 // Icon Map (Tailored for Finance)

@@ -7,6 +7,10 @@ use App\Models\Patient\Patient;
 use App\Models\Opd\OpdBooking;
 use App\Models\User;
 
+// Billing
+use App\Models\Patient\PatientBillingGroup;
+use App\Models\Patient\PatientBillingSubgroup;
+
 // Laboratory
 use App\Models\Laboratory\LabPrescription;
 // Radiology
@@ -61,6 +65,11 @@ class IpdAdmission extends Model
     }
 
     // --- ADD THESE MISSING RELATIONSHIPS ---
+
+    public function billingGroup()
+    {
+        return $this->belongsTo(PatientBillingGroup::class, 'billinggroup_id');
+    }
 
     /**
      * Link to the Ward Rounds (Doctor Visits)

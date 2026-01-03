@@ -7,6 +7,10 @@ use App\Http\Controllers\Reports\SalesReportsController;
 use App\Http\Controllers\Reports\ProcurementReportsController;
 use App\Http\Controllers\Reports\InventoryReportsController;
 use App\Http\Controllers\Reports\HumanResourceReportsController;
+use App\Http\Controllers\Reports\OpdReportsController;
+use App\Http\Controllers\Reports\IpdReportsController;
+use App\Http\Controllers\Reports\DoctorReportsController;
+
 
 // --- Reporting Hubs (reporting0 - reporting7) ---
 
@@ -49,6 +53,22 @@ Route::prefix('reporting6')->name('reporting6.')->group(function () {
 Route::prefix('reporting7')->name('reporting7.')->group(function () {
     Route::get('/', function () { return Inertia::render('Reports/Accounting/Index'); })->name('index');
 }); 
+
+// --- Reporting Hub: Clinical / OPD (Assigned to reporting8 for separation) ---
+Route::prefix('reporting8')->name('reporting8.')->group(function () {
+    Route::get('/', [OpdReportsController::class, 'index'])->name('index');
+});
+
+// --- Reporting Hub: IPD (Assigned to reporting9) ---
+Route::prefix('reporting9')->name('reporting9.')->group(function () {
+    Route::get('/', [IpdReportsController::class, 'index'])->name('index');
+});
+
+
+// --- Reporting Hub: Doctor / Clinical (Assigned to reporting10) ---
+Route::prefix('reporting11')->name('reporting11.')->group(function () {
+    Route::get('/', [DoctorReportsController::class, 'index'])->name('index');
+});
 
 
 // --- Report Data Routes ---
@@ -100,4 +120,34 @@ Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/demographics', function() { return back(); })->name('demographics');
         Route::get('/custom', function() { return back(); })->name('custom');
     });
+
+    // --- Report Data Endpoints ---
+    Route::prefix('opd')->name('opd.')->group(function () {
+        Route::get('/daily', [OpdReportsController::class, 'daily'])->name('daily');
+        Route::get('/summary', [OpdReportsController::class, 'summary'])->name('summary');  
+        Route::get('/attendance', [OpdReportsController::class, 'attendance'])->name('attendance');
+        
+        // Stubs for future expansion
+        Route::get('/demographics', function() { return back(); })->name('demographics');
+        Route::get('/doctor-performance', function() { return back(); })->name('doctor_performance');
+    });    
+
+    // --- IPD Report Data Endpoints ---
+    Route::prefix('ipd')->name('ipd.')->group(function () {
+        Route::get('/admissions', [IpdReportsController::class, 'admissions'])->name('admissions');
+        Route::get('/discharges', [IpdReportsController::class, 'discharges'])->name('discharges');
+        Route::get('/census', [IpdReportsController::class, 'census'])->name('census');
+        Route::get('/daily-census', [IpdReportsController::class, 'dailyCensus'])->name('daily_census');
+    });
+
+    // --- Doctor Report Data ---
+    Route::prefix('doctor')->name('doctor.')->group(function () {
+        Route::get('/opd-workload', [DoctorReportsController::class, 'opdWorkload'])->name('opd_workload');
+        Route::get('/ipd-workload', [DoctorReportsController::class, 'ipdWorkload'])->name('ipd_workload');
+        // Future: Route::get('/procedures', ...);
+        // --- NEW: Patient History Routes (using DoctorReportsController) ---
+        Route::get('/patient-history', [DoctorReportsController::class, 'patientHistorySearch'])->name('patient_history');
+        Route::get('/patient-history/{patientCode}', [DoctorReportsController::class, 'patientHistoryShow'])->name('patient_history.show');
+    });    
+
 });

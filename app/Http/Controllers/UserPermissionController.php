@@ -386,7 +386,20 @@ class UserPermissionController extends Controller
                 ['key' => 'reporting4', 'text' => 'Expenses', 'icon' => 'attach_money'],
                 ['key' => 'reporting5', 'text' => 'Human Resource', 'icon' => 'person'],
                 ['key' => 'reporting6', 'text' => 'Fixed Assets', 'icon' => 'account_balance'],
-                ['key' => 'reporting7', 'text' => 'Accounting', 'icon' => 'account_balance'],               
+                ['key' => 'reporting7', 'text' => 'Accounting', 'icon' => 'account_balance'], 
+                
+                //Hospital
+                ['key' => 'reporting8', 'text' => 'Outpatient', 'icon' => 'stethoscope'],
+                ['key' => 'reporting9', 'text' => 'Inpatient', 'icon' => 'procedures'],
+                ['key' => 'reporting10', 'text' => 'Nursing', 'icon' => 'user_nurse'],
+                ['key' => 'reporting11', 'text' => 'Doctor', 'icon' => 'user_md'],
+                ['key' => 'reporting12', 'text' => 'Theatre', 'icon' => 'heartbeat'],
+                ['key' => 'reporting13', 'text' => 'Physiotherapy', 'icon' => 'walking'],
+                ['key' => 'reporting14', 'text' => 'Laboratory', 'icon' => 'microscope'],
+                ['key' => 'reporting15', 'text' => 'Blood Bank', 'icon' => 'tint'],
+                ['key' => 'reporting16', 'text' => 'Radiology', 'icon' => 'radiation'],
+                ['key' => 'reporting17', 'text' => 'Pharmacy', 'icon' => 'capsules'],
+                ['key' => 'reporting18', 'text' => 'RCH', 'icon' => 'baby_carriage'],
             ],
             'systemConfig' => [
                 ['key' => 'systemconfiguration0', 'text' => 'Billing Setup', 'icon' => 'billing_setup'],
