@@ -189,8 +189,15 @@ class OpdRegistrationController extends Controller
 
             } else {
                 
-                // Generates something like: PAT-26-849201
-                $patientCode = 'PAT-' . date('y') . '-' . mt_rand(100000, 999999);
+                // 1. GENERATE UNIQUE CODE
+                // The loop keeps running until it finds a code that DOES NOT exist in the database
+                do {
+                    // Format: PAT-260102-859 (PAT-YYMMDD-Random)
+                    $patientCode = 'PAT-' . date('ymd') . '-' . mt_rand(100, 999);
+                } while (Patient::where('code', $patientCode)->exists());
+              
+                // 2. CREATE PATIENT
+                // At this point, $patientCode is guaranteed to be unique
                 
                 Patient::create([
                     'code'          => $patientCode,
