@@ -183,7 +183,7 @@ class DoctorIpdController extends Controller
             'ordered_blood' => $admission->bloodRequests,
 
             // Data for Select Options
-            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(100)->get(),    
+            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->get(),    
             'ipd_diagnoses_list' => DxtDiagnosesIpd::with('icdMap:id,name,code')
                 ->select('id', 'name', 'maptocode')->limit(100)->get(),                
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),

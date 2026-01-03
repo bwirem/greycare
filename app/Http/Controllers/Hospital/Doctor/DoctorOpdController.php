@@ -149,7 +149,7 @@ class DoctorOpdController extends Controller
             'previous_diagnoses' => $sortedHistory,
 
             // Dropdowns
-            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->limit(200)->get(), 
+            'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->get(), 
             'opd_diagnoses_list' => DxtDiagnosesOpd::with('icdMap:id,name,code')->select('id', 'name', 'maptocode')->limit(200)->get(),
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
             'rad_procedures' => RadProcedure::select('id', 'name')->orderBy('name')->get(),
