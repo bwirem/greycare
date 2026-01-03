@@ -49,24 +49,38 @@ class PharmacyDispenseController extends Controller
 
     /**
      * List Pending Prescriptions
-     */
+     */   
+
     public function index(Request $request)
     {
         $query = PharmacyPrescription::with(['patient', 'product.drugDetails', 'product.blsItem', 'doctor', 'visit.billingGroup'])
             ->where('status', '!=', 'Dispensed')
             ->orderBy('created_at', 'asc');
 
+        // 1. FILTER: Search
         if ($request->search) {
             $query->whereHas('patient', function ($q) use ($request) {
                 $q->where('first_name', 'like', "%{$request->search}%")
-                  ->orWhere('last_name', 'like', "%{$request->search}%")
-                  ->orWhere('patientcode', 'like', "%{$request->search}%");
+                ->orWhere('last_name', 'like', "%{$request->search}%")
+                ->orWhere('patientcode', 'like', "%{$request->search}%");
             });
         }
 
+        // 2. FILTER: Date
+        // Default to Today if no date parameter is present (initial load)
+        $filterDate = $request->input('date', Carbon::now()->format('Y-m-d'));
+
+        if ($filterDate) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($filterDate)->startOfDay(), 
+                Carbon::parse($filterDate)->endOfDay()
+            ]);
+        }
+
         return Inertia::render('Hospital/Pharmacy/Dispensing/Index', [
-            'prescriptions' => $query->paginate(15)->withQueryString(),
-            'filters' => $request->only(['search']),
+            'prescriptions' => $query->paginate(20)->withQueryString(),
+            // Pass both filters back to frontend
+            'filters' => array_merge($request->only(['search']), ['date' => $filterDate]),
             'userPermissions' => $this->getUserPermissions(),
         ]);
     }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Head, Link, router , usePage} from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import Pagination from '@/Components/Pagination';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -8,24 +8,21 @@ import {
     faFileInvoiceDollar, faUser, faTimes, faCalculator,
     faCashRegister, faStethoscope, faHourglassHalf,
     faIdCard, faHandHoldingHeart, faBuilding,
-    faProcedures // <--- 1. Added Bed Icon
+    faProcedures, faCalendarAlt,faReceipt // <--- Added Calendar Icon
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
+import TextInput from '@/Components/TextInput'; // Assuming you have this
 
-export default function DispensingIndex({ prescriptions, filters, flash,userPermissions }) {
+export default function DispensingIndex({ prescriptions, filters, flash, userPermissions }) {
 
-    // 1. Get Authentication/Permission Data
-    // We assume 'userPermissions' is passed as a prop, OR acts as a fallback to check global auth props.
-    // Ensure your SIV_ProductController passes a list of function permissions (e.g., ['allow_price'])
     const { auth } = usePage().props; 
-
-    // Fallback to auth user permissions if not explicitly passed     
     const canPostBills = userPermissions.includes('pharmacy0.charge_patient');
-    
-    console.log(canPostBills);
 
-
+    // 1. Initialize State with Filters
     const [search, setSearch] = useState(filters.search || '');
+    const [date, setDate] = useState(filters.date || ''); // <--- Date State
+
+    // Modal State
     const [showModal, setShowModal] = useState(false);
     const [selectedRx, setSelectedRx] = useState(null);
     const [negotiatedQty, setNegotiatedQty] = useState(0);
@@ -35,33 +32,48 @@ export default function DispensingIndex({ prescriptions, filters, flash,userPerm
         if (flash?.error) toast.error(flash.error);
     }, [flash]);
 
+    // 2. Updated Search Handler
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get(route('pharmacy0.index'), { search }, { preserveState: true });
+        router.get(route('pharmacy0.index'), { search, date }, { preserveState: true });
     };
 
+    // 3. Date Change Handler
+    const handleDateChange = (newDate) => {
+        setDate(newDate);
+        router.get(
+            route('pharmacy0.index'), 
+            { search, date: newDate }, 
+            { preserveState: true, replace: true }
+        );
+    };
+
+    // --- GROUPING LOGIC ---
+    // Group prescriptions by patientcode
+    const groupedPrescriptions = prescriptions.data.reduce((groups, rx) => {
+        const key = rx.patientcode; // Ensure this exists on the model, or use rx.patient.id
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(rx);
+        return groups;
+    }, {});
+
+
+    // --- ACTION HANDLERS ---
     const openNegotiation = (rx) => {
         setSelectedRx(rx);
         setNegotiatedQty(rx.quantity_prescribed);
         setShowModal(true);
     };
 
-   const openPostBills = (rx) => {
-        // 1. Validation: Ensure rx object exists
+    const openPostBills = (rx) => {
         if (!rx || !rx.id) {
             toast.error("Invalid prescription data.");
             return;
         }
-
-        // 2. Post Request
         router.post(route('pharmacy0.pay', rx.id), {
-            // Pass the original quantity since we skipped the negotiation modal
             verified_qty: rx.quantity_prescribed 
         }, {
-            onSuccess: () => {
-                // Clear any lingering state just in case
-                closeNegotiation(); 
-            },
+            onSuccess: () => closeNegotiation(),
             preserveScroll: true,
             onError: (errors) => {
                 toast.error("Failed to process bill.");
@@ -92,7 +104,6 @@ export default function DispensingIndex({ prescriptions, filters, flash,userPerm
     const unitPrice = selectedRx?.product?.bls_item?.price1 || 0;
     const totalPrice = unitPrice * negotiatedQty;
 
-    // Helper for Modal display only
     const getModalStrength = () => {
         const d = selectedRx?.product?.drug_details || selectedRx?.product?.drugDetails;
         return d ? `${d.strength_amount || ''}${d.strength_unit || ''}` : '';
@@ -106,22 +117,38 @@ export default function DispensingIndex({ prescriptions, filters, flash,userPerm
                 <div className="bg-white p-6 shadow-sm rounded-xl border border-gray-200">
                     
                     {/* Toolbar */}
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                        <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-1/3">
-                            <div className="relative w-full">
+                    <div className="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4">
+                        <div className="text-sm font-medium text-gray-500 mb-2 lg:mb-0">
+                            Manage pending prescriptions.
+                        </div>
+
+                        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                            
+                            {/* Date Filter */}
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                    <FontAwesomeIcon icon={faCalendarAlt} />
+                                </span>
+                                <input 
+                                    type="date"
+                                    className="pl-10 w-full sm:w-40 border-gray-300 rounded-lg shadow-sm focus:border-green-500 focus:ring-green-500"
+                                    value={date}
+                                    onChange={(e) => handleDateChange(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Search Input */}
+                            <div className="relative w-full sm:w-64">
                                 <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-3 text-gray-400" />
                                 <input 
                                     type="text" 
                                     className="w-full pl-10 border-gray-300 rounded-lg shadow-sm focus:border-green-500 focus:ring-green-500" 
-                                    placeholder="Search Patient Name or Code..." 
+                                    placeholder="Search Patient..." 
                                     value={search} 
                                     onChange={e => setSearch(e.target.value)} 
                                 />
                             </div>
                         </form>
-                        <div className="text-sm font-medium text-gray-500">
-                            Queue: {prescriptions.total}
-                        </div>
                     </div>
 
                     {/* Table */}
@@ -129,138 +156,170 @@ export default function DispensingIndex({ prescriptions, filters, flash,userPerm
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Patient</th>
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Prescription Details</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase">Payment Status</th>
-                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase">Action</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase w-3/12">Patient</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase w-4/12">Medications</th>
+                                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase w-3/12">Status</th>
+                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase w-2/12">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {prescriptions.data.length === 0 ? (
-                                    <tr><td colSpan="4" className="px-6 py-10 text-center text-gray-400">No prescriptions found.</td></tr>
+                                {Object.keys(groupedPrescriptions).length === 0 ? (
+                                    <tr><td colSpan="4" className="px-6 py-10 text-center text-gray-400">No prescriptions found for this date.</td></tr>
                                 ) : (
-                                    prescriptions.data.map((rx) => {
-                                        // --- 1. DETERMINE CATEGORY ---
-                                        const billingGroup = rx.visit?.billing_group || rx.visit?.billingGroup;
-                                        
-                                        // Check Admission
-                                        const isAdmitted = rx.patient?.is_admitted; // <--- 2. Get Admission Status
+                                    Object.entries(groupedPrescriptions).map(([patientCode, groupItems]) => {
+                                        // Take patient details from the first item
+                                        const firstRx = groupItems[0];
+                                        const patient = firstRx.patient;
+                                        const visit = firstRx.visit;
 
-                                        let category = rx.patient?.payment_category || 'Cash';
-
-                                        // Fallback if patient record missing category (legacy)
-                                        if (!rx.patient?.payment_category && billingGroup) {
+                                        // Category Logic (Patient Level)
+                                        const billingGroup = visit?.billing_group || visit?.billingGroup;
+                                        let category = patient?.payment_category || 'Cash';
+                                        if (!patient?.payment_category && billingGroup) {
                                             if (billingGroup.isexemption) category = 'Exemption';
                                             else if (billingGroup.isinsurance) category = 'Insurance';
                                         }
 
-                                        const isCash      = category === 'Cash';
                                         const isInsurance = category === 'Insurance';
                                         const isExemption = category === 'Exemption';
-                                        const isCorporate = category === 'Invoice'; // Corporate
+                                        const isCorporate = category === 'Invoice'; 
+                                        const isAdmitted = patient?.is_admitted;
 
-                                        // --- 2. PAYMENT STATUS ---
-                                        const isPaid = rx.payment_status === 'paid';
-                                        // Intermediate Stage: Bill sent to cashier but not paid
-                                        const isBilled = rx.status === 'Billed' && !isPaid; 
-                                        const isWaived = rx.payment_status === 'waived' || isExemption;
-
-                                        // --- 3. ACCESS CONTROL ---
-                                        // Unlock Dispense if: Paid OR Waived OR Insurance OR Corporate OR ADMITTED
-                                        const canDispense = !isCash || isPaid || isWaived || isAdmitted; // <--- 3. Updated Logic
-
-                                        // Extract details for the unit
-                                        const details = rx.product?.drug_details || rx.product?.drugDetails;
-                                        const unit = details?.strength_unit || '';
-
-                                        // Row Background
-                                        let rowClass = "hover:bg-gray-50 transition";
-                                        if (isAdmitted) rowClass = "bg-orange-50/50 hover:bg-orange-50 transition";
+                                        let rowClass = "hover:bg-gray-50 transition border-b border-gray-100";
+                                        if (isAdmitted) rowClass = "bg-orange-50/50 hover:bg-orange-50 transition border-b border-orange-100";
 
                                         return (
-                                            <tr key={rx.id} className={rowClass}>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center">
-                                                        <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center mr-3 text-gray-400">
+                                            <tr key={patientCode} className={rowClass}>
+                                                
+                                                {/* 1. PATIENT DETAILS */}
+                                                <td className="px-6 py-4 align-top">
+                                                    <div className="flex items-start">
+                                                        <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center mr-3 text-gray-400 flex-shrink-0">
                                                             <FontAwesomeIcon icon={faUser} />
                                                         </div>
                                                         <div>
-                                                            <div className="font-bold text-gray-900">{rx.patient?.first_name} {rx.patient?.last_name}</div>
-                                                            <div className="text-xs text-gray-500 font-mono uppercase">{rx.patientcode}</div>
+                                                            <div className="font-bold text-gray-900">{patient?.first_name} {patient?.last_name}</div>
+                                                            <div className="text-xs text-gray-500 font-mono uppercase">{patientCode}</div>
                                                             <div className="text-[10px] font-bold text-blue-600 uppercase mt-0.5 flex items-center gap-1">
                                                                 {isInsurance && <FontAwesomeIcon icon={faIdCard} />}
                                                                 {isCorporate && <FontAwesomeIcon icon={faBuilding} />}
                                                                 {isExemption && <FontAwesomeIcon icon={faHandHoldingHeart} />}
                                                                 {billingGroup?.name || category}
                                                             </div>
+                                                            {isAdmitted && (
+                                                                <span className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                                                                    <FontAwesomeIcon icon={faProcedures} className="mr-1" /> ADMITTED
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    {/* Drug Name */}
-                                                    <div className="font-bold text-gray-800">
-                                                        {rx.product?.name}
-                                                    </div>
-                                                    
-                                                    {/* Dosage info with Unit concatenated */}
-                                                    <div className="text-xs text-gray-500 italic mt-1 font-medium">
-                                                        {rx.dosage}{unit} • {rx.frequency} • {rx.duration}
-                                                    </div>
 
-                                                    <div className="flex items-center mt-2 text-xs text-blue-600 font-medium bg-blue-50 w-fit px-2 py-0.5 rounded border border-blue-100">
-                                                        <FontAwesomeIcon icon={faStethoscope} className="mr-1.5" />
-                                                        Dr. {rx.doctor?.name || 'Unknown'}
+                                                {/* 2. MEDICATIONS (Stacked) */}
+                                                <td className="px-6 py-4 align-top">
+                                                    <div className="flex flex-col gap-4">
+                                                        {groupItems.map((rx) => {
+                                                            const details = rx.product?.drug_details || rx.product?.drugDetails;
+                                                            const unit = details?.strength_unit || '';
+                                                            return (
+                                                                <div key={rx.id} className="flex flex-col border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                                                                    <div className="font-bold text-gray-800 text-sm">
+                                                                        {rx.product?.name}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 italic font-medium">
+                                                                        {rx.dosage}{unit} • {rx.frequency} • {rx.duration}
+                                                                    </div>
+                                                                    <div className="flex items-center mt-1 text-[10px] text-blue-600 font-medium bg-blue-50 w-fit px-1.5 py-0.5 rounded border border-blue-100">
+                                                                        <FontAwesomeIcon icon={faStethoscope} className="mr-1" />
+                                                                        {rx.doctor?.name || 'Dr. Unknown'}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </td>
+
+                                                {/* 3. STATUS (Stacked) */}
+                                                <td className="px-6 py-4 align-top">
+                                                    <div className="flex flex-col gap-4 items-center">
+                                                        {groupItems.map((rx) => {
+                                                            const isPaid = rx.payment_status === 'paid';
+                                                            const isBilled = rx.status === 'Billed' && !isPaid;
+                                                            const isWaived = rx.payment_status === 'waived' || isExemption;
+                                                            const isCash = category === 'Cash';
+
+                                                            return (
+                                                                <div key={rx.id} className="h-[4.5rem] flex items-center justify-center"> {/* Fixed height to align with meds roughly */}
+                                                                    {isAdmitted ? (
+                                                                        <span className="text-xs font-bold text-orange-600"><FontAwesomeIcon icon={faProcedures} /> Admitted</span>
+                                                                    ) : isPaid ? (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                                                            <FontAwesomeIcon icon={faCheckCircle} className="mr-1" /> PAID
+                                                                        </span>
+                                                                    ) : isBilled ? (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 uppercase">
+                                                                            <FontAwesomeIcon icon={faHourglassHalf} className="mr-1" /> Cashier
+                                                                        </span>
+                                                                    ) : isWaived ? (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700 uppercase">
+                                                                            <FontAwesomeIcon icon={faHandHoldingHeart} className="mr-1" /> Exempt
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${isCash ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                                            {isCash ? 'Unpaid' : 'Insurance'}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </td>
                                                 
-                                                {/* Payment / Admission Status Badge */}
-                                                <td className="px-6 py-4 text-center">
-                                                    {isAdmitted ? (
-                                                        // <--- 4. New Admitted Badge
-                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
-                                                            <FontAwesomeIcon icon={faProcedures} className="mr-1" /> ADMITTED
-                                                        </span>
-                                                    ) : isPaid ? (
-                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                                                            <FontAwesomeIcon icon={faCheckCircle} className="mr-1" /> PAID
-                                                        </span>
-                                                    ) : isBilled ? (
-                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 uppercase">
-                                                            <FontAwesomeIcon icon={faHourglassHalf} className="mr-1" /> At Cashier
-                                                        </span>
-                                                    ) : isExemption || isWaived ? (
-                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700 uppercase">
-                                                            <FontAwesomeIcon icon={faHandHoldingHeart} className="mr-1" /> Exempt
-                                                        </span>
-                                                    ) : (
-                                                        // Default Unpaid Status (Cash or Insurance Process)
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase ${isCash ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                            {isCash ? 'Unpaid' : 'Insurance'}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                
-                                                <td className="px-6 py-4 text-right">
-                                                    {/* Action Logic: If canDispense is true, show Dispense. Else show Bill/Locked */}
-                                                    {canDispense ? (
-                                                        // Admitted, Paid, or Insurance -> Dispense
-                                                        <Link href={route('pharmacy0.create', rx.id)} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition inline-flex items-center ml-auto">
-                                                            <FontAwesomeIcon icon={faPills} className="mr-2" /> Dispense
-                                                        </Link>
-                                                    ) : isBilled ? (
-                                                        // Billed but Waiting for Payment
-                                                        <button disabled className="bg-gray-100 text-gray-400 border border-gray-200 px-3 py-2 rounded-lg text-xs font-bold cursor-not-allowed flex items-center ml-auto">
-                                                            <FontAwesomeIcon icon={faCashRegister} className="mr-2" /> Bill Sent
-                                                        </button>
-                                                    ) : (
-                                                        // Unpaid & Not Billed -> Needs to be sent to cashier
-                                                        <button 
-                                                            onClick={() => canPostBills ? openPostBills(rx) : openNegotiation(rx)} 
-                                                            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition flex items-center ml-auto"
-                                                        >
-                                                            <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Bill
-                                                        </button>
-                                                    )}
+                                                {/* 4. ACTIONS (Stacked) */}
+                                                <td className="px-6 py-4 align-top text-right">
+                                                    <div className="flex flex-col gap-4 items-end">
+                                                        {groupItems.map((rx) => {
+                                                            const isPaid = rx.payment_status === 'paid';
+                                                            const isBilled = rx.status === 'Billed' && !isPaid;
+                                                            const isWaived = rx.payment_status === 'waived' || isExemption;
+                                                            const isCash = category === 'Cash';
+                                                            const canDispense = !isCash || isPaid || isWaived || isAdmitted;
+
+                                                            return (
+                                                                <div key={rx.id} className="h-[4.5rem] flex items-center">
+                                                                    {canDispense ? (
+                                                                        <Link href={route('pharmacy0.create', rx.id)} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-[10px] font-bold transition inline-flex items-center">
+                                                                            <FontAwesomeIcon icon={faPills} className="mr-1" /> Dispense
+                                                                        </Link>
+                                                                    ) : isBilled ? (
+                                                                        canPostBills ? (
+                                                                            <Link 
+                                                                                href={route('pharmacy0.billing.index')} 
+                                                                                // Changed to Blue to distinguish from Dispense (Green)
+                                                                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-[10px] font-bold transition inline-flex items-center"
+                                                                            >
+                                                                                <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-1" /> 
+                                                                                View Bills
+                                                                            </Link>
+                                                                        ) : (
+                                                                            <button disabled className="bg-gray-100 text-gray-400 border border-gray-200 px-3 py-1.5 rounded text-[10px] font-bold cursor-not-allowed flex items-center">
+                                                                                <FontAwesomeIcon icon={faCashRegister} className="mr-1" /> 
+                                                                                Sent
+                                                                            </button>
+                                                                        )
+                                                                        
+                                                                    ) : (
+                                                                        <button 
+                                                                            onClick={() => canPostBills ? openPostBills(rx) : openNegotiation(rx)} 
+                                                                            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded text-[10px] font-bold transition flex items-center"
+                                                                        >
+                                                                            <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-1" /> Bill
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -273,7 +332,7 @@ export default function DispensingIndex({ prescriptions, filters, flash,userPerm
                 </div>
             </div>
 
-            {/* Negotiation Modal */}
+            {/* Negotiation Modal (Same as before) */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">

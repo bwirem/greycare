@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
+use Carbon\Carbon; // <--- Import this
+
 // Models
 use App\Models\Laboratory\LabPrescription;
 use App\Models\Laboratory\LabSample;
@@ -19,28 +21,39 @@ class LabRequestController extends Controller
 {
     /**
      * List Pending Requests
-     */
+     */   
     public function index(Request $request)
     {
-        // Added 'visit.billingGroup' to help identify Cash vs Insurance in frontend if needed
         $query = LabPrescription::with(['patient', 'requestedBy', 'panel', 'visit.billingGroup'])
-           // CHANGE: Show 'ordered' (New) AND 'sample_rejected' (Needs Redraw)
             ->whereIn('status', ['Requested', 'sample_rejected']) 
             ->orderBy('created_at', 'asc');
 
         if ($request->search) {
             $query->whereHas('patient', function ($q) use ($request) {
                 $q->where('first_name', 'like', "%{$request->search}%")
-                  ->orWhere('code', 'like', "%{$request->search}%");
+                ->orWhere('code', 'like', "%{$request->search}%");
             });
         }
 
+        // --- DATE FILTER LOGIC ---
+        // 1. Get Date: Use provided date OR default to Today if parameter is strictly missing
+        //    (If user explicitly clears the date, it sends "" which is not null, so it shows all)
+        $filterDate = $request->input('date', Carbon::now()->format('Y-m-d'));
+
+        // 2. Apply Filter if a date exists
+        if ($filterDate) {
+            $query->whereBetween('created_at', [
+                Carbon::parse($filterDate)->startOfDay(), 
+                Carbon::parse($filterDate)->endOfDay()
+            ]);
+        }
+
         return Inertia::render('Hospital/Laboratory/Requests/Index', [
-            'requests' => $query->paginate(15)->withQueryString(),
-            'filters' => $request->only(['search'])
+            'requests' => $query->paginate(20)->withQueryString(),
+            // 3. Return the calculated date to the Frontend so the Input shows "Today"
+            'filters' => array_merge($request->only(['search']), ['date' => $filterDate])
         ]);
     }
-
     /**
      * Show Sample Collection Form
      */

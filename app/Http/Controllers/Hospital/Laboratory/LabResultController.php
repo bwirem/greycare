@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Carbon\Carbon; // <--- Make sure to import Carbon at the top
 
 // Models
 use App\Models\Laboratory\LabSample;
@@ -22,26 +23,40 @@ class LabResultController extends Controller
     /**
      * List Samples waiting for Results
      */
+   
     public function index(Request $request)
     {
         $query = LabSample::with(['prescription.patient', 'prescription.panel', 'sampleType'])
-            
-            // --- FIX START ---
             // Allow both 'collected' (New) and 'processing' (Draft/Saved but not final)
             ->whereIn('status', ['collected', 'processing']) 
-            // --- FIX END ---
-            
             ->orderBy('collected_at', 'asc');
 
+        // 1. FILTER: Search (Existing)
         if ($request->search) {
             $query->whereHas('prescription.patient', function ($q) use ($request) {
-                $q->where('first_name', 'like', "%{$request->search}%");
+                $q->where('first_name', 'like', "%{$request->search}%")
+                // It is good practice to search Code or Last Name as well
+                ->orWhere('last_name', 'like', "%{$request->search}%")
+                ->orWhere('patientcode', 'like', "%{$request->search}%");
             });
         }
 
+        // 2. FILTER: Date
+        // Default to Today if no date is provided in the request
+        $filterDate = $request->input('date', Carbon::now()->format('Y-m-d'));
+
+        if ($filterDate) {
+            // Use whereBetween on 'collected_at' to handle time components correctly
+            $query->whereBetween('collected_at', [
+                Carbon::parse($filterDate)->startOfDay(), 
+                Carbon::parse($filterDate)->endOfDay()
+            ]);
+        }
+
         return Inertia::render('Hospital/Laboratory/Results/Index', [
-            'samples' => $query->paginate(15)->withQueryString(),
-            'filters' => $request->only(['search'])
+            'samples' => $query->paginate(20)->withQueryString(),
+            // Return the date to the frontend so the input shows the correct value
+            'filters' => array_merge($request->only(['search']), ['date' => $filterDate])
         ]);
     }
 

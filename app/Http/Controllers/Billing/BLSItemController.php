@@ -126,6 +126,7 @@ class BLSItemController extends Controller
         ]);
          
         $validated['addtocart'] = $request->boolean('addtocart');
+        $validated['price1'] = $validated['price1'] ?? 0;
         $validated['price2'] = $validated['price2'] ?? 0;
         $validated['price3'] = $validated['price3'] ?? 0;
         $validated['price4'] = $validated['price4'] ?? 0;
