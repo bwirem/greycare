@@ -30,6 +30,14 @@ class LabPrescription extends Model
         return $this->belongsTo(User::class, 'doctor_user_id');
     }
 
+    /**
+     * Link to the Doctor/User who ordered the test
+     */
+    public function doctor()
+    {
+        return $this->belongsTo(User::class, 'doctor_user_id');
+    }
+
     public function panel()
     {
         return $this->belongsTo(LabPanel::class, 'lab_panel_id');

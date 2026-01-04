@@ -33,6 +33,15 @@ class RadRequest extends Model
     }
 
     /**
+     * The Doctor who ordered the scan
+     */
+    public function doctor()
+    {
+        // Adjust column name if you used 'doctor_user_id' or 'requested_by'
+        return $this->belongsTo(User::class, 'requested_by'); 
+    }
+
+    /**
      * Get the report associated with this request.
      */
     public function report()

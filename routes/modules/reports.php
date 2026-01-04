@@ -10,6 +10,12 @@ use App\Http\Controllers\Reports\HumanResourceReportsController;
 use App\Http\Controllers\Reports\OpdReportsController;
 use App\Http\Controllers\Reports\IpdReportsController;
 use App\Http\Controllers\Reports\DoctorReportsController;
+use App\Http\Controllers\Reports\LabReportsController;
+use App\Http\Controllers\Reports\RadReportsController;
+use App\Http\Controllers\Reports\PharmacyReportsController;
+use App\Http\Controllers\Reports\TheatreReportsController;
+
+
 
 
 // --- Reporting Hubs (reporting0 - reporting7) ---
@@ -65,10 +71,34 @@ Route::prefix('reporting9')->name('reporting9.')->group(function () {
 });
 
 
-// --- Reporting Hub: Doctor / Clinical (Assigned to reporting10) ---
+// --- Reporting Hub: Doctor / Clinical (Assigned to reporting11) ---
 Route::prefix('reporting11')->name('reporting11.')->group(function () {
     Route::get('/', [DoctorReportsController::class, 'index'])->name('index');
 });
+
+
+// --- Reporting Hub: Theatre (Assigned to reporting15) ---
+Route::prefix('reporting12')->name('reporting12.')->group(function () {
+    Route::get('/', [TheatreReportsController::class, 'index'])->name('index');
+});
+
+// --- Reporting Hub: Laboratory (Assigned to reporting14) ---
+Route::prefix('reporting14')->name('reporting14.')->group(function () {
+    Route::get('/', [LabReportsController::class, 'index'])->name('index');
+});
+ 
+// --- Reporting Hub: Radiology (Assigned to reporting16) ---
+Route::prefix('reporting16')->name('reporting16.')->group(function () {
+    Route::get('/', [RadReportsController::class, 'index'])->name('index');
+});
+
+// --- Reporting Hub: Pharmacy (Assigned to reporting14) ---
+Route::prefix('reporting17')->name('reporting17.')->group(function () {
+    Route::get('/', [PharmacyReportsController::class, 'index'])->name('index');
+});
+
+
+
 
 
 // --- Report Data Routes ---
@@ -148,6 +178,30 @@ Route::prefix('reports')->name('reports.')->group(function () {
         // --- NEW: Patient History Routes (using DoctorReportsController) ---
         Route::get('/patient-history', [DoctorReportsController::class, 'patientHistorySearch'])->name('patient_history');
         Route::get('/patient-history/{patientCode}', [DoctorReportsController::class, 'patientHistoryShow'])->name('patient_history.show');
-    });    
+    });   
+    
+    // --- Theatre Report Data ---
+    Route::prefix('theatre')->name('theatre.')->group(function () {
+        Route::get('/activity', [TheatreReportsController::class, 'activity'])->name('activity');
+        Route::get('/analysis', [TheatreReportsController::class, 'analysis'])->name('analysis');
+    });
+    
+    // --- Laboratory Report Data ---
+    Route::prefix('lab')->name('lab.')->group(function () {
+        Route::get('/requests', [LabReportsController::class, 'requests'])->name('requests');
+        Route::get('/analysis', [LabReportsController::class, 'analysis'])->name('analysis');
+    });
+   
+    // --- Radiology Report Data ---
+    Route::prefix('rad')->name('rad.')->group(function () {
+        Route::get('/requests', [RadReportsController::class, 'requests'])->name('requests');
+        Route::get('/analysis', [RadReportsController::class, 'analysis'])->name('analysis');
+    });   
+
+    // --- Pharmacy Report Data ---
+    Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
+        Route::get('/dispensing', [PharmacyReportsController::class, 'dispensing'])->name('dispensing');
+        Route::get('/analysis', [PharmacyReportsController::class, 'analysis'])->name('analysis');
+    });
 
 });

@@ -92,7 +92,9 @@ class DoctorReportsController extends Controller
                 'id'           => $row->id,
                 'date'         => Carbon::parse($row->created_at)->format('Y-m-d H:i'),
                 'doctor_name'  => $row->user?->name ?? 'Unassigned',
-                'patient_name' => $row->patient?->full_name ?? 'Unknown',
+                'patient_name' => $row->patient
+                                ? $row->patient->first_name . ' ' . $row->patient->last_name
+                                : 'Unknown',
                 'file_number'  => $row->patientcode,
                 'clinic'       => $row->treatmentPoint?->name ?? 'General',
                 'status'       => $row->consultation_status
@@ -157,7 +159,9 @@ class DoctorReportsController extends Controller
                 'id'           => $row->id,
                 'date'         => Carbon::parse($row->round_date)->format('Y-m-d H:i'),
                 'doctor_name'  => $row->doctor?->name ?? 'Unknown',
-                'patient_name' => $row->admission?->patient?->full_name ?? 'Unknown',
+                'patient_name' => $row->admission?->patient
+                                ? $row->admission->patient->first_name . ' ' . $row->admission->patient->last_name
+                                : 'Unknown',
                 'ward'         => $row->admission?->ward?->name ?? 'N/A',
                 'notes_excerpt'=> \Illuminate\Support\Str::limit($row->clinical_notes, 50)
             ];
@@ -197,7 +201,7 @@ class DoctorReportsController extends Controller
                 ->map(function ($p) {
                     return [
                         'code' => $p->code,
-                        'name' => $p->full_name, // Ensure fullName accessor exists in Patient model
+                        'name' => $p->first_name . ' ' . $p->last_name, 
                         'age'  => $p->age,
                         'phone'=> $p->phone_number
                     ];
@@ -286,8 +290,8 @@ class DoctorReportsController extends Controller
         // You can save the view file at resources/js/Pages/Reports/Patient/History.jsx
         return Inertia::render('Reports/Patient/History', [
             'patient' => [
-                'code' => $patient->code,
-                'name' => $patient->full_name,
+                'code' => $patient->code,                
+                'name' => $patient->first_name . ' ' . $patient->last_name,
                 'age' => $patient->age,
                 'gender' => $patient->gender,
                 'phone' => $patient->phone_number,
