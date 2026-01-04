@@ -11,18 +11,14 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function ResultsIndex({ samples, filters }) {
-    // 1. Initialize state with filters provided by the controller
-    // filters.date will contain "Today" by default from the backend logic
     const [search, setSearch] = useState(filters.search || '');
     const [date, setDate] = useState(filters.date || '');
 
-    // 2. Main Search Handler (for text search)
     const handleSearch = (e) => {
         e.preventDefault();
         router.get(route('laboratory1.index'), { search, date }, { preserveState: true });
     };
 
-    // 3. Date Change Handler (Triggers immediately)
     const handleDateChange = (newDate) => {
         setDate(newDate);
         router.get(
@@ -32,8 +28,10 @@ export default function ResultsIndex({ samples, filters }) {
         );
     };
 
-    // 4. Grouping Logic: Group samples by patient code
     const groupedSamples = samples.data.reduce((groups, sample) => {
+        // Safe check: Ensure prescription exists before grouping
+        if (!sample.prescription) return groups;
+        
         const key = sample.prescription.patientcode;
         if (!groups[key]) {
             groups[key] = [];
@@ -49,15 +47,12 @@ export default function ResultsIndex({ samples, filters }) {
             <div className="py-8 max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div className="bg-white p-6 shadow-sm rounded-lg border border-gray-200">
                     
-                    {/* --- Toolbar --- */}
                     <div className="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4">
                         <div className="text-sm text-gray-600 mb-2 lg:mb-0">
                             Enter results for collected samples.
                         </div>
 
                         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-                            
-                            {/* Date Filter */}
                             <div className="relative">
                                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
                                     <FontAwesomeIcon icon={faCalendarAlt} />
@@ -70,7 +65,6 @@ export default function ResultsIndex({ samples, filters }) {
                                 />
                             </div>
 
-                            {/* Search Input */}
                             <div className="flex gap-2 w-full sm:w-64">
                                 <TextInput 
                                     className="w-full"
@@ -85,13 +79,11 @@ export default function ResultsIndex({ samples, filters }) {
                         </form>
                     </div>
 
-                    {/* --- Data Table --- */}
                     <div className="overflow-x-auto border rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-green-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-green-800 uppercase tracking-wider w-3/12">Patient Details</th>
-                                    {/* <th className="px-6 py-3 text-left text-xs font-bold text-green-800 uppercase tracking-wider w-2/12">Sample ID</th> */}
                                     <th className="px-6 py-3 text-left text-xs font-bold text-green-800 uppercase tracking-wider w-3/12">Test Panel</th>
                                     <th className="px-6 py-3 text-left text-xs font-bold text-green-800 uppercase tracking-wider w-2/12">Collected At</th>
                                     <th className="px-6 py-3 text-right text-xs font-bold text-green-800 uppercase tracking-wider w-2/12">Action</th>
@@ -106,14 +98,15 @@ export default function ResultsIndex({ samples, filters }) {
                                     </tr>
                                 ) : (
                                     Object.entries(groupedSamples).map(([patientCode, groupItems]) => {
-                                        // Get patient details from the first sample in the group
                                         const firstSample = groupItems[0];
-                                        const patient = firstSample.prescription.patient;
+                                        // Safe Access for Patient
+                                        const patient = firstSample.prescription?.patient;
+
+                                        if (!patient) return null; // Skip malformed records
 
                                         return (
                                             <tr key={patientCode} className="hover:bg-green-50 transition-colors border-b border-gray-200">
                                                 
-                                                {/* 1. Patient Details (Rendered Once) */}
                                                 <td className="px-6 py-4 whitespace-nowrap align-top">
                                                     <div className="font-bold text-gray-900 text-base">
                                                         {patient.first_name} {patient.last_name}
@@ -126,35 +119,21 @@ export default function ResultsIndex({ samples, filters }) {
                                                     </div>
                                                 </td>
 
-                                                {/* 2. Sample IDs (Stacked) */}
-                                                {/* <td className="px-6 py-4 align-top">
-                                                    <div className="flex flex-col gap-3">
-                                                        {groupItems.map((sample) => (
-                                                            <div key={sample.id} className="h-8 flex items-center">
-                                                                <span className="font-mono text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded border border-gray-300">
-                                                                    <FontAwesomeIcon icon={faVial} className="mr-2 text-gray-400" />
-                                                                    {sample.sample_code}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </td> */}
-
-                                                {/* 3. Test Panel (Stacked) */}
+                                                {/* FIXED COLUMN: Test Panel */}
                                                 <td className="px-6 py-4 align-top">
                                                     <div className="flex flex-col gap-3">
                                                         {groupItems.map((sample) => (
                                                             <div key={sample.id} className="h-8 flex items-center">
                                                                 <div className="text-sm font-medium text-gray-800">
                                                                     <FontAwesomeIcon icon={faFlask} className="mr-2 text-green-600 opacity-70"/>
-                                                                    {sample.prescription.panel.name}
+                                                                    {/* FIX: Optional chaining applied here */}
+                                                                    {sample.prescription?.panel?.name ?? 'Unknown Panel'}
                                                                 </div>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </td>
 
-                                                {/* 4. Collected Date / Status (Stacked) */}
                                                 <td className="px-6 py-4 align-top">
                                                     <div className="flex flex-col gap-3">
                                                         {groupItems.map((sample) => (
@@ -178,7 +157,6 @@ export default function ResultsIndex({ samples, filters }) {
                                                     </div>
                                                 </td>
 
-                                                {/* 5. Actions (Stacked) */}
                                                 <td className="px-6 py-4 align-top text-right">
                                                     <div className="flex flex-col gap-3 items-end">
                                                         {groupItems.map((sample) => (

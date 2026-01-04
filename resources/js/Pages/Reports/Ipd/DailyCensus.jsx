@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/FinanceLayout';
+import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head, useForm } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilter, faPrint } from '@fortawesome/free-solid-svg-icons';

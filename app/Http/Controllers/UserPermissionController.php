@@ -389,10 +389,10 @@ class UserPermissionController extends Controller
                 ['key' => 'reporting7', 'text' => 'Accounting', 'icon' => 'account_balance'], 
                 
                 //Hospital
-                ['key' => 'reporting8', 'text' => 'Outpatient', 'icon' => 'stethoscope'],
+                ['key' => 'reporting8', 'text' => 'Outpatient', 'icon' => 'outpatient'],
                 ['key' => 'reporting9', 'text' => 'Inpatient', 'icon' => 'procedures'],
-                ['key' => 'reporting10', 'text' => 'Nursing', 'icon' => 'user_nurse'],
-                ['key' => 'reporting11', 'text' => 'Doctor', 'icon' => 'user_md'],
+                ['key' => 'reporting10', 'text' => 'Nursing', 'icon' => 'nursing'],
+                ['key' => 'reporting11', 'text' => 'Doctor', 'icon' => 'doctor'],
                 ['key' => 'reporting12', 'text' => 'Theatre', 'icon' => 'heartbeat'],
                 ['key' => 'reporting13', 'text' => 'Physiotherapy', 'icon' => 'walking'],
                 ['key' => 'reporting14', 'text' => 'Laboratory', 'icon' => 'microscope'],

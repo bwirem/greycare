@@ -57,6 +57,13 @@ const allowedFinanceItemKeys = [
     //Pharmacy Module Items
     'pharmacy0', 'pharmacy1',
 
+    'reporting8', 'reporting9',  
+    'reporting10', 'reporting11',
+    'reporting12', 'reporting13',
+    'reporting14', 'reporting15',
+    'reporting16', 'reporting17',
+    'reporting18',   
+
     //System Configuration Module Items   
     'systemconfiguration6', //  
     'systemconfiguration7', //  

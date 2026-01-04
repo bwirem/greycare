@@ -42,7 +42,7 @@ class HandleInertiaRequests extends Middleware
             'moduleGroups' => [
                 'hospital' => [
                     'outpatient', 'inpatient', 'nursing', 'doctor', 'theatre',
-                    'laboratory', 'blood-bank', 'radiology','pharmacy',
+                    'laboratory', 'blood-bank', 'radiology','pharmacy','reporting',
                     'systemConfig',
                 ],
                 'finance' => [
