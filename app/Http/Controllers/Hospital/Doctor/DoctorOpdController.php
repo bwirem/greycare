@@ -52,35 +52,44 @@ class DoctorOpdController extends Controller
     /**
      * 1. The Queue
      */
+    // In your Controller
+
     public function index(Request $request)
     {
-        
-        // 1. Get the filter from the request
+        // 1. Get filters
         $treatmentPointId = $request->input('treatment_point_id');
+        
+        // Default to today if no date is provided
+        $dateFilter = $request->input('date', date('Y-m-d')); 
 
         $queue = OpdBooking::with(['patient','billingGroup', 'latestVitalSign'])
-            ->whereDate('created_at', today())
+            // --- USE DATE FILTER INSTEAD OF HARDCODED today() ---
+            ->whereDate('created_at', $dateFilter) 
+            
             // --- FILTER OUT ADMITTED PATIENTS ---
             ->where('consultation_status', '!=', 'Admitted')             
-            // Optional: You might also want to hide 'Completed' or 'Cancelled'
-            // ->whereNotIn('consultation_status', ['Admitted', 'Cancelled'])
-
+            
             // --- APPLY TREATMENT POINT FILTER ---
             ->when($treatmentPointId, function ($query, $id) {
                 return $query->where('treatmentpoint_id', $id);
             })
 
             ->orderBy('created_at', 'asc')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString(); // <--- IMPORTANT: Keeps filters when clicking 'Next Page'
 
-            $treatmentPoints = OpdTreatmentPoint::select('id', 'name')
+        $treatmentPoints = OpdTreatmentPoint::select('id', 'name')
             ->orderBy('name')
             ->get();
 
         return Inertia::render('Hospital/Doctor/Opd/Index', [
             'queue' => $queue,
-            'treatmentPoints' => $treatmentPoints, // Pass to View
-            'filters' => $request->only(['treatment_point_id']), // Pass current selection back
+            'treatmentPoints' => $treatmentPoints,
+            // Pass both filters back to the view
+            'filters' => [
+                'treatment_point_id' => $treatmentPointId, 
+                'date' => $dateFilter
+            ], 
         ]);
     }
 

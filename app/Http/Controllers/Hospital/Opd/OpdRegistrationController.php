@@ -31,10 +31,15 @@ class OpdRegistrationController extends Controller
     /**
      * Display a listing of OPD Registrations.
      */   
-    public function index()
+    
+    public function index(Request $request)
     {
+        // 1. Get the date from request, default to Today
+        $dateFilter = $request->input('date', date('Y-m-d'));
+
         $bookings = OpdBooking::with(['patient', 'billingGroup', 'treatmentPoint', 'latestVitalSign'])
-            ->whereDate('created_at', now()) 
+            // 2. Use the variable instead of now()
+            ->whereDate('created_at', $dateFilter) 
             ->latest() 
             ->get();
 
@@ -50,11 +55,7 @@ class OpdRegistrationController extends Controller
                 'gender'       => $booking->patient?->gender ?? '-',
                 'payment_mode' => $booking->billingGroup?->name ?? 'Cash',
                 'doctor_name'  => $booking->DoctorName ?? 'Unassigned',
-                
-                // --- ADD THIS LINE ---
                 'treatment_point_id' => $booking->treatmentpoint_id, 
-                // ---------------------
-
                 'clinic'       => $booking->treatmentPoint?->name ?? 'General OPD', 
                 'status'       => $booking->vitalsignstatus === 'Closed' ? 'Triaged' : 'Waiting',
                 'time'         => $booking->created_at->format('h:i A'),
@@ -62,12 +63,15 @@ class OpdRegistrationController extends Controller
             ];
         });
 
-        // --- FETCH TREATMENT POINTS ---
         $treatmentPoints = OpdTreatmentPoint::select('id', 'name')->orderBy('name')->get();
 
         return Inertia::render('Hospital/Opd/Registrations/Index', [
             'registrations' => $registrations,
             'treatmentPoints' => $treatmentPoints,
+            // 3. Pass the filter back to React
+            'filters' => [
+                'date' => $dateFilter
+            ]
         ]);
     }
 

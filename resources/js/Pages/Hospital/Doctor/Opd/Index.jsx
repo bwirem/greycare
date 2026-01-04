@@ -12,41 +12,45 @@ import {
     faBuilding,
     faHandHoldingHeart,
     faClinicMedical,
-    faFilter
+    faFilter,
+    faCalendarAlt // Import Calendar Icon
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function DoctorOpdIndex({ queue, treatmentPoints, filters }) {
     
-    // --- STATE: Initialize from Session Storage OR Server Filters ---
-    // This ensures that if the server sent a filter (via URL), we use it. 
-    // Otherwise, we check session storage for a "remembered" value.
+    // --- STATE: Initialize Filters ---
+
+    // 1. Clinic Filter (with Session Storage memory)
     const [selectedPoint, setSelectedPoint] = useState(() => {
-        // 1. Priority: URL param from server
         if (filters.treatment_point_id) return filters.treatment_point_id;
-        
-        // 2. Fallback: Remembered session value
         if (typeof window !== 'undefined') {
             return sessionStorage.getItem('doctor_opd_filter_point') || '';
         }
         return '';
     });
 
+    // 2. Date Filter (Default to server provided date or Today)
+    const [selectedDate, setSelectedDate] = useState(() => {
+        return filters.date || new Date().toISOString().split('T')[0];
+    });
+
     const isFirstRender = useRef(true);
 
     // --- EFFECT: Handle Changes & Remembering ---
     useEffect(() => {
-        // 1. Save current selection to storage
+        // Save Clinic selection to storage
         sessionStorage.setItem('doctor_opd_filter_point', selectedPoint);
 
-        // 2. Sync with Server
-        // We only trigger a reload if the State differs from the URL Param
-        // This prevents infinite loops and unnecessary reloads on first render if they match.
+        // Prevent infinite reload loop on first render
         if (isFirstRender.current) {
             isFirstRender.current = false;
             
-            // Special Case: If we have a stored value, but URL is empty (fresh tab), reload to apply it.
+            // Special Case: Apply stored session clinic if URL is empty
             if (selectedPoint && !filters.treatment_point_id) {
-                router.get(route(route().current()), { treatment_point_id: selectedPoint }, {
+                router.get(route(route().current()), { 
+                    treatment_point_id: selectedPoint,
+                    date: selectedDate 
+                }, {
                     preserveState: true,
                     replace: true
                 });
@@ -54,14 +58,17 @@ export default function DoctorOpdIndex({ queue, treatmentPoints, filters }) {
             return;
         }
 
-        // Normal Selection Change
-        router.get(route(route().current()), { treatment_point_id: selectedPoint }, {
+        // Trigger reload when Point OR Date changes
+        router.get(route(route().current()), { 
+            treatment_point_id: selectedPoint,
+            date: selectedDate 
+        }, {
             preserveState: true,
             preserveScroll: true,
             replace: true
         });
 
-    }, [selectedPoint]); // Runs whenever selectedPoint changes
+    }, [selectedPoint, selectedDate]); // Dependent on both
 
     return (
         <HospitalLayout header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">OPD Consultation Queue</h2>}>
@@ -71,34 +78,53 @@ export default function DoctorOpdIndex({ queue, treatmentPoints, filters }) {
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     
                     {/* --- FILTER TOOLBAR --- */}
-                    <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <div className="w-full sm:w-1/2 md:w-1/3">
-                            <label className="block text-sm font-bold text-gray-700 mb-2">
-                                <FontAwesomeIcon icon={faFilter} className="mr-2 text-gray-400"/>
-                                Filter by Clinic / Room:
-                            </label>
-                            <div className="relative">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <FontAwesomeIcon icon={faClinicMedical} className="text-gray-400" />
-                                </span>
-                                <select
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-sm bg-white"
-                                    value={selectedPoint}
-                                    onChange={(e) => setSelectedPoint(e.target.value)}
-                                >
-                                    <option value="">Show All Clinics</option>
-                                    {treatmentPoints.map((tp) => (
-                                        <option key={tp.id} value={tp.id}>
-                                            {tp.name}
-                                        </option>
-                                    ))}
-                                </select>
+                    <div className="mb-6 flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+                        
+                        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-2/3">
+                            
+                            {/* 1. DATE FILTER */}
+                            <div className="w-full sm:w-1/2">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-gray-400"/>
+                                    Date:
+                                </label>
+                                <input 
+                                    type="date" 
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-sm"
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                />
+                            </div>
+
+                            {/* 2. CLINIC FILTER */}
+                            <div className="w-full sm:w-1/2">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    <FontAwesomeIcon icon={faFilter} className="mr-2 text-gray-400"/>
+                                    Filter by Clinic / Room:
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <FontAwesomeIcon icon={faClinicMedical} className="text-gray-400" />
+                                    </span>
+                                    <select
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-sm bg-white"
+                                        value={selectedPoint}
+                                        onChange={(e) => setSelectedPoint(e.target.value)}
+                                    >
+                                        <option value="">Show All Clinics</option>
+                                        {treatmentPoints.map((tp) => (
+                                            <option key={tp.id} value={tp.id}>
+                                                {tp.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         
                         {/* Queue Counter Display */}
-                        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-2 rounded-lg text-sm font-bold shadow-sm">
-                            Patients Waiting: {queue.data.length}
+                        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-2 rounded-lg text-sm font-bold shadow-sm whitespace-nowrap">
+                            Patients: {queue.data.length}
                         </div>
                     </div>
 
@@ -119,8 +145,8 @@ export default function DoctorOpdIndex({ queue, treatmentPoints, filters }) {
                                     {queue.data.length === 0 ? (
                                         <tr>
                                             <td colSpan="5" className="px-6 py-10 text-center text-gray-500 italic">
-                                                No patients in queue 
-                                                {selectedPoint ? ' for this clinic.' : '.'}
+                                                No patients found for {new Date(selectedDate).toLocaleDateString()}
+                                                {selectedPoint ? ' in this clinic.' : '.'}
                                             </td>
                                         </tr>
                                     ) : (

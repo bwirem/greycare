@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import HospitalLayout from '@/Layouts/HospitalLayout'; 
-import { Head, Link } from '@inertiajs/react';
+// 1. Import router to trigger page reloads
+import { Head, Link, router } from '@inertiajs/react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
     faSearch, 
@@ -9,25 +10,50 @@ import {
     faEdit, 
     faStethoscope,
     faUserInjured,
-    faClinicMedical
+    faClinicMedical,
+    faCalendarAlt // 2. Import Calendar Icon
 } from "@fortawesome/free-solid-svg-icons";
 
-export default function OpdRegistrationsIndex({ auth, registrations, treatmentPoints }) {
+// 3. Add 'filters' to props
+export default function OpdRegistrationsIndex({ auth, registrations, treatmentPoints, filters }) {
+    
+    // --- STATE ---
     const [searchTerm, setSearchTerm] = useState('');
 
-    // --- CHANGE 1: Initialize state from Session Storage ---
-    // This runs once when the component mounts. If a value exists in storage, use it.
+    // Initialize Date from Server Prop or Default to Today
+    const [selectedDate, setSelectedDate] = useState(filters?.date || new Date().toISOString().split('T')[0]);
+
+    // Initialize Clinic from Session Storage
     const [selectedPoint, setSelectedPoint] = useState(() => {
-        return sessionStorage.getItem('opd_selected_point') || '';
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('opd_selected_point') || '';
+        }
+        return '';
     });
 
-    // --- CHANGE 2: Update Storage when selection changes ---
-    // Whenever 'selectedPoint' changes, save it to the browser's session storage.
+    // --- EFFECTS ---
+
+    // Save Clinic selection to session storage (Client-side persistence)
     useEffect(() => {
         sessionStorage.setItem('opd_selected_point', selectedPoint);
     }, [selectedPoint]);
 
-    // Filter Logic
+    // --- HANDLERS ---
+
+    // Handle Date Change: Triggers Server Reload
+    const handleDateChange = (e) => {
+        const newDate = e.target.value;
+        setSelectedDate(newDate);
+
+        // Reload page with new date param
+        router.get(route(route().current()), { date: newDate }, {
+            preserveState: true, // Keep scroll position and other states
+            preserveScroll: true,
+            replace: true
+        });
+    };
+
+    // Filter Logic (Client Side for Search & Clinic)
     const filteredRegistrations = registrations.filter(reg => {
         const matchesSearch = 
             reg.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,7 +93,9 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
             <div className="py-2">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-white overflow-hidden shadow-sm rounded-lg p-4 border-l-4 border-blue-500">
-                        <div className="text-gray-500 text-sm font-medium">Today's Visits</div>
+                        <div className="text-gray-500 text-sm font-medium">
+                             Visits for {new Date(selectedDate).toLocaleDateString()}
+                        </div>
                         <div className="text-2xl font-bold text-gray-800">{registrations.length}</div>
                     </div>
                     <div className="bg-white overflow-hidden shadow-sm rounded-lg p-4 border-l-4 border-yellow-500">
@@ -81,47 +109,70 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
                 <div className="bg-white overflow-hidden shadow-sm rounded-lg">
                     
                     {/* Toolbar */}
-                    <div className="p-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="p-4 border-b border-gray-200 flex flex-col lg:flex-row justify-between items-end lg:items-center gap-4">
                         
-                        <div className="flex flex-col md:flex-row gap-4 w-full md:w-2/3">
-                            {/* Search Box */}
-                            <div className="relative w-full md:w-1/2">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
-                                </span>
-                                <input
-                                    type="text"
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                    placeholder="Search Name or File No..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                        <div className="flex flex-col md:flex-row gap-4 w-full lg:w-3/4">
+                            
+                            {/* 1. Date Filter */}
+                            <div className="w-full md:w-1/3">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Date</label>
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+                                    </span>
+                                    <input 
+                                        type="date" 
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                        value={selectedDate}
+                                        onChange={handleDateChange}
+                                    />
+                                </div>
                             </div>
 
-                            {/* Treatment Point Filter */}
-                            <div className="relative w-full md:w-1/2">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <FontAwesomeIcon icon={faClinicMedical} className="text-gray-400" />
-                                </span>
-                                <select
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
-                                    value={selectedPoint}
-                                    onChange={(e) => setSelectedPoint(e.target.value)}
-                                >
-                                    <option value="">All Clinics / Treatment Points</option>
-                                    {treatmentPoints.map((tp) => (
-                                        <option key={tp.id} value={tp.id}>
-                                            {tp.name}
-                                        </option>
-                                    ))}
-                                </select>
+                            {/* 2. Clinic Filter */}
+                            <div className="w-full md:w-1/3">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Filter Clinic</label>
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <FontAwesomeIcon icon={faClinicMedical} className="text-gray-400" />
+                                    </span>
+                                    <select
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                                        value={selectedPoint}
+                                        onChange={(e) => setSelectedPoint(e.target.value)}
+                                    >
+                                        <option value="">All Clinics / Treatment Points</option>
+                                        {treatmentPoints.map((tp) => (
+                                            <option key={tp.id} value={tp.id}>
+                                                {tp.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* 3. Text Search */}
+                            <div className="w-full md:w-1/3">
+                                <label className="block text-xs font-bold text-gray-500 mb-1">Search Patient</label>
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <FontAwesomeIcon icon={faSearch} className="text-gray-400" />
+                                    </span>
+                                    <input
+                                        type="text"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                        placeholder="Name, File, or Visit No..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
 
                         <div className="flex gap-2">
                             <Link 
                                 href={route('outpatient0.create')}
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-blue-700 transition ease-in-out duration-150"
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-blue-700 transition ease-in-out duration-150 h-10"
                             >
                                 <FontAwesomeIcon icon={faPlus} className="mr-2" /> New Registration
                             </Link>
@@ -170,7 +221,6 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end gap-2">
                                                     <Link 
-                                                        // href={route('outpatient0.show', reg.id)}
                                                         href={route('outpatient0.billing.index')}
                                                         className="text-gray-500 hover:text-blue-600 transition-colors" 
                                                         title="View Details"
@@ -204,7 +254,9 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
                                 ) : (
                                     <tr>
                                         <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
-                                            No registrations found.
+                                            No registrations found 
+                                            {selectedPoint ? ' for this clinic ' : ' '} 
+                                            on {new Date(selectedDate).toLocaleDateString()}.
                                         </td>
                                     </tr>
                                 )}
