@@ -72,7 +72,7 @@ export default function DoctorReportsDashboard({ auth, stats }) {
                             description="Search and view comprehensive patient timeline."
                             icon={faFileMedicalAlt}
                             iconBgColor="bg-teal-600"
-                            linkHref={route('reporting11.index')} 
+                            linkHref={route('reports.doctor.patient_history')} 
                             linkText="Search Records"
                         />
 

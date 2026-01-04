@@ -28,6 +28,12 @@ export default function Admit({
     const { data, setData, post, processing, reset, errors } = useForm({
         patient_code: patient?.code || '',
         opd_booking_id: booking?.id || '',
+
+        billinggroup_id: booking?.billinggroup_id ||'', 
+        billinggroupmembershipno: booking?.billinggroupmembershipno ||'', 
+        authorizationno: booking?.authorizationno ||'',          
+        schemeid: booking?.schemeid ||'',        
+
         ward_id: '',
         admission_diagnosis_id: '', 
         admission_notes: '',

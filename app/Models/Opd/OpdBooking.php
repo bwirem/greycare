@@ -70,6 +70,11 @@ class OpdBooking extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function doctor()
+    {
+        return $this->belongsTo(User::class, 'doctor_user_id');
+    }
+
     public function treatmentPoint()
     {
         return $this->belongsTo(OpdTreatmentPoint::class, 'treatmentpoint_id');

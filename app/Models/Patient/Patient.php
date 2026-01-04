@@ -96,4 +96,52 @@ class Patient extends Model
     {
         return $this->code;
     }
+
+     /**
+     * IPD Admissions History
+     */
+    public function ipdAdmissions()
+    {
+        return $this->hasMany(\App\Models\Ipd\IpdAdmission::class, 'patientcode', 'code');
+    }
+
+    /**
+     * Lab Requests History
+     */
+    public function labRequests()
+    {
+        return $this->hasMany(\App\Models\Laboratory\LabPrescription::class, 'patientcode', 'code');
+    }
+
+    /**
+     * Radiology Requests History
+     */
+    public function radiologyRequests()
+    {
+        return $this->hasMany(\App\Models\Radiology\RadRequest::class, 'patientcode', 'code');
+    }
+
+    /**
+     * Pharmacy Prescriptions History
+     */
+    public function prescriptions()
+    {
+        return $this->hasMany(\App\Models\Pharmacy\PharmacyPrescription::class, 'patientcode', 'code');
+    }
+
+    /**
+     * Confirmed Diagnoses History
+     */
+    public function diagnosesConfirmed()
+    {
+        return $this->hasMany(\App\Models\MedicalRecord\MrPatientDiagnosisConfirmed::class, 'patientcode', 'code');
+    }
+    
+    /**
+     * Confirmed ICD Diagnoses History
+     */
+    public function icdDiagnosesConfirmed()
+    {
+        return $this->hasMany(\App\Models\MedicalRecord\MrPatientDiagnosisIcdConfirmed::class, 'patientcode', 'code');
+    }
 }
