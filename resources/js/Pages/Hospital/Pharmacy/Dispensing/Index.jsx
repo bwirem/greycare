@@ -283,7 +283,19 @@ export default function DispensingIndex({ prescriptions, filters, flash, userPer
                                                             const isBilled = rx.status === 'Billed' && !isPaid;
                                                             const isWaived = rx.payment_status === 'waived' || isExemption;
                                                             const isCash = category === 'Cash';
-                                                            const canDispense = !isCash || isPaid || isWaived || isAdmitted;
+
+                                                            let canDispenseTmp = !isCash || isPaid || isWaived || isAdmitted;
+
+                                                            if (canPostBills) {
+                                                                canDispenseTmp = !isCash || isPaid || isWaived;
+                                                            }
+
+                                                            const canDispense = canDispenseTmp;
+
+                                                            // const canDispense = !isCash || isPaid || isWaived || isAdmitted;
+                                                            // if(canPostBills){
+                                                            //     canDispense = !isCash || isPaid || isWaived;
+                                                            // }
 
                                                             return (
                                                                 <div key={rx.id} className="h-[4.5rem] flex items-center">

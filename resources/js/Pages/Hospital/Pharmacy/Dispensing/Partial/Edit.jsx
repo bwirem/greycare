@@ -338,6 +338,13 @@ export default function Edit({ order, fromstore, auth, priceCategories, facility
                                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
                                                 {orderItems.map((item, index) => (
                                                     <tr key={item.clientKey}>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top">
+                                                            {new Date(item.created_at).toLocaleString([], {
+                                                                year: 'numeric', month: 'short', day: 'numeric', 
+                                                                hour: '2-digit', minute: '2-digit'
+                                                            })}
+                                                        </td>
+
                                                         <td className="px-4 py-2">
                                                             <div className="text-sm font-medium dark:text-gray-200">{item.item_name}</div>
                                                             {(showStoreBadge || showPriceBadge) && (
