@@ -5,7 +5,7 @@ import Pagination from '@/Components/Pagination';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faSearch, faEye, faCalendarAlt, faUserInjured, 
-    faProcedures, faUserMd, faEdit 
+    faProcedures, faUserMd, faEdit, faDoorOpen 
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function Index({ records, filters }) {
@@ -20,10 +20,10 @@ export default function Index({ records, filters }) {
     const getStatusBadge = (status) => {
         const styles = {
             'Completed': 'bg-green-100 text-green-800 border-green-200',
-            'In Progress': 'bg-blue-100 text-blue-800 border-blue-200',
+            'In Progress': 'bg-blue-100 text-blue-800 border-blue-200 animate-pulse', // Added pulse for active
             'Scheduled': 'bg-amber-100 text-amber-800 border-amber-200',
             'Cancelled': 'bg-red-100 text-red-800 border-red-200',
-            'Recovery': 'bg-orange-100 text-orange-800 border-orange-200',
+            'Recovery': 'bg-purple-100 text-purple-800 border-purple-200',
         };
         const style = styles[status] || 'bg-gray-100 text-gray-800 border-gray-200';
 
@@ -66,7 +66,7 @@ export default function Index({ records, filters }) {
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Schedule</th>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Patient</th>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Procedure</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Surgeon</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Surgeon / Room</th>
                                         <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
                                     </tr>
@@ -84,11 +84,11 @@ export default function Index({ records, filters }) {
                                                 
                                                 {/* Date */}
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 font-medium">
                                                         <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
                                                         {new Date(record.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                     </div>
-                                                    <div className="text-xs text-gray-400 pl-6">
+                                                    <div className="text-xs text-gray-400 pl-6 mt-1">
                                                         {new Date(record.scheduled_at).toLocaleDateString()}
                                                     </div>
                                                 </td>
@@ -96,11 +96,11 @@ export default function Index({ records, filters }) {
                                                 {/* Patient */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
-                                                        <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
+                                                        <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3 border border-indigo-200">
                                                             <FontAwesomeIcon icon={faUserInjured} />
                                                         </div>
                                                         <div>
-                                                            <div className="text-sm font-medium text-gray-900">
+                                                            <div className="text-sm font-bold text-gray-900">
                                                                 {record.patient?.first_name} {record.patient?.last_name}
                                                             </div>
                                                             <div className="text-xs text-gray-500 font-mono">
@@ -115,17 +115,22 @@ export default function Index({ records, filters }) {
                                                     <div className="text-sm text-gray-900 font-medium">
                                                         {record.procedure?.name || 'Unknown Procedure'}
                                                     </div>
-                                                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                                                    <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                                                         <FontAwesomeIcon icon={faProcedures} className="text-xs" />
-                                                        {record.theatre?.name || 'OT'}
+                                                        {record.procedure?.group?.name}
                                                     </div>
                                                 </td>
 
-                                                {/* Surgeon */}
+                                                {/* Surgeon & Room */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-700 flex items-center gap-2">
+                                                    <div className="text-sm text-gray-700 flex items-center gap-2 mb-1">
                                                         <FontAwesomeIcon icon={faUserMd} className="text-gray-400" />
                                                         {record.doctor?.name || 'Unassigned'}
+                                                    </div>
+                                                    {/* --- UPDATED: Uses record.theatre.name --- */}
+                                                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                                                        <FontAwesomeIcon icon={faDoorOpen} className="text-gray-400" />
+                                                        {record.theatre?.name || 'Room Not Set'}
                                                     </div>
                                                 </td>
 
@@ -136,12 +141,12 @@ export default function Index({ records, filters }) {
 
                                                 {/* Actions */}
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    {/* --- FIX IS HERE: Changed route name to theatre2.edit --- */}
                                                     <Link 
                                                         href={route('theatre2.edit', record.id)} 
-                                                        className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-md text-xs font-bold inline-flex items-center gap-1"
+                                                        className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded text-xs font-bold inline-flex items-center gap-2 transition-colors shadow-sm"
                                                     >
-                                                        <FontAwesomeIcon icon={faEdit} /> Open Record
+                                                        <FontAwesomeIcon icon={faEdit} /> 
+                                                        {record.status === 'In Progress' ? 'Update Record' : 'Start Surgery'}
                                                     </Link>
                                                 </td>
                                             </tr>
@@ -151,7 +156,7 @@ export default function Index({ records, filters }) {
                             </table>
                         </div>
 
-                        <div className="mt-4">
+                        <div className="mt-4 px-6 pb-6">
                             <Pagination links={records.links} />
                         </div>
 

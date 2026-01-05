@@ -73,6 +73,10 @@ use App\Http\Controllers\BloodBank\BloodBankSetupController;
 use App\Http\Controllers\BloodBank\BbComponentTypeController;
 use App\Http\Controllers\BloodBank\BbDeferralReasonController;
 
+// Theatre Controller
+use App\Http\Controllers\Theatre\TheatreController;
+
+
 // Human Resource Controllers   
 use App\Http\Controllers\HumanResource\Setup\HrmDepartmentController;
 use App\Http\Controllers\HumanResource\Setup\HrmPositionController;
@@ -657,6 +661,16 @@ Route::prefix('systemconfiguration8')->name('systemconfiguration8.')->group(func
         Route::get('/{procedure}/edit', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'edit'])->name('edit');
         Route::put('/{procedure}', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'update'])->name('update');
         Route::delete('/{procedure}', [App\Http\Controllers\Theatre\TheatreProcedureController::class, 'destroy'])->name('destroy');
+    });    
+
+    // Theatre Rooms
+    Route::prefix('theatres')->name('theatres.')->group(function () {
+        Route::get('/', [TheatreController::class, 'index'])->name('index');
+        Route::get('/create', [TheatreController::class, 'create'])->name('create');
+        Route::post('/', [TheatreController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [TheatreController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [TheatreController::class, 'update'])->name('update');
+        Route::delete('/{id}', [TheatreController::class, 'destroy'])->name('destroy');
     });
 });
 

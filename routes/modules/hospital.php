@@ -413,12 +413,24 @@ Route::prefix('radiology1')->name('radiology1.')->group(function () {
         Route::post('/{booking}/complete', [TheatreMinorController::class, 'complete'])->name('complete');
     });
 
+   
     // --- theatre1: Surgery Scheduling (Major) ---
     Route::prefix('theatre1')->name('theatre1.')->group(function () {
-        Route::get('/', [TheatreSchedulingController::class, 'index'])->name('index'); // Calendar/List
-        Route::get('/create', [TheatreSchedulingController::class, 'create'])->name('create'); // Book Surgery
+        
+        // 1. List & Calendar
+        Route::get('/', [TheatreSchedulingController::class, 'index'])->name('index'); 
+        
+        // 2. Book New Surgery
+        Route::get('/create', [TheatreSchedulingController::class, 'create'])->name('create'); 
         Route::post('/', [TheatreSchedulingController::class, 'store'])->name('store');
-        Route::post('/{booking}/cancel', [TheatreSchedulingController::class, 'cancel'])->name('cancel');
+
+        // 3. ** NEW: Edit & Reschedule Routes **
+        Route::get('/{booking}/edit', [TheatreSchedulingController::class, 'edit'])->name('edit');
+        Route::put('/{booking}', [TheatreSchedulingController::class, 'update'])->name('update');
+
+        // 4. ** UPDATED: Cancel Route **
+        // Changed to DELETE to match the React 'router.delete' logic
+        Route::delete('/{booking}/cancel', [TheatreSchedulingController::class, 'cancel'])->name('cancel');
     });
 
     // --- theatre2: Surgery Records (Intra-operative) ---
@@ -426,6 +438,8 @@ Route::prefix('radiology1')->name('radiology1.')->group(function () {
         Route::get('/', [TheatreRecordController::class, 'index'])->name('index'); // Patients In Theatre
         Route::get('/{booking}/record', [TheatreRecordController::class, 'edit'])->name('edit'); // Intra-op form
         Route::put('/{booking}', [TheatreRecordController::class, 'update'])->name('update'); // Save surgical notes
+        // NEW: Diagnosis Search Route
+        Route::get('/diagnosis/search', [TheatreRecordController::class, 'searchDiagnosis'])->name('diagnosis.search');
     });
 
     // --- theatre3: Post-Operative Care (Recovery) ---

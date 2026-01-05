@@ -58,4 +58,9 @@ class TheatreBooking extends Model
         // If you use 'treatmentpoint_id', change the second argument
         return $this->belongsTo(Theatre::class, 'theatre_id'); 
     }
+
+    public function postOpArrivals()
+    {
+        return $this->hasMany(TheatrePostOpArrival::class, 'theatre_booking_id');
+    }
 }

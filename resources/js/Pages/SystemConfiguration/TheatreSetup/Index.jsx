@@ -2,7 +2,7 @@ import React from "react";
 import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCut, faTags, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faCut, faTags, faArrowRight,faDoorOpen } from '@fortawesome/free-solid-svg-icons';
 
 export default function TheatreSetupIndex({ auth }) {
     const dashboardItems = [
@@ -19,6 +19,14 @@ export default function TheatreSetupIndex({ auth }) {
             routeName: 'systemconfiguration8.procedures.index', 
             color: 'red', 
             description: "Manage specific operations and pricing." 
+        },
+        // --- NEW CARD ADDED HERE ---
+        { 
+            title: "Theatres (Rooms)", 
+            icon: faDoorOpen, 
+            routeName: 'systemconfiguration8.theatres.index', 
+            color: 'blue', 
+            description: "Manage physical theatre rooms and availability." 
         },
     ];
 

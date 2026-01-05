@@ -5,17 +5,24 @@ namespace App\Http\Controllers\Hospital\Theatre;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Theatre\TheatreBooking;
 use Illuminate\Support\Facades\DB;
+use App\Models\Theatre\TheatreBooking;
+use App\Models\Diagnosis\DxtDiagnosesIcd; // Import the Model
 
 class TheatreRecordController extends Controller
 {
+    /**
+     * Display the list of patients currently in theatre (Intra-operative).
+     */
     public function index(Request $request)
     {
-        // 1. Initialize Query
-        $query = TheatreBooking::with(['patient', 'procedure', 'doctor', 'theatre']);
+        // 1. Initialize Query (Eager Load 'theatre' to get room name)
+        $query = TheatreBooking::with(['patient', 'procedure', 'doctor', 'theatre'])
+            // Filter to show only active surgeries or scheduled for today
+            ->whereIn('status', ['Scheduled', 'In Progress'])
+            ->whereDate('scheduled_at', today());
 
-        // 2. Handle Search (Crucial for the React Search Bar)
+        // 2. Handle Search
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function($q) use ($search) {
@@ -31,31 +38,22 @@ class TheatreRecordController extends Controller
         }
 
         // 3. Ordering and Pagination
-        $records = $query->orderBy('scheduled_at', 'desc')
+        $records = $query->orderByRaw("FIELD(status, 'In Progress', 'Scheduled')") // Show 'In Progress' first
+            ->orderBy('scheduled_at', 'asc')
             ->paginate(15)
             ->withQueryString();
 
         // 4. Return to View
-        // KEY FIX: Changed 'bookings' to 'records' to match React props
         return Inertia::render('Hospital/Theatre/Records/Index', [
             'records' => $records, 
             'filters' => $request->only(['search']) 
         ]);
     }
 
-    public function show($id)
-    {
-        // Optional: If you have a View/Show page
-        $booking = TheatreBooking::with(['patient', 'procedure', 'doctor', 'theatre'])->findOrFail($id);
-        return Inertia::render('Hospital/Theatre/Records/Show', [
-            'record' => $booking
-        ]);
-    }
-
     public function edit(TheatreBooking $booking)
     {
         return Inertia::render('Hospital/Theatre/Records/Edit', [
-            'booking' => $booking->load(['patient', 'procedure'])
+            'booking' => $booking->load(['patient', 'procedure', 'doctor', 'theatre'])
         ]);
     }
 
@@ -63,10 +61,16 @@ class TheatreRecordController extends Controller
     {
         $request->validate([
             'status' => 'required|string',
-            'remarks' => 'nullable|string'
+            'remarks' => 'nullable|string',
+            'icd_diagnosis_id' => 'nullable|exists:dxt_diagnoses_icd,id'
         ]);
 
-        $data = ['status' => $request->status, 'remarks' => $request->remarks];
+        $data = [
+            'status' => $request->status, 
+            'remarks' => $request->remarks,
+            // Ensure you have added 'icd_diagnosis_id' to your theatre_bookings table
+            'icd_diagnosis_id' => $request->icd_diagnosis_id 
+        ];
 
         // Auto-timestamp logic
         if ($request->status === 'In Progress' && !$booking->started_at) {
@@ -79,5 +83,29 @@ class TheatreRecordController extends Controller
         $booking->update($data);
 
         return redirect()->route('theatre2.index')->with('success', 'Surgery record updated.');
+    }
+
+    /**
+     * AJAX Search for React AsyncSelect
+     */
+    public function searchDiagnosis(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (!$query) return response()->json([]);
+
+        $results = DxtDiagnosesIcd::select('id', 'name', 'code')
+            ->where('name', 'like', "%{$query}%")
+            ->orWhere('code', 'like', "%{$query}%")
+            ->limit(20)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'value' => $item->id,
+                    'label' => "{$item->code} - {$item->name}"
+                ];
+            });
+
+        return response()->json($results);
     }
 }

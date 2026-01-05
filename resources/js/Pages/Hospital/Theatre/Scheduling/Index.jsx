@@ -1,16 +1,18 @@
 import React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import HospitalLayout from '@/Layouts/HospitalLayout';
-import Pagination from '@/Components/Pagination'; // Assuming you have this
+import Pagination from '@/Components/Pagination'; 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarAlt, faUserMd, faProcedures, faBan, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
+import { 
+    faCalendarAlt, faUserMd, faProcedures, 
+    faBan, faDoorOpen, faEdit, faPlus 
+} from '@fortawesome/free-solid-svg-icons';
 
 export default function SchedulingIndex({ bookings }) {
     
-    // Handler for cancellation to add a confirmation
     const handleCancel = (id) => {
         if (confirm('Are you sure you want to cancel this surgery?')) {
-            router.delete(route('theatre0.cancel', id));
+            router.delete(route('theatre1.cancel', id));
         }
     };
 
@@ -21,12 +23,18 @@ export default function SchedulingIndex({ bookings }) {
             <div className="py-12">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     
-                    {/* Toolbar / Header Info */}
+                    {/* Header / Actions */}
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-gray-600">Upcoming Surgeries</h3>
-                        <span className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100 font-medium">
-                            Total Scheduled: {bookings.total}
-                        </span>
+                        <div className="flex items-center gap-4">
+                            <h3 className="text-lg font-bold text-gray-600">Upcoming Surgeries</h3>
+                            <span className="text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100 font-medium">
+                                Total: {bookings.total}
+                            </span>
+                        </div>
+                        
+                        <Link href={route('theatre1.create')} className="bg-indigo-600 text-white px-4 py-2 rounded shadow hover:bg-indigo-700 flex items-center gap-2 text-sm font-bold">
+                            <FontAwesomeIcon icon={faPlus} /> Schedule New
+                        </Link>
                     </div>
 
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200">
@@ -35,7 +43,7 @@ export default function SchedulingIndex({ bookings }) {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date/Time</th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Patient Details</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Patient</th>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Procedure</th>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Surgeon / Room</th>
                                         <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
@@ -89,14 +97,25 @@ export default function SchedulingIndex({ bookings }) {
                                                         <FontAwesomeIcon icon={faUserMd} className="text-gray-400" />
                                                         {bk.doctor?.name || 'Unassigned'}
                                                     </div>
+                                                    {/* --- UPDATED SECTION: Uses bk.theatre.name --- */}
                                                     <div className="text-xs text-gray-500 flex items-center gap-1">
                                                         <FontAwesomeIcon icon={faDoorOpen} className="text-gray-400" />
-                                                        {bk.theatre_room || 'Room Unassigned'}
+                                                        {bk.theatre?.name || 'Room Unassigned'}
                                                     </div>
                                                 </td>
 
                                                 {/* Actions */}
-                                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                                                    
+                                                    {/* --- EDIT BUTTON -> theatre1.edit --- */}
+                                                    <Link 
+                                                        href={route('theatre1.edit', bk.id)} 
+                                                        className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded text-xs font-bold uppercase transition border border-indigo-100"
+                                                    >
+                                                        <FontAwesomeIcon icon={faEdit} /> Edit
+                                                    </Link>
+
+                                                    {/* --- CANCEL BUTTON -> theatre1.cancel --- */}
                                                     <button 
                                                         onClick={() => handleCancel(bk.id)}
                                                         className="inline-flex items-center gap-1 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-bold uppercase transition border border-red-100"
@@ -110,11 +129,7 @@ export default function SchedulingIndex({ bookings }) {
                                 </tbody>
                             </table>
                         </div>
-                        
-                        {/* Pagination */}
-                        <div className="mt-4 px-6 pb-6">
-                            <Pagination links={bookings.links} />
-                        </div>
+                        <div className="mt-4 px-6 pb-6"><Pagination links={bookings.links} /></div>
                     </div>
                 </div>
             </div>
