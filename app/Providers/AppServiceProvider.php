@@ -43,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/human_resources'),
             database_path('migrations/rch_department'),
             database_path('migrations/physiotherapy'),
+            database_path('migrations/nursing'),            
         ]);
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Ipd\IpdAdmission;
 use App\Models\Patient\Patient;
 use App\Models\User;
 use App\Models\Inventory\SIV_Product;
+use App\Models\Nursing\NursingMedicationAdministration;
 
 class PharmacyPrescription extends Model
 {
@@ -56,6 +57,11 @@ class PharmacyPrescription extends Model
     public function dispensations()
     {
         return $this->hasMany(PharmacyDispensation::class, 'pharmacy_prescription_id');
+    }
+
+    public function administrations()
+    {
+        return $this->hasMany(NursingMedicationAdministration::class, 'pharmacy_prescription_id');
     }
 
 }
