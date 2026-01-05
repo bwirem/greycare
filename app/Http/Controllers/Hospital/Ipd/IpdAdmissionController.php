@@ -91,6 +91,14 @@ class IpdAdmissionController extends Controller
         // Get Facility Option for Default Cash Group
         $defaultCashId = FacilityOption::value('default_cash_billing_group_id');
 
+        if ($request->opd_booking_id) {
+                OpdBooking::where('id', $request->opd_booking_id)
+                    ->update([
+                        'consultation_status' => 'Admitted',
+                        'ipdstart' => now(),
+                    ]);
+            }
+
         return Inertia::render('Hospital/Ipd/Admissions/Create', [
             'patient' => $patient,           
             'wards' => $wards,

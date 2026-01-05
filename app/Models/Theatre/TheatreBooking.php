@@ -48,4 +48,14 @@ class TheatreBooking extends Model
     {
         return $this->belongsTo(IpdAdmission::class, 'ipd_admission_id');
     }
+
+    /**
+     * Link to the Theatre Room (The Missing Relationship)
+     */
+    public function theatre()
+    {
+        // Assuming you have a Theatre model and theatre_id column
+        // If you use 'treatmentpoint_id', change the second argument
+        return $this->belongsTo(Theatre::class, 'theatre_id'); 
+    }
 }

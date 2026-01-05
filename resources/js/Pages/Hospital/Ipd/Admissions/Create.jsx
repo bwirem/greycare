@@ -66,10 +66,10 @@ export default function Create({ patient, wards, pendingAdmission, billingGroups
         phone_number: '',
 
         // 4. Billing & Insurance
-        billinggroup_id: '',
-        billinggroupmembershipno: '', 
-        authorizationno: '',          
-        schemeid: '',                 
+        billinggroup_id: pendingAdmission?.billinggroup_id ||'',
+        billinggroupmembershipno: pendingAdmission?.billinggroupmembershipno ||'', 
+        authorizationno: pendingAdmission?.authorizationno ||'',          
+        schemeid: pendingAdmission?.schemeid ||'',                 
     });
 
     // --- 1. Search Logic ---
