@@ -20,6 +20,9 @@ use App\Models\Theatre\TheatreBooking;
 use App\Models\Pharmacy\PharmacyPrescription; // Ensure this is i
 use App\Models\BloodBank\BbIssueRequest;
 
+// Add this import if not present
+use App\Models\MedicalRecord\MrVitalSign;
+
 class IpdAdmission extends Model
 {
     protected $table = 'ipd_admissions';
@@ -96,6 +99,14 @@ class IpdAdmission extends Model
         return $this->hasOne(IpdDischargeSummary::class, 'ipd_admission_id');
     }
 
+
+    /**
+     * Get the vital signs recorded during this admission.
+     */
+    public function vitalSigns()
+    {
+        return $this->hasMany(MrVitalSign::class, 'ipd_admission_id');
+    }
    
     /**
      * Laboratory Orders linked to this admission

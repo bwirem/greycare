@@ -216,6 +216,9 @@ Route::prefix('nursing0')->name('nursing0.')->group(function () {
     
     // Save Action
     Route::post('/{booking}', [NursingController::class, 'store'])->name('store');
+
+    // NEW: Vitals Route
+    Route::post('/record-vitals', [NursingMedicationController::class, 'storeVitals'])->name('store_vitals');
 });
 
 // 2. The Route Group (Unchanged, just uses the new class)
@@ -223,6 +226,8 @@ Route::prefix('nursing1')->name('nursing1.')->group(function () {
     Route::get('/', [NursingMedicationController::class, 'index'])->name('index');
     Route::get('/{id}/{type}/administer', [NursingMedicationController::class, 'create'])->name('create');
     Route::post('/record', [NursingMedicationController::class, 'store'])->name('store');
+    // *** ADD THIS MISSING ROUTE ***
+    Route::post('/record-vitals', [NursingMedicationController::class, 'storeVitals'])->name('store_vitals');
 });
 
 /*

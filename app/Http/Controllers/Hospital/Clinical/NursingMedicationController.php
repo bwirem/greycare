@@ -11,12 +11,13 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Opd\OpdBooking;
 use App\Models\Ipd\IpdAdmission;
 use App\Models\Nursing\NursingMedicationAdministration;
+use App\Models\MedicalRecord\MrVitalSign;
 
 // Pharmacy Models
 use App\Models\Pharmacy\PharmacyFrequency;
 use App\Models\Pharmacy\PharmacyDuration;
 
-// Medical Record Models (For History)
+// Medical Record Models (For Diagnosis History)
 use App\Models\MedicalRecord\MrPatientDiagnosisConfirmed;
 use App\Models\MedicalRecord\MrPatientDiagnosisProvisional;
 use App\Models\MedicalRecord\MrPatientDiagnosisIcdConfirmed;
@@ -24,9 +25,12 @@ use App\Models\MedicalRecord\MrPatientDiagnosisIcdProvisional;
 
 class NursingMedicationController extends Controller
 {
+    /**
+     * 1. The Queue: List patients with active prescriptions
+     */
     public function index(Request $request)
     {
-        // 1. Fetch OPD Patients
+        // 1. Fetch OPD Patients -> Convert to Base Collection -> Map to Array
         $opdQueue = OpdBooking::whereHas('prescriptions')
             ->with(['patient', 'prescriptions'])
             ->whereDate('created_at', today()) 
@@ -43,11 +47,11 @@ class NursingMedicationController extends Controller
                 ];
             });
 
-        // 2. Fetch IPD Patients
+        // 2. Fetch IPD Patients -> Convert to Base Collection -> Map to Array
         $ipdQueue = IpdAdmission::where('status', 'Admitted')
             ->with(['patient', 'ward', 'bed', 'prescriptions'])
             ->get()
-            ->toBase() 
+            ->toBase()
             ->map(function ($adm) {
                 return [
                     'id' => $adm->id,
@@ -59,6 +63,7 @@ class NursingMedicationController extends Controller
                 ];
             });
 
+        // 3. Merge Lists
         $queue = $opdQueue->merge($ipdQueue);
 
         return Inertia::render('Hospital/Nursing/Medication/Index', [
@@ -67,7 +72,7 @@ class NursingMedicationController extends Controller
     }
 
     /**
-     * 2. The Form: View MAR + History
+     * 2. The Form: View MAR + Vitals + History
      */
     public function create($id, $type)
     {
@@ -78,16 +83,32 @@ class NursingMedicationController extends Controller
         $previousRounds = [];
         $opdConsultation = null;
         $diagnosisHistory = [];
+        $vitalsHistory = []; 
 
         if ($type === 'OPD') {
-            $booking = OpdBooking::with(['patient', 'prescriptions.product.drugDetails', 'prescriptions.administrations.nurse', 'history', 'labRequests', 'diagnosesConfirmed', 'icdDiagnosesConfirmed'])->findOrFail($id);
+            $booking = OpdBooking::with([
+                'patient', 
+                'prescriptions.product.drugDetails', 
+                'prescriptions.administrations.nurse',
+                // Load Vitals linked to this booking
+                'vitalSigns' => function($q) { 
+                    $q->orderBy('vitaldatetime', 'desc')->with('user'); 
+                },
+                // Load History details
+                'history', 
+                'labRequests', 
+                'diagnosesConfirmed', 
+                'icdDiagnosesConfirmed'
+            ])->findOrFail($id);
             
             $patientInfo = $booking->patient;
             $prescriptions = $booking->prescriptions;
             $opdConsultation = $booking; // For OPD, the record itself is the consultation
-            
-            // For OPD, we can just grab diagnoses directly if needed, or leave empty
-            // Ideally, you'd extract similar logic for OPD Diagnosis history here if needed.
+            $vitalsHistory = $booking->vitalSigns; 
+
+            // Basic Diagnosis extraction for OPD (Simplified compared to IPD)
+            // You can implement the full deep dive logic here if needed, 
+            // but usually, OPD just shows the current visit's diagnosis.
 
         } else {
             // --- IPD Logic (Deep Load) ---
@@ -103,15 +124,20 @@ class NursingMedicationController extends Controller
                 'booking.history',
                 'booking.prescriptions.product',
                 'booking.labRequests.panel',
-                'booking.user'
+                'booking.user',
+                // Load Vitals linked to this admission
+                'vitalSigns' => function($q) { 
+                    $q->orderBy('vitaldatetime', 'desc')->with('user'); 
+                }
             ])->findOrFail($id);
 
             $patientInfo = $admission->patient;
             $prescriptions = $admission->prescriptions;
             $previousRounds = $admission->wardRounds;
             $opdConsultation = $admission->booking;
+            $vitalsHistory = $admission->vitalSigns;
 
-            // --- Process IPD Diagnosis History (Same as Doctor Controller) ---
+            // --- Process IPD Diagnosis History ---
             $diagCollection = collect();
             $coveredIcdCodes = [];
 
@@ -167,6 +193,7 @@ class NursingMedicationController extends Controller
             'previous_rounds' => $previousRounds,
             'opd_consultation' => $opdConsultation,
             'diagnosis_history' => $diagnosisHistory,
+            'vitals_history' => $vitalsHistory,
 
             // Dropdowns
             'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')->get(),
@@ -174,6 +201,9 @@ class NursingMedicationController extends Controller
         ]);
     }
 
+    /**
+     * 3. Store: Record Medication Administration
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -197,5 +227,41 @@ class NursingMedicationController extends Controller
         ]);
 
         return back()->with('success', 'Medication administration recorded.');
+    }
+
+    /**
+     * 4. Store: Record Vital Signs
+     */
+    public function storeVitals(Request $request)
+    {
+        $request->validate([
+            'source_id' => 'required',
+            'source_type' => 'required|in:OPD,IPD',
+            'bp' => 'nullable|string',
+            'temperature' => 'nullable|numeric',
+            'pulse' => 'nullable|numeric',
+            'spo2' => 'nullable|numeric',
+        ]);
+
+        MrVitalSign::create([
+            'patientcode' => $request->patient_code, 
+            'user_id' => Auth::id(),
+            'vitaldatetime' => now(),
+            
+            // Link dynamically based on type
+            'opd_booking_id' => ($request->source_type === 'OPD') ? $request->source_id : null,
+            'ipd_admission_id' => ($request->source_type === 'IPD') ? $request->source_id : null,
+
+            'blood_pressure' => $request->bp,
+            'temperature' => $request->temperature ?? 0,
+            'pulse' => $request->pulse ?? 0,
+            'respirationrate' => $request->resp_rate ?? 0,
+            'oxygensaturation' => $request->spo2 ?? 0,
+            'weight' => $request->weight ?? 0,
+            'height' => $request->height ?? 0,
+            'bmi' => $request->bmi ?? 0,
+        ]);
+
+        return back()->with('success', 'Vitals recorded successfully.');
     }
 }
