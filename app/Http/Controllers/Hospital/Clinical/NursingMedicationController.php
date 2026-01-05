@@ -6,25 +6,32 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+
+// Core Models
 use App\Models\Opd\OpdBooking;
 use App\Models\Ipd\IpdAdmission;
 use App\Models\Nursing\NursingMedicationAdministration;
+
+// Pharmacy Models
 use App\Models\Pharmacy\PharmacyFrequency;
-use App\Models\Pharmacy\PharmacyDuration;            
+use App\Models\Pharmacy\PharmacyDuration;
+
+// Medical Record Models (For History)
+use App\Models\MedicalRecord\MrPatientDiagnosisConfirmed;
+use App\Models\MedicalRecord\MrPatientDiagnosisProvisional;
+use App\Models\MedicalRecord\MrPatientDiagnosisIcdConfirmed;
+use App\Models\MedicalRecord\MrPatientDiagnosisIcdProvisional;
 
 class NursingMedicationController extends Controller
 {
-    /**
-     * 1. The Queue: List patients with active prescriptions
-     */
     public function index(Request $request)
     {
-        // 1. Fetch OPD Patients -> Convert to Base Collection -> Map to Array
+        // 1. Fetch OPD Patients
         $opdQueue = OpdBooking::whereHas('prescriptions')
             ->with(['patient', 'prescriptions'])
             ->whereDate('created_at', today()) 
             ->get()
-            ->toBase() // <--- FIX: Convert to standard collection
+            ->toBase()
             ->map(function ($booking) {
                 return [
                     'id' => $booking->id,
@@ -36,11 +43,11 @@ class NursingMedicationController extends Controller
                 ];
             });
 
-        // 2. Fetch IPD Patients -> Convert to Base Collection -> Map to Array
+        // 2. Fetch IPD Patients
         $ipdQueue = IpdAdmission::where('status', 'Admitted')
             ->with(['patient', 'ward', 'bed', 'prescriptions'])
             ->get()
-            ->toBase() // <--- FIX: Convert to standard collection
+            ->toBase() 
             ->map(function ($adm) {
                 return [
                     'id' => $adm->id,
@@ -52,7 +59,6 @@ class NursingMedicationController extends Controller
                 ];
             });
 
-        // 3. Merge (Now works because both are standard collections of arrays)
         $queue = $opdQueue->merge($ipdQueue);
 
         return Inertia::render('Hospital/Nursing/Medication/Index', [
@@ -61,21 +67,94 @@ class NursingMedicationController extends Controller
     }
 
     /**
-     * 2. The Form: View Patient's Med Sheet (MAR)
+     * 2. The Form: View MAR + History
      */
     public function create($id, $type)
     {
-        $prescriptions = [];
         $patientInfo = null;
+        $prescriptions = [];
+        
+        // History Variables
+        $previousRounds = [];
+        $opdConsultation = null;
+        $diagnosisHistory = [];
 
         if ($type === 'OPD') {
-            $booking = OpdBooking::with(['patient', 'prescriptions.product.drugDetails', 'prescriptions.administrations.nurse'])->findOrFail($id);
+            $booking = OpdBooking::with(['patient', 'prescriptions.product.drugDetails', 'prescriptions.administrations.nurse', 'history', 'labRequests', 'diagnosesConfirmed', 'icdDiagnosesConfirmed'])->findOrFail($id);
+            
             $patientInfo = $booking->patient;
             $prescriptions = $booking->prescriptions;
+            $opdConsultation = $booking; // For OPD, the record itself is the consultation
+            
+            // For OPD, we can just grab diagnoses directly if needed, or leave empty
+            // Ideally, you'd extract similar logic for OPD Diagnosis history here if needed.
+
         } else {
-            $admission = IpdAdmission::with(['patient', 'prescriptions.product.drugDetails', 'prescriptions.administrations.nurse'])->findOrFail($id);
+            // --- IPD Logic (Deep Load) ---
+            $admission = IpdAdmission::with([
+                'patient', 
+                'prescriptions.product.drugDetails', 
+                'prescriptions.administrations.nurse',
+                // Load Ward Rounds
+                'wardRounds' => function($q) {
+                    $q->orderBy('round_date', 'desc')->with(['doctor', 'examination']);
+                },
+                // Load Linked OPD Data
+                'booking.history',
+                'booking.prescriptions.product',
+                'booking.labRequests.panel',
+                'booking.user'
+            ])->findOrFail($id);
+
             $patientInfo = $admission->patient;
             $prescriptions = $admission->prescriptions;
+            $previousRounds = $admission->wardRounds;
+            $opdConsultation = $admission->booking;
+
+            // --- Process IPD Diagnosis History (Same as Doctor Controller) ---
+            $diagCollection = collect();
+            $coveredIcdCodes = [];
+
+            $genConf = MrPatientDiagnosisConfirmed::where('ipd_admission_id', $admission->id)->with(['diagnosis.icdMap', 'user'])->get();
+            $genProv = MrPatientDiagnosisProvisional::where('ipd_admission_id', $admission->id)->with(['diagnosis.icdMap', 'user'])->get();
+            $icdConf = MrPatientDiagnosisIcdConfirmed::where('ipd_admission_id', $admission->id)->with(['icdDiagnosis', 'user'])->get();
+            $icdProv = MrPatientDiagnosisIcdProvisional::where('ipd_admission_id', $admission->id)->with(['icdDiagnosis', 'user'])->get();
+
+            $processRecords = function($records, $status, $source) use (&$diagCollection, &$coveredIcdCodes) {
+                foreach($records as $rec) {
+                    $icdCode = '-';
+                    $icdName = null;
+                    $localName = null;
+
+                    if ($source === 'local') {
+                        $localName = $rec->diagnosis?->name ?? $rec->diagnosisdescription;
+                        $icdCode = $rec->diagnosis?->icdMap?->code ?? $rec->diagnosis?->maptocode ?? '-';
+                        $icdName = $rec->diagnosis?->icdMap?->name ?? null;
+                        if ($icdCode !== '-') { $coveredIcdCodes[] = $icdCode; }
+                    } else {
+                        $icdCode = $rec->icdDiagnosis?->code ?? '-';
+                        $icdName = $rec->icdDiagnosis?->name ?? $rec->diagnosisdescription;
+                        if (in_array($icdCode, $coveredIcdCodes)) { continue; }
+                    }
+
+                    $diagCollection->push([
+                        'id' => $rec->id,
+                        'created_at' => $rec->created_at,
+                        'user_name' => $rec->user?->name ?? 'Unknown',
+                        'status_label' => $status,
+                        'local_name' => $localName,
+                        'icd_code' => $icdCode,
+                        'icd_name' => $icdName,
+                    ]);
+                }
+            };
+
+            $processRecords($genConf, 'Confirmed', 'local');
+            $processRecords($genProv, 'Provisional', 'local');
+            $processRecords($icdConf, 'Confirmed', 'icd');
+            $processRecords($icdProv, 'Provisional', 'icd');
+
+            $diagnosisHistory = $diagCollection->sortByDesc('created_at')->values();
         }
 
         return Inertia::render('Hospital/Nursing/Medication/Create', [
@@ -84,22 +163,24 @@ class NursingMedicationController extends Controller
             'source_id' => $id,
             'source_type' => $type,
             
-            // --- ADD THESE LINES ---
+            // History Data
+            'previous_rounds' => $previousRounds,
+            'opd_consultation' => $opdConsultation,
+            'diagnosis_history' => $diagnosisHistory,
+
+            // Dropdowns
             'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')->get(),
             'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')->where('is_active', true)->get(),
         ]);
     }
 
-    /**
-     * 3. Store: Record Administration
-     */
     public function store(Request $request)
     {
         $request->validate([
             'prescription_id' => 'required|exists:pharmacy_prescriptions,id',
             'status' => 'required|in:Given,Missed,Refused,Held',
             'remarks' => 'nullable|string',
-            'quantity' => 'required|numeric|min:0', // <--- Validation
+            'quantity' => 'required|numeric|min:0', 
             'source_type' => 'required|in:OPD,IPD',
             'source_id' => 'required'
         ]);
@@ -109,7 +190,7 @@ class NursingMedicationController extends Controller
             'nurse_user_id' => Auth::id(),
             'administered_at' => now(),
             'status' => $request->status,
-            'quantity' => $request->quantity, // <--- Save Logic
+            'quantity' => $request->quantity,
             'remarks' => $request->remarks,
             'opd_booking_id' => ($request->source_type === 'OPD') ? $request->source_id : null,
             'ipd_admission_id' => ($request->source_type === 'IPD') ? $request->source_id : null,
