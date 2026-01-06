@@ -250,38 +250,34 @@ class RchAntenatalController extends Controller
                 ->first();
 
             if (!$booking) {
-               
-               // A. Ensure "RCH Clinic" Treatment Point exists (Create if missing)
-                $tp = OpdTreatmentPoint::firstOrCreate(
-                    ['name' => 'RCH Clinic'], // Search for this name
-                    ['name' => 'RCH Clinic']  // Values to insert if not found
-                );
 
-                // B. Find Default Billing Group (Cash) to prevent null error
-                // Adjust '\App\Models\Patient\PatientBillingGroup' to your actual namespace if different
+                // A. Ensure "RCH Clinic" Treatment Point exists (Create if missing)
+                $tp = OpdTreatmentPoint::firstOrCreate(['name' => 'RCH Clinic']);
+
+               // B. Find Default Billing Group (Cash)
                 $billingGroup = PatientBillingGroup::where('name', 'like', '%Cash%')->first();
-                $billingGroupId = $billingGroup ? $billingGroup->id : 1; // Default to 1 if not found
+                $billingGroupId = $billingGroup ? $billingGroup->id : 1;
                 $priceCategory = $billingGroup->pricecategory ?? 'price1';
 
                 // C. Create Booking using YOUR SCHEMA
                 $booking = OpdBooking::create([
                     'bookdate'           => now(),
                     'patientcode'        => $patientCode,
-                    'treatmentpoint_id'  => $tp->id, // Ensure ID exists
+                    'treatmentpoint_id'  => $tp->id, // Will use existing or newly created ID
                     'billinggroup_id'    => $billingGroupId,
                     'doctor_user_id'     => $user->id,
                     'user_id'            => $user->id,
                     'wheretaken'         => 'RCH Clinic',
                     'DoctorName'         => $user->name,
-                    'vitalsignstatus'    => 'Closed', // RCH visits have their own vitals
-                    'consultation_status'=> 'RchVisit',
+                    'vitalsignstatus'    => 'Closed', 
+                    'consultation_status'=> 'RchVisit', // Updated status
                     
                     // Billing / Price info
                     'pricecategory'        => $priceCategory, 
-                    'visit_classification' => 'Revisit', // Usually RCH are revisits
+                    'visit_classification' => 'Revisit',
                     'payment_status'       => 'unpaid',
                     
-                    // Nullables from your snippet
+                    // Nullables
                     'billinggroupmembershipno' => null, 
                     'authorizationno'          => null,          
                     'schemeid'                 => null,
