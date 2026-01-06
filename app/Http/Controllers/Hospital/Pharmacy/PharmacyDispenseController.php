@@ -430,7 +430,9 @@ class PharmacyDispenseController extends Controller
     public function payBill(Request $request, PharmacyPrescription $prescription, BillingService $billingService)
     {
         $request->validate([
-            'verified_qty' => 'required|numeric|min:0.01'
+            'verified_qty' => 'required|numeric|min:0.01',
+            'selected_ids' => 'nullable|array', // Validate the selection array
+            'selected_ids.*' => 'integer'
         ]);
 
         try {
@@ -478,6 +480,13 @@ class PharmacyDispenseController extends Controller
                 $itemsToBill = PharmacyPrescription::query()
                     ->where('status', '!=', 'Dispensed')
                     ->where('status', '!=', 'Billed') // Only grab unbilled ones
+                    
+                    // --- NEW: Filter by Selected IDs if provided ---
+                    ->when($request->filled('selected_ids') && is_array($request->selected_ids), function($q) use ($request) {
+                        $q->whereIn('id', $request->selected_ids);
+                    })
+                    // -----------------------------------------------
+
                     ->where(function($q) use ($prescription) {
                         // Match the Visit or Admission ID to get all drugs for this encounter
                         if ($prescription->ipd_admission_id) {
@@ -491,7 +500,7 @@ class PharmacyDispenseController extends Controller
                     })
                     ->get();
 
-                // 3. Process Loop (Bill Everything)
+                // 3. Process Loop (Bill Everything Found)
                 // -----------------------------------------------------
                 $lastOrder = null;
 
@@ -499,7 +508,8 @@ class PharmacyDispenseController extends Controller
                     
                     // Logic: Use request quantity for the CLICKED item, 
                     // but use the database quantity for the RELATED items.
-                    $qtyToProcess = ($rx->id === $prescription->id) 
+                    // (Note: To support editing quantities for all items, you would need to send an array of quantities from frontend)
+                    $qtyToProcess = ($rx->id == $prescription->id) 
                         ? $request->verified_qty 
                         : $rx->quantity_prescribed;
 
@@ -533,11 +543,11 @@ class PharmacyDispenseController extends Controller
             // If Cash & Order Created -> Go to Payment Screen (Showing ALL items)
             if ($isCash && $generatedOrder) {
                 return redirect()->route('pharmacy0.billing.edit', ['order' => $generatedOrder->id])
-                    ->with('success', 'All pending prescriptions billed. Redirecting to payment...');
+                    ->with('success', 'Selected prescriptions billed. Redirecting to payment...');
             }
 
             // Fallback
-            return back()->with('success', 'All pending prescriptions sent to billing.');
+            return back()->with('success', 'Selected prescriptions sent to billing.');
 
         } catch (\Exception $e) {
             Log::error("Pharmacy Bulk Bill Error: " . $e->getMessage());
