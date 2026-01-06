@@ -39,6 +39,9 @@ Route::prefix('rch1')->name('rch1.')->group(function () {
     Route::get('/register', [RchAntenatalController::class, 'createPregnancy'])->name('register.create');
     Route::post('/register', [RchAntenatalController::class, 'storePregnancy'])->name('register.store');
     
+    // View Visit History (The link to access Edit)
+    Route::get('/pregnancy/{pregnancy}/history', [RchAntenatalController::class, 'history'])->name('history'); // <--- ADDED THIS
+
     // Record a Daily Visit
     Route::get('/visit/create', [RchAntenatalController::class, 'createVisit'])->name('visit.create');
     Route::post('/visit', [RchAntenatalController::class, 'storeVisit'])->name('visit.store');
@@ -50,6 +53,7 @@ Route::prefix('rch1')->name('rch1.')->group(function () {
     // Close Pregnancy (Delivery/Outcome)
     Route::post('/close-pregnancy/{pregnancy}', [RchAntenatalController::class, 'closePregnancy'])->name('close');
 });
+
 
 // rch2: Postnatal Care (PNC) & Delivery
 Route::prefix('rch2')->name('rch2.')->group(function () {

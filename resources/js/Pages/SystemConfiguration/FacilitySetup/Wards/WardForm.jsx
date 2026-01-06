@@ -18,6 +18,12 @@ export default function WardForm({ ward = null, activePriceCategories = [] }) {
         price2: initialPrices.price2 || '0.00',
         price3: initialPrices.price3 || '0.00',
         price4: initialPrices.price4 || '0.00',
+        price5: initialPrices.price5 || '0.00',
+        price6: initialPrices.price6 || '0.00',
+        price7: initialPrices.price7 || '0.00',
+        price8: initialPrices.price8 || '0.00',
+        price9: initialPrices.price9 || '0.00',
+        price10: initialPrices.price10 || '0.00',
     });
 
     const submit = (e) => {

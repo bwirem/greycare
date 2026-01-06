@@ -67,7 +67,8 @@ class DoctorOpdController extends Controller
             ->whereDate('created_at', $dateFilter) 
             
             // --- FILTER OUT ADMITTED PATIENTS ---
-            ->where('consultation_status', '!=', 'Admitted')             
+            // Combine the exclusions here:
+            ->whereNotIn('consultation_status', ['Admitted', 'RchVisit'])           
             
             // --- APPLY TREATMENT POINT FILTER ---
             ->when($treatmentPointId, function ($query, $id) {

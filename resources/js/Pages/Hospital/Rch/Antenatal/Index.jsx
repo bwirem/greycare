@@ -16,6 +16,16 @@ export default function Index({ auth, pregnancies, filters, success }) {
         router.get(route("rch1.index"), { search }, { preserveState: true });
     };
 
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        // 'en-GB' formats as dd/mm/yyyy, options allow Custom: 06 Jan 2025
+        return new Date(dateString).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -81,8 +91,16 @@ export default function Index({ auth, pregnancies, filters, success }) {
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-700">{row.anc_number || '-'}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-700">
-                                                    <div><span className="text-gray-500 text-xs">LMP:</span> {row.lmp_date}</div>
-                                                    <div><span className="text-gray-500 text-xs">EDD:</span> <span className="text-green-600 font-bold">{row.edd_date}</span></div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <div>
+                                                            <span className="text-gray-500 text-xs w-10 inline-block">LMP:</span> 
+                                                            <span className="font-medium">{formatDate(row.lmp_date)}</span>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-gray-500 text-xs w-10 inline-block">EDD:</span> 
+                                                            <span className="text-green-600 font-bold">{formatDate(row.edd_date)}</span>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-700">G{row.gravida} P{row.parity}</td>
                                                 <td className="px-6 py-4 text-center">
@@ -94,6 +112,13 @@ export default function Index({ auth, pregnancies, filters, success }) {
                                                         className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
                                                     >
                                                         Add Visit
+                                                    </Link>
+                                                   
+                                                    <Link 
+                                                        href={route("rch1.history", row.id)} 
+                                                        className="text-gray-600 hover:text-gray-900 text-sm font-medium border border-gray-200 px-2 py-1 rounded ml-2"
+                                                    >
+                                                        History
                                                     </Link>
                                                 </td>
                                             </tr>

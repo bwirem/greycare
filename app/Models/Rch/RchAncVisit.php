@@ -45,7 +45,7 @@ class RchAncVisit extends Model
         return $this->belongsTo(RchAncPregnancy::class, 'pregnancy_id');
     }
 
-    public function booking()
+    public function opdBooking()
     {
         return $this->belongsTo(OpdBooking::class, 'opd_booking_id');
     }

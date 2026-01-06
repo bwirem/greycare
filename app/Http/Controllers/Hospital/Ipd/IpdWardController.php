@@ -207,6 +207,12 @@ class IpdWardController extends Controller
                     'price2' => $request->input('price2', 0),
                     'price3' => $request->input('price3', 0),
                     'price4' => $request->input('price4', 0),
+                    'price5' => $request->input('price5', 0),
+                    'price6' => $request->input('price6', 0), 
+                    'price7' => $request->input('price7', 0),
+                    'price8' => $request->input('price8', 0),
+                    'price9' => $request->input('price9', 0),
+                    'price10' => $request->input('price10',0),  
                     'addtocart' => true,
                     'defaultqty' => 1,
                 ]);
