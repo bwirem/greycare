@@ -53,6 +53,9 @@ use App\Models\BloodBank\BbComponentType;
 
 use App\Models\Ipd\IpdWard; // Import Ward Model
 
+use App\Models\Billing\BILOrderItem;
+use App\Models\Billing\BILOrder;
+
 // --- NEW IMPORT: Billing Service ---
 use App\Services\BillingService; 
 
@@ -278,7 +281,7 @@ class DoctorIpdController extends Controller
                         'patientcode' => $admission->patientcode,
                         'requested_by' => Auth::id(),
                         'rad_procedure_id' => $rad['procedure_id'],
-                        'status' => 'ordered',
+                        'status' => 'Ordered',
                         'payment_status' => 'unpaid',
                         'accession_number' => 'RAD-' . date('YmdHis') . '-' . rand(100,999)
                     ]);
@@ -470,4 +473,101 @@ class DoctorIpdController extends Controller
         return redirect()->route('doctor1.index')
             ->with('success', 'Discharge initiated. Patient sent to Discharge List.');
     }
+
+    /**
+     * Delete an Order (Lab, Rad, Surgery)
+     */
+    /**
+     * Delete an Order (Lab, Rad, Surgery, Pharmacy)
+     */
+    public function destroyOrder($type, $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $record = null;
+            $billingSourceType = null;
+
+            // 1. Identify Record and Billing Source Type
+            switch ($type) {
+                case 'lab':
+                    $record = LabPrescription::findOrFail($id);
+                    $billingSourceType = 'laboratory'; // Matches BillingService
+                    
+                    // Case-insensitive check
+                    if (strtolower($record->status) !== 'requested' || $record->payment_status === 'paid') {
+                        return back()->withErrors(['error' => 'Cannot delete. Status is processed or paid.']);
+                    }
+                    break;
+
+                case 'rad':
+                    $record = RadRequest::findOrFail($id);
+                    $billingSourceType = 'radiology'; // Matches BillingService
+
+                    if (strtolower($record->status) !== 'ordered' || $record->payment_status === 'paid') {
+                        return back()->withErrors(['error' => 'Cannot delete. Status is processed or paid.']);
+                    }
+                    break;
+
+                case 'surgery':
+                    $record = TheatreBooking::findOrFail($id);
+                    $billingSourceType = 'theatre'; // Matches BillingService
+
+                    if (strtolower($record->status) !== 'scheduled' || $record->payment_status === 'paid') {
+                        return back()->withErrors(['error' => 'Cannot delete. Status is processed or paid.']);
+                    }
+                    break;
+               
+                case 'pharmacy':
+                    $record = PharmacyPrescription::findOrFail($id);
+                    // Note: Check if you saved it as 'pharmacy' or 'drug' in BillingService. 
+                    // Usually 'pharmacy' if not specified otherwise.
+                    $billingSourceType = 'pharmacy'; 
+
+                    if (strtolower($record->status) !== 'prescribed' || $record->payment_status === 'paid') {
+                        return back()->withErrors(['error' => 'Cannot delete. Status is processed or paid.']);
+                    }
+                    break;
+                
+                default:
+                    return back()->withErrors(['error' => 'Invalid order type']);
+            }
+
+            // 2. Delete Associated Billing Items & Recalculate Order
+            if ($billingSourceType) {
+                // Get the items first so we know which Orders to update
+                $billItems = BILOrderItem::where('source_type', $billingSourceType)
+                    ->where('source_id', $id)
+                    ->get();
+
+                foreach ($billItems as $item) {
+                    $orderId = $item->order_id;
+                    
+                    // Delete the item
+                    $item->delete();
+
+                    // Recalculate Parent Order Total
+                    if ($orderId) {
+                        $order = BILOrder::find($orderId);
+                        if ($order) {
+                            $newTotal = $order->orderitems()->sum(DB::raw('price * quantity'));
+                            $order->update(['total' => $newTotal]);
+                        }
+                    }
+                }
+            }
+
+            // 3. Delete the Medical Record
+            $record->delete();
+
+            DB::commit();
+            return back()->with('success', 'Order and associated bill removed successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Delete Order Error: " . $e->getMessage());
+            return back()->withErrors(['error' => 'Failed to delete order.']);
+        }
+    }
 }
+

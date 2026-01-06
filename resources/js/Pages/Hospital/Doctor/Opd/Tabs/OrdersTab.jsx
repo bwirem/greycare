@@ -5,7 +5,7 @@ import ReactSelect from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faFlask, faXRay, faNotesMedical, faTrash, faEye, 
-    faExclamationTriangle, faBan, faUserMd, faCheckCircle, faClock
+    faExclamationTriangle, faBan, faUserMd, faCheckCircle, faClock, faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
@@ -15,8 +15,9 @@ export default function OrdersTab({
     options, 
     ordered_labs = [], 
     ordered_rads = [], 
-    ordered_surgeries = [], // <--- New Prop for Surgery History
-    onViewResult 
+    ordered_surgeries = [], 
+    onViewResult,
+    onDeleteOrder // <--- NEW PROP: Function to handle server-side deletion
 }) {
     
     // --- Handlers ---
@@ -76,7 +77,6 @@ export default function OrdersTab({
                                     </td>
                                     <td className="p-3">
                                         <div className="font-medium text-gray-800">{l.panel?.name}</div>
-                                        {/* Rejection Reason */}
                                         {(l.status === 'rejected' || l.status === 'sample_rejected') && (
                                             <div className="text-xs text-red-600 mt-1 bg-red-50 p-1 rounded border border-red-100 inline-block">
                                                 <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
@@ -85,30 +85,25 @@ export default function OrdersTab({
                                         )}
                                     </td>
                                     <td className="p-3">
-                                        {l.status === 'rejected' ? (
-                                            <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded font-bold flex items-center gap-1 w-fit">
-                                                <FontAwesomeIcon icon={faBan} /> Cancelled
-                                            </span>
-                                        ) : l.status === 'sample_rejected' ? (
-                                             <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-bold flex items-center gap-1 w-fit">
-                                                <FontAwesomeIcon icon={faExclamationTriangle} /> Redraw
-                                            </span>
-                                        ) : (
-                                            <span className={`text-xs px-2 py-1 rounded capitalize font-medium border ${
-                                                l.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                                            }`}>
-                                                {l.status}
-                                            </span>
-                                        )}
+                                        <span className={`text-xs px-2 py-1 rounded capitalize font-medium border ${
+                                            l.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                            l.status === 'Requested' ? 'bg-gray-50 text-gray-700 border-gray-200' :
+                                            'bg-blue-50 text-blue-700 border-blue-200'
+                                        }`}>
+                                            {l.status}
+                                        </span>
                                     </td>
                                     <td className="p-3 text-right">
+                                        {/* VIEW BUTTON */}
                                         {l.status === 'completed' && (
-                                            <button 
-                                                type="button" 
-                                                onClick={() => onViewResult(l, 'lab')} 
-                                                className="text-blue-600 hover:text-blue-800 underline text-xs font-bold flex items-center justify-end gap-1 w-full"
-                                            >
+                                            <button type="button" onClick={() => onViewResult(l, 'lab')} className="text-blue-600 hover:text-blue-800 underline text-xs font-bold flex items-center justify-end gap-1 w-full">
                                                 <FontAwesomeIcon icon={faEye} /> View
+                                            </button>
+                                        )}
+                                        {/* DELETE BUTTON (Only if Requested) */}
+                                        {l.status === 'Requested' && (
+                                            <button type="button" onClick={() => onDeleteOrder(l.id, 'lab')} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full">
+                                                <FontAwesomeIcon icon={faTrashAlt} /> Del
                                             </button>
                                         )}
                                     </td>
@@ -123,7 +118,6 @@ export default function OrdersTab({
                                     </td>
                                     <td className="p-3">
                                         <div className="font-medium text-gray-800">{r.procedure?.name}</div>
-                                        {/* Rejection Reason */}
                                         {r.status === 'rejected' && (
                                             <div className="text-xs text-red-600 mt-1 bg-red-50 p-1 rounded border border-red-100 inline-block">
                                                 <span className="font-bold">Reason:</span> {r.rejection_reason || 'See Notes'}
@@ -131,28 +125,25 @@ export default function OrdersTab({
                                         )}
                                     </td>
                                     <td className="p-3">
-                                        {r.status === 'rejected' ? (
-                                            <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded font-bold flex items-center gap-1 w-fit">
-                                                <FontAwesomeIcon icon={faBan} /> Rejected
-                                            </span>
-                                        ) : (
-                                            <span className={`text-xs px-2 py-1 rounded capitalize font-medium border ${
-                                                r.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                                r.status === 'captured' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                            }`}>
-                                                {r.status}
-                                            </span>
-                                        )}
+                                        <span className={`text-xs px-2 py-1 rounded capitalize font-medium border ${
+                                            r.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                            r.status === 'Ordered' ? 'bg-gray-50 text-gray-700 border-gray-200' :
+                                            'bg-blue-50 text-blue-700 border-blue-200'
+                                        }`}>
+                                            {r.status}
+                                        </span>
                                     </td>
                                     <td className="p-3 text-right">
+                                        {/* VIEW BUTTON */}
                                         {r.status === 'completed' && (
-                                            <button 
-                                                type="button" 
-                                                onClick={() => onViewResult(r, 'rad')} 
-                                                className="text-blue-600 hover:text-blue-800 underline text-xs font-bold flex items-center justify-end gap-1 w-full"
-                                            >
+                                            <button type="button" onClick={() => onViewResult(r, 'rad')} className="text-blue-600 hover:text-blue-800 underline text-xs font-bold flex items-center justify-end gap-1 w-full">
                                                 <FontAwesomeIcon icon={faEye} /> Report
+                                            </button>
+                                        )}
+                                        {/* DELETE BUTTON (Only if Ordered) */}
+                                        {r.status === 'Ordered' && (
+                                            <button type="button" onClick={() => onDeleteOrder(r.id, 'rad')} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full">
+                                                <FontAwesomeIcon icon={faTrashAlt} /> Del
                                             </button>
                                         )}
                                     </td>
@@ -178,8 +169,12 @@ export default function OrdersTab({
                                         </span>
                                     </td>
                                     <td className="p-3 text-right">
-                                        {/* Actions for Surgery could be added here if needed */}
-                                        <span className="text-xs text-gray-400">-</span>
+                                        {/* DELETE BUTTON (Only if Scheduled) */}
+                                        {s.status === 'Scheduled' && (
+                                            <button type="button" onClick={() => onDeleteOrder(s.id, 'surgery')} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full">
+                                                <FontAwesomeIcon icon={faTrashAlt} /> Del
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

@@ -3,13 +3,14 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import ReactSelect from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPills, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faPills, faPlus, faTrash, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
 export default function PharmacyTab({ 
     data, setData, drugOptions, ordered_meds, 
-    opd_meds = [], // Received from Parent
-    rawDrugsList, frequencies, durations 
+    opd_meds = [], 
+    rawDrugsList, frequencies, durations,
+    onDeleteOrder // <--- NEW PROP
 }) {
 
     const [newRx, setNewRx] = useState({
@@ -30,8 +31,6 @@ export default function PharmacyTab({
         let finalQty = 0;
 
         if (inputDosage > 0 && freqVal > 0 && durDays > 0) {
-            //finalQty = inputDosage * freqVal * durDays;
-
             if (selectedDrugDetails) {
                 const type = parseInt(selectedDrugDetails.formulation_type);
                 const strength = parseFloat(selectedDrugDetails.strength_amount) || 0;
@@ -75,8 +74,6 @@ export default function PharmacyTab({
         const freqCode = frequencies.find(f => f.id == newRx.frequency_id)?.code || '';
         const durCode = durations.find(d => d.id == newRx.duration_id)?.code || '';
 
-        // FIX: Ensure we reference the correct array property (new_prescriptions)
-        // If data.new_prescriptions is undefined (e.g. OPD use case), fallback to data.prescriptions
         const listKey = Array.isArray(data.new_prescriptions) ? 'new_prescriptions' : 'prescriptions';
         const currentList = data[listKey] || [];
 
@@ -85,7 +82,6 @@ export default function PharmacyTab({
             dosage: newRx.dosage, frequency: freqCode, duration: durCode, quantity: newRx.quantity 
         }];
         
-        // FIX: Update the correct key
         setData(listKey, list);
         
         toast.success("Prescription staged.");
@@ -94,19 +90,17 @@ export default function PharmacyTab({
     };
 
     const removeRx = (index) => {
-        // FIX: Ensure correct key usage
         const listKey = Array.isArray(data.new_prescriptions) ? 'new_prescriptions' : 'prescriptions';
         const list = [...data[listKey]];
         list.splice(index, 1);
         setData(listKey, list);
     };
 
-    // Helper to determine which list to map over for display
     const prescriptionsToDisplay = data.new_prescriptions || data.prescriptions || [];
 
     return (
         <div className="space-y-6 animate-fade-in">          
-            {/* 1. OPD MEDICATION HISTORY (NEW) */}
+            {/* 1. OPD MEDICATION HISTORY */}
             {opd_meds.length > 0 && (
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 shadow-sm">
                     <h4 className="font-bold text-blue-800 text-sm mb-2 uppercase tracking-wide">OPD Medications (Admission)</h4>
@@ -121,15 +115,28 @@ export default function PharmacyTab({
                 </div>
             )}
 
-            {/* 2. WARD MEDICATION HISTORY */}
+            {/* 2. WARD MEDICATION HISTORY (Active) */}
             {ordered_meds?.length > 0 && (
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200 shadow-sm">
                     <h4 className="font-bold text-green-800 text-sm mb-2 uppercase tracking-wide">Current Ward Medications</h4>
                     <ul className="text-sm space-y-1">
                         {ordered_meds.map(rx => (
-                            <li key={rx.id} className="flex justify-between border-b border-green-200 pb-1 last:border-0">
+                            <li key={rx.id} className="flex justify-between items-center border-b border-green-200 pb-1 last:border-0">
                                 <span>{rx.product?.name} ({rx.dosage} x {rx.frequency})</span>
-                                <span className={`font-bold text-xs ${rx.status === 'Dispensed' ? 'text-green-700' : 'text-yellow-700'}`}>{rx.status}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`font-bold text-xs ${rx.status === 'Dispensed' ? 'text-green-700' : 'text-yellow-700'}`}>{rx.status}</span>
+                                    {/* DELETE BUTTON for Initial Stage */}
+                                    {rx.status === 'Prescribed' && onDeleteOrder && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => onDeleteOrder(rx.id, 'pharmacy')} 
+                                            className="text-red-500 hover:text-red-700 ml-2" 
+                                            title="Delete Prescription"
+                                        >
+                                            <FontAwesomeIcon icon={faTrashAlt} />
+                                        </button>
+                                    )}
+                                </div>
                             </li>
                         ))}
                     </ul>
@@ -196,12 +203,9 @@ export default function PharmacyTab({
                         </select>
                     </div>
 
-                    {/* 5. Calculated Qty Display */}
+                    {/* 5. Qty */}
                     <div className="md:col-span-2">
                         <InputLabel value="Qty" />
-                        {/* <div className="w-full h-[42px] bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-blue-800 font-bold px-1" title="Calculated Quantity">
-                           {newRx.quantity}
-                        </div> */}
                         <TextInput 
                             type="number" step="1" className="w-full" 
                             value={newRx.quantity} 
@@ -219,7 +223,6 @@ export default function PharmacyTab({
                             <FontAwesomeIcon icon={faPlus} />
                         </button>
                     </div>
-
                 </div>
                 
                 {selectedDrugDetails && (
@@ -231,7 +234,7 @@ export default function PharmacyTab({
                 )}
             </div>
 
-            {/* Staged List */}
+            {/* 3. Staged List */}
             {prescriptionsToDisplay.map((p, i) => (
                 <div key={i} className="text-sm border border-blue-100 py-2 px-3 flex justify-between items-center bg-white mb-2 rounded shadow-sm">
                     <span>

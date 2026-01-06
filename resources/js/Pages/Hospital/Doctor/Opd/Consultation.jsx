@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
+import DangerButton from '@/Components/DangerButton'; // <--- Import this
+import SecondaryButton from '@/Components/SecondaryButton'; // <--- Impor
 import Modal from '@/Components/Modal'; 
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faEye, faFlask, faPills, 
-    faCheckCircle, faClock, faStethoscope, faBed, faUserInjured 
+    faCheckCircle, faClock, faStethoscope, faBed, faUserInjured, faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 
 // --- Import Child Components ---
@@ -82,6 +84,11 @@ export default function OpdConsultation({
     const [resultType, setResultType] = useState('');   
     const [showAdmitModal, setShowAdmitModal] = useState(false);
 
+
+    // --- NEW: DELETE CONFIRMATION STATE ---
+    const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null); // { id: 1, type: 'lab' }
+
     // --- 4. Handlers ---
 
     const submit = (e) => {
@@ -114,6 +121,37 @@ export default function OpdConsultation({
         setResultType('rad');
         setViewResult(radRequest);
     };
+   
+
+    // 1. Trigger Modal Open
+    const handleDeleteOrder = (id, type) => {
+        setDeleteTarget({ id, type });
+        setConfirmingDeletion(true);
+    };
+
+    // 2. Execute Deletion (Called from Modal)
+    const executeDelete = () => {
+        if (!deleteTarget) return;
+
+        router.delete(route('doctor1.order.destroy', { id: deleteTarget.id, type: deleteTarget.type }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success("Order deleted successfully.");
+                setConfirmingDeletion(false);
+                setDeleteTarget(null);
+            },
+            onError: (errors) => {
+                console.error("Delete Errors:", errors);
+                toast.error(errors.error || "Could not delete order.");
+                setConfirmingDeletion(false); // Close modal even on error to reset UI
+            }
+        });
+    };
+
+    const closeModal = () => {
+        setConfirmingDeletion(false);
+        setDeleteTarget(null);
+    };    
 
     // Safe Patient Data
     const patientName = patient ? `${patient.first_name} ${patient.last_name}` : 'Unknown';
@@ -213,6 +251,8 @@ export default function OpdConsultation({
                                     ordered_rads={ordered_rads}
                                     ordered_surgeries={ordered_surgeries} // <--- PASSED HERE
                                     onViewResult={(res, type) => { setResultType(type); setViewResult(res); }}
+                                    // PASS THE NEW PROP HERE:
+                                    onDeleteOrder={handleDeleteOrder} 
                                 />
                             }
                             
@@ -224,6 +264,7 @@ export default function OpdConsultation({
                                     rawDrugsList={drugs_list} 
                                     frequencies={pharmacy_frequencies}
                                     durations={pharmacy_durations}
+                                    onDeleteOrder={handleDeleteOrder} 
                                 />
                             }
                         </form>
@@ -257,6 +298,24 @@ export default function OpdConsultation({
                     </div>
                 </div>
             </div>
+
+            {/* --- CONFIRM DELETE MODAL --- */}
+            <Modal show={confirmingDeletion} onClose={closeModal} maxWidth="sm">
+                <div className="p-6">
+                    <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500" />
+                        Confirm Deletion
+                    </h2>
+                    <p className="mt-2 text-sm text-gray-600">
+                        Are you sure you want to delete this order? This action cannot be undone.
+                        Any associated unpaid bills will also be removed.
+                    </p>
+                    <div className="mt-6 flex justify-end gap-3">
+                        <SecondaryButton onClick={closeModal}> Cancel </SecondaryButton>
+                        <DangerButton onClick={executeDelete}> Delete Order </DangerButton>
+                    </div>
+                </div>
+            </Modal>
 
             {/* --- RESULT VIEW MODAL (Lab/Radiology) --- */}
             <Modal show={!!viewResult} onClose={() => setViewResult(null)} maxWidth="lg">

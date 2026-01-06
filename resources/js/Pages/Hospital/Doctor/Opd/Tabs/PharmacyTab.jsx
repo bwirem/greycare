@@ -3,10 +3,19 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import ReactSelect from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPills, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faPills, faPlus, faTrash, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
-export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, rawDrugsList, frequencies, durations }) {
+export default function PharmacyTab({ 
+    data, 
+    setData, 
+    drugOptions, 
+    ordered_meds = [], // Existing orders from DB
+    rawDrugsList, 
+    frequencies, 
+    durations,
+    onDeleteOrder // <--- NEW PROP for server-side delete
+}) {
     
     const [newRx, setNewRx] = useState({
         product_id: '', product_name: '', dosage: 1, 
@@ -14,7 +23,6 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
     });
     const [selectedDrugDetails, setSelectedDrugDetails] = useState(null);
     const [finalStrenthUnit, setFinalStrenthUnit] = useState('mg');
-
 
     // --- EFFECT: Calculation Logic ---
     useEffect(() => {
@@ -27,8 +35,6 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
         let finalQty = 0;        
 
         if (inputDosage > 0 && freqVal > 0 && durDays > 0) {
-            //finalQty = inputDosage * freqVal * durDays;
-
             if (selectedDrugDetails) {
                 const type = parseInt(selectedDrugDetails.formulation_type);
                 const strength = parseFloat(selectedDrugDetails.strength_amount) || 0;
@@ -37,7 +43,6 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                 if(selectedDrugDetails.strength_unit){
                     setFinalStrenthUnit(selectedDrugDetails.strength_unit);
                 }              
-
 
                 if (type === 0 && strength > 0 && inputDosage >= strength) {
                     finalQty = (inputDosage / strength) * freqVal * durDays;
@@ -83,6 +88,7 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
         setSelectedDrugDetails(null); 
     };
 
+    // Remove from STAGED list (Client-side only)
     const removeRx = (index) => {
         const list = [...data.prescriptions];
         list.splice(index, 1);
@@ -91,31 +97,65 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* History Table */}
+            
+            {/* 1. Medication History (Posted Orders) */}
             {ordered_meds?.length > 0 && (
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <h4 className="font-bold text-green-800 text-sm mb-2 uppercase tracking-wide">Medication History</h4>
-                    <ul className="text-sm space-y-1">
-                        {ordered_meds.map(rx => (
-                            <li key={rx.id} className="flex justify-between border-b border-green-200 pb-1">
-                                <span>{rx.product?.name} ({rx.dosage} x {rx.frequency})</span>
-                                <span className="font-bold text-xs text-green-900">{rx.status}</span>
-                            </li>
-                        ))}
-                    </ul>
+                <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
+                    <h4 className="font-bold text-gray-700 mb-3 uppercase text-xs tracking-wider border-b pb-2">
+                        Active Prescriptions
+                    </h4>
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-gray-500 text-xs uppercase bg-gray-50">
+                            <tr>
+                                <th className="p-2">Drug Name</th>
+                                <th className="p-2">Details</th>
+                                <th className="p-2">Status</th>
+                                <th className="p-2 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {ordered_meds.map(rx => (
+                                <tr key={rx.id} className="hover:bg-gray-50">
+                                    <td className="p-2 font-medium">{rx.product?.name}</td>
+                                    <td className="p-2 text-gray-600">
+                                        {rx.dosage} {rx.frequency} x {rx.duration}
+                                    </td>
+                                    <td className="p-2">
+                                        <span className={`text-xs px-2 py-1 rounded font-bold ${
+                                            rx.status === 'Dispensed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                                        }`}>
+                                            {rx.status}
+                                        </span>
+                                    </td>
+                                    <td className="p-2 text-right">
+                                        {/* DELETE BUTTON: Only show if status is 'Prescribed' (Initial stage) */}
+                                        {rx.status === 'Prescribed' && onDeleteOrder && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => onDeleteOrder(rx.id, 'pharmacy')} 
+                                                className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full"
+                                                title="Delete Order"
+                                            >
+                                                <FontAwesomeIcon icon={faTrashAlt} /> Del
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
-            {/* Prescription Calculator */}
+            {/* 2. Prescription Calculator */}
             <div className="border border-gray-300 p-5 rounded-lg bg-white shadow-sm">
                 <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b pb-2">
                     <FontAwesomeIcon icon={faPills} className="text-blue-500" /> Prescribe New Medication
                 </h4>
                 
-                {/* Changed items-start to items-end to align inputs with button at the bottom */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                     
-                    {/* 1. Drug (Reduced to 3 cols to fit button) */}
+                    {/* Drug Selection */}
                     <div className="md:col-span-3">
                         <InputLabel value="Drug" />
                         <ReactSelect 
@@ -131,7 +171,7 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                         />
                     </div>
 
-                    {/* 2. Dose */}
+                    {/* Dose */}
                     <div className="md:col-span-2">
                         <InputLabel value="Dose" />
                         <TextInput 
@@ -141,7 +181,7 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                         />
                     </div>
 
-                    {/* 3. Freq */}
+                    {/* Freq */}
                     <div className="md:col-span-2">
                         <InputLabel value="Freq" />
                         <select 
@@ -154,7 +194,7 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                         </select>
                     </div>
 
-                    {/* 4. Dur */}
+                    {/* Dur */}
                     <div className="md:col-span-2">
                         <InputLabel value="Dur" />
                         <select 
@@ -167,12 +207,9 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                         </select>
                     </div>
 
-                    {/* 5. Calculated Qty Display */}
+                    {/* Qty */}
                     <div className="md:col-span-2">
                         <InputLabel value="Qty" />
-                        {/* <div className="w-full h-[42px] bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-blue-800 font-bold px-1" title="Calculated Quantity">
-                           {newRx.quantity}
-                        </div> */}
                         <TextInput 
                             type="number" step="1" className="w-full" 
                             value={newRx.quantity} 
@@ -180,7 +217,7 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                         />
                     </div>
 
-                    {/* 6. Add Button */}
+                    {/* Add Button */}
                     <div className="md:col-span-1">
                          <button 
                             type="button" 
@@ -190,7 +227,6 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                             <FontAwesomeIcon icon={faPlus} />
                         </button>
                     </div>
-
                 </div>
                 
                 {selectedDrugDetails && (
@@ -202,7 +238,7 @@ export default function PharmacyTab({ data, setData, drugOptions, ordered_meds, 
                 )}
             </div>
 
-            {/* Staged List */}
+            {/* 3. Staged List (New Items) */}
             {data.prescriptions.map((p, i) => (
                 <div key={i} className="text-sm border border-blue-100 py-2 px-3 flex justify-between items-center bg-white mb-2 rounded shadow-sm">
                     <span>

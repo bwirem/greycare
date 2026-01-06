@@ -4,7 +4,7 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faFlask, faXRay, faTint, faTrash, faEye, 
+    faFlask, faXRay, faTint, faTrash, faEye, faTrashAlt,
     faNotesMedical, faClock, faCheckCircle, faExclamationTriangle, faBan 
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
@@ -15,7 +15,8 @@ export default function IpdOrdersTab({
     ordered_surgeries = [],
     ordered_blood = [], 
     opd_labs = [], opd_rads = [], opd_surgeries = [],
-    onViewResult 
+    onViewResult,
+    onDeleteOrder // <--- NEW PROP
 }) {
     
     const [bloodReq, setBloodReq] = useState({ id: null, label: '', units: 1 });
@@ -140,17 +141,21 @@ export default function IpdOrdersTab({
                                                 <FontAwesomeIcon icon={faEye}/> View
                                             </button>
                                         )}
+                                        {l.status === 'Requested' && (
+                                            <button type="button" onClick={() => onDeleteOrder(l.id, 'lab')} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full" title="Delete Order">
+                                                <FontAwesomeIcon icon={faTrashAlt} /> Del
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
 
-                            {/* Radiology (UPDATED VISUALS) */}
+                            {/* Radiology */}
                             {ordered_rads.map(r => (
                                 <tr key={'r'+r.id} className="hover:bg-gray-50">
                                     <td className="p-3"><span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 rounded font-bold border border-orange-200">RAD</span></td>
                                     <td className="p-3">
                                         <div className="font-medium text-gray-800">{r.procedure?.name}</div>
-                                        {/* Rejection Reason */}
                                         {r.status === 'rejected' && (
                                             <div className="text-xs text-red-600 mt-1 bg-red-50 p-1 rounded border border-red-100 inline-block">
                                                 <span className="font-bold">Reason:</span> {r.rejection_reason || 'See Notes'}
@@ -176,6 +181,12 @@ export default function IpdOrdersTab({
                                         {r.status === 'completed' && (
                                             <button type="button" onClick={()=>onViewResult(r,'rad')} className="text-blue-600 hover:text-blue-800 underline text-xs font-bold flex items-center justify-end gap-1 w-full">
                                                 <FontAwesomeIcon icon={faEye}/> Report
+                                            </button>
+                                        )}
+                                        {/* Check for both casing just in case */}
+                                        {(r.status === 'ordered' || r.status === 'Ordered') && (
+                                            <button type="button" onClick={() => onDeleteOrder(r.id, 'rad')} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full" title="Delete Order">
+                                                <FontAwesomeIcon icon={faTrashAlt} /> Del
                                             </button>
                                         )}
                                     </td>
@@ -205,8 +216,12 @@ export default function IpdOrdersTab({
                                             </span>
                                         )}
                                     </td>
-                                    <td className="p-3 text-right text-xs text-gray-400">
-                                        {b.urgency}
+                                    <td className="p-3 text-right">
+                                        {b.status === 'Requested' && (
+                                            <button type="button" onClick={() => onDeleteOrder(b.id, 'blood')} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full" title="Delete Request">
+                                                <FontAwesomeIcon icon={faTrashAlt} /> Del
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -226,8 +241,12 @@ export default function IpdOrdersTab({
                                             {s.status}
                                         </span>
                                     </td>
-                                    <td className="p-3 text-right text-xs text-gray-400">
-                                        -
+                                    <td className="p-3 text-right">
+                                        {s.status === 'Scheduled' && (
+                                            <button type="button" onClick={() => onDeleteOrder(s.id, 'surgery')} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full" title="Cancel Surgery">
+                                                <FontAwesomeIcon icon={faTrashAlt} /> Del
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -236,7 +255,7 @@ export default function IpdOrdersTab({
                 </div>
             )}
 
-            {/* --- 3. NEW ORDERS FORMS (Keep Existing) --- */}
+            {/* --- 3. NEW ORDERS FORMS (Unchanged) --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Lab */}

@@ -241,6 +241,7 @@ Route::prefix('doctor0')->name('doctor0.')->group(function () {
     Route::get('/', [DoctorOpdController::class, 'index'])->name('index');
     Route::get('/{booking}/consult', [DoctorOpdController::class, 'create'])->name('create');
     Route::post('/{booking}', [DoctorOpdController::class, 'store'])->name('store');
+    Route::delete('/order/{type}/{id}', [DoctorOpdController::class, 'destroyOrder'])->name('order.destroy');
 });
 
 // IPD Module (doctor1)
@@ -250,6 +251,7 @@ Route::prefix('doctor1')->name('doctor1.')->group(function () {
     Route::post('/{admission}', [DoctorIpdController::class, 'store'])->name('store');
     // Add this new route
     Route::post('/{admission}/discharge-initiate', [DoctorIpdController::class, 'initiateDischarge'])->name('initiate');
+    Route::delete('/order/{type}/{id}', [DoctorIpdController::class, 'destroyOrder'])->name('order.destroy');
 });
 
 // --- doctor2: Prescriptions (Standalone) ---

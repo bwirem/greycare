@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react'; // <--- ADDED router HERE
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
+import DangerButton from '@/Components/DangerButton'; // <--- Import this
+import SecondaryButton from '@/Components/SecondaryButton'; // <--- Impor
 import Modal from '@/Components/Modal';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faClipboardList, faHistory, faFlask, faPills, faDoorOpen
+    faClipboardList, faHistory, faFlask, faPills, faDoorOpen,faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 
-import Discharge from './Discharge'; // Import the new component
+import Discharge from './Discharge'; 
 
 // Import Sub-Components
 import AssessmentTab from './Tabs/AssessmentTab';
@@ -19,16 +21,16 @@ import PharmacyTab from './Tabs/PharmacyTab';
 
 export default function WardRound({ 
     admission, patient, previous_rounds = [],    
-    opd_consultation = null, // <--- Receive New Prop
-    diagnosis_history = [], // <--- Receive Prop
-    ordered_labs = [], ordered_rads = [],ordered_surgeries = [],ordered_blood = [], ordered_meds = [],
+    opd_consultation = null, 
+    diagnosis_history = [], 
+    ordered_labs = [], ordered_rads = [], ordered_surgeries = [], ordered_blood = [], ordered_meds = [],
     lab_panels = [], rad_procedures = [], drugs_list = [], bb_components = [],
     pharmacy_frequencies = [], pharmacy_durations = [],
     surgery_procedures = [],
     icd_list = [], ipd_diagnoses_list = []
 }) {
     
-    // --- 1. Data Transformation for Dropdowns ---
+    // --- 1. Data Transformation ---
     const options = {
         lab: lab_panels.map(l => ({ value: l.id, label: l.name })),
         rad: rad_procedures.map(r => ({ value: r.id, label: r.name })),
@@ -37,87 +39,70 @@ export default function WardRound({
         surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name }))     
     };
   
-
-    // A. Build "Reverse Lookup" Map: ICD_ID -> { ID, Name } of Local Diagnosis
+    // Build "Reverse Lookup" Map
     const icdToMtuhaMap = {};
-    
     if (ipd_diagnoses_list) {
         ipd_diagnoses_list.forEach(localDiag => {
             if (localDiag.icd_map?.id) {
-                // Store both ID and Name
                 icdToMtuhaMap[localDiag.icd_map.id] = {
-                    id: localDiag.id,      // <--- The missing ID
-                    name: localDiag.name   // The Label
+                    id: localDiag.id,
+                    name: localDiag.name
                 };
             }
         });
     }
 
-    // B. Build Options
     const diagnosisOptions = icd_list.map(icd => {
         const mappedLocal = icdToMtuhaMap[icd.id];
         return {
             value: icd.id,
             label: `${icd.code} - ${icd.name}`,
             type: 'icd',
-            
-            // Attach both Label and ID if mapping exists
             mtuha_label: mappedLocal ? mappedLocal.name : null,
-            mtuha_id: mappedLocal ? mappedLocal.id : null // <--- Add this property
+            mtuha_id: mappedLocal ? mappedLocal.id : null 
         };
     });
      
-
     // --- 2. Form State ---
     const { data, setData, post, processing, errors } = useForm({
-        // Assessment
-        clinical_notes: '', // Required
+        clinical_notes: '', 
         treatment_plan: '',
         general_condition: '',
-        
-        // Physical Exam
         glasgow_coma_score: '',
         pallor: false,
         jaundice: false,
         cvs_examination: '',
         rs_examination: '',
         abdomen_examination: '',
-
-        // Diagnoses
-        diagnoses: [], // <--- ENSURE THIS EXISTS
-
-        // Orders
+        diagnoses: [], 
         lab_requests: [],
         rad_requests: [],
         blood_requests: [],
-        new_prescriptions: [] // IPD uses 'new_prescriptions'
+        new_prescriptions: []
     });
 
-    // --- EXTRACT OPD DATA ---
-    // Safely access arrays from the OPD booking relationship
+    // Extract OPD Data
     const opd_labs = opd_consultation?.lab_requests || [];
     const opd_rads = opd_consultation?.radiology_requests || [];
     const opd_surgeries = opd_consultation?.theatre_bookings || []; 
-
     const opd_meds = opd_consultation?.prescriptions || [];
 
     const [activeTab, setActiveTab] = useState('assessment');
-    
-    // --- 3. Result Modal State ---
     const [viewResult, setViewResult] = useState(null);
-    const [resultType, setResultType] = useState('');
-
-    // --- Discharge Modal State ---
+    const [resultType, setResultType] = useState('');    
     const [showDischargeModal, setShowDischargeModal] = useState(false);
 
-    // --- 4. Submit Handler with Error Checking ---
+    // --- NEW: DELETE CONFIRMATION STATE ---
+    const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null); // { id: 1, type: 'lab' }
+
+    // --- 3. Handlers ---
     const submit = (e) => {
         e.preventDefault();
         post(route('doctor1.store', admission.id), {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success("Ward Round Saved Successfully!");
-                // Clear order lists to prevent duplicate ordering on next save
                 setData(prev => ({ 
                     ...prev, 
                     lab_requests: [], 
@@ -128,11 +113,9 @@ export default function WardRound({
             },
             onError: (err) => {
                 console.error("Validation Errors:", err);
-                
-                // Specific Error Handling
                 if (err.clinical_notes) {
                     toast.error("Progress Notes are required.");
-                    setActiveTab('assessment'); // Switch to tab with error
+                    setActiveTab('assessment'); 
                 } else if (err.general_condition) {
                     toast.error("General Condition is required.");
                     setActiveTab('assessment');
@@ -142,6 +125,38 @@ export default function WardRound({
             }
         });
     };
+    
+
+    // 1. Trigger Modal Open
+    const handleDeleteOrder = (id, type) => {
+        setDeleteTarget({ id, type });
+        setConfirmingDeletion(true);
+    };
+
+    // 2. Execute Deletion (Called from Modal)
+    const executeDelete = () => {
+        if (!deleteTarget) return;
+
+        router.delete(route('doctor1.order.destroy', { id: deleteTarget.id, type: deleteTarget.type }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success("Order deleted successfully.");
+                setConfirmingDeletion(false);
+                setDeleteTarget(null);
+            },
+            onError: (errors) => {
+                console.error("Delete Errors:", errors);
+                toast.error(errors.error || "Could not delete order.");
+                setConfirmingDeletion(false); // Close modal even on error to reset UI
+            }
+        });
+    };
+
+    const closeModal = () => {
+        setConfirmingDeletion(false);
+        setDeleteTarget(null);
+    };
+
 
     const patientInitial = patient?.first_name ? patient.first_name.charAt(0) : '?';
 
@@ -158,7 +173,7 @@ export default function WardRound({
 
             <div className="py-4 max-w-7xl mx-auto sm:px-6 lg:px-8 flex flex-col md:flex-row gap-4 h-[calc(100vh-140px)]">
                 
-                {/* --- LEFT: PATIENT SUMMARY --- */}
+                {/* LEFT: PATIENT SUMMARY */}
                 <div className="w-full md:w-1/4 bg-white shadow rounded-lg p-4 overflow-y-auto hidden md:block">
                     <div className="text-center border-b pb-4 mb-4">
                         <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl font-bold text-green-600 border-2 border-white shadow">
@@ -180,7 +195,7 @@ export default function WardRound({
                     </div>
                 </div>
 
-                {/* --- RIGHT: MAIN TABS --- */}
+                {/* RIGHT: MAIN TABS */}
                 <div className="w-full md:w-3/4 bg-white shadow rounded-lg flex flex-col">
                     
                     {/* Navigation */}
@@ -198,7 +213,6 @@ export default function WardRound({
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                                 }`}>
                                 <FontAwesomeIcon icon={tab.icon} /> {tab.label}
-                                {/* Show red dot if error in this tab */}
                                 {tab.id === 'assessment' && errors.clinical_notes && <span className="h-2 w-2 bg-red-500 rounded-full ml-1"></span>}
                             </button>
                         ))}
@@ -207,7 +221,6 @@ export default function WardRound({
                     <div className="flex-1 p-6 overflow-y-auto">
                         <form onSubmit={submit} className="h-full">
 
-                            {/* Pass 'errors' to AssessmentTab */}
                             {activeTab === 'assessment' && 
                                 <AssessmentTab 
                                     data={data} 
@@ -219,7 +232,7 @@ export default function WardRound({
                             {activeTab === 'history' && (
                                 <RoundHistoryTab 
                                     history={previous_rounds} 
-                                    opdData={opd_consultation} // <--- Pass it here
+                                    opdData={opd_consultation} 
                                     diagnosisHistory={diagnosis_history}
                                 />
                             )}
@@ -228,18 +241,18 @@ export default function WardRound({
                                 <IpdOrdersTab 
                                     data={data} setData={setData} 
                                     options={options} 
-                                    // IPD Orders
+                                    // IPD
                                     ordered_labs={ordered_labs} 
                                     ordered_rads={ordered_rads}
                                     ordered_surgeries={ordered_surgeries}
                                     ordered_blood={ordered_blood}
-
-                                    // OPD Orders
+                                    // OPD
                                     opd_labs={opd_labs}
                                     opd_rads={opd_rads}
                                     opd_surgeries={opd_surgeries}
 
                                     onViewResult={(res, type) => { setResultType(type); setViewResult(res); }}
+                                    onDeleteOrder={handleDeleteOrder}
                                 />
                             }
 
@@ -248,13 +261,11 @@ export default function WardRound({
                                     data={data} setData={setData}
                                     drugOptions={options.drug}
                                     rawDrugsList={drugs_list}
-                                    // IPD Medications
                                     ordered_meds={ordered_meds}
-                                    // OPD Medications
                                     opd_meds={opd_meds}
-                                    
                                     frequencies={pharmacy_frequencies}
                                     durations={pharmacy_durations}
+                                    onDeleteOrder={handleDeleteOrder}
                                 />
                             }
                         </form>
@@ -264,7 +275,6 @@ export default function WardRound({
                     <div className="bg-gray-100 px-6 py-4 flex justify-between items-center border-t rounded-b-lg">
                         <span className="text-xs text-gray-500">Session ID: {admission.id}</span>
                         <div className="flex gap-3">
-                            {/* DISCHARGE BUTTON */}
                             <button 
                                 type="button"
                                 onClick={() => setShowDischargeModal(true)}
@@ -273,17 +283,33 @@ export default function WardRound({
                                 <FontAwesomeIcon icon={faDoorOpen} /> Discharge
                             </button>
 
-                            {/* SAVE BUTTON */}
                             <PrimaryButton onClick={submit} disabled={processing} className="px-8 bg-green-600 hover:bg-green-700">
                                 {processing ? 'Saving...' : 'Save Round'}
                             </PrimaryButton>
-
                         </div>
                     </div>   
                 </div>
             </div>
 
-            {/* --- RESULT VIEW MODAL (Lab/Radiology) --- */}
+            {/* --- CONFIRM DELETE MODAL --- */}
+            <Modal show={confirmingDeletion} onClose={closeModal} maxWidth="sm">
+                <div className="p-6">
+                    <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                        <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500" />
+                        Confirm Deletion
+                    </h2>
+                    <p className="mt-2 text-sm text-gray-600">
+                        Are you sure you want to delete this order? This action cannot be undone.
+                        Any associated unpaid bills will also be removed.
+                    </p>
+                    <div className="mt-6 flex justify-end gap-3">
+                        <SecondaryButton onClick={closeModal}> Cancel </SecondaryButton>
+                        <DangerButton onClick={executeDelete}> Delete Order </DangerButton>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* RESULT MODAL */}
             <Modal show={!!viewResult} onClose={() => setViewResult(null)} maxWidth="lg">
                 <div className="p-6">
                     <div className="flex justify-between items-start mb-4 border-b pb-2">
@@ -316,7 +342,7 @@ export default function WardRound({
                                     ))}
                                     {(!viewResult?.sample?.results || viewResult.sample.results.length === 0) && (
                                         <tr><td colSpan="3" className="p-6 text-center italic text-gray-500">
-                                            Results pending or not yet entered by lab technician.
+                                            Results pending or not yet entered.
                                         </td></tr>
                                     )}
                                 </tbody>
@@ -330,7 +356,7 @@ export default function WardRound({
                                         <div><strong className="block text-gray-500 text-xs uppercase tracking-wide mb-1">Recommendation</strong><p>{viewResult?.report?.suggestion}</p></div>
                                     </>
                                 ) : (
-                                    <p className="text-center text-gray-500 italic p-6">Report has not been written by radiologist yet.</p>
+                                    <p className="text-center text-gray-500 italic p-6">Report has not been written yet.</p>
                                 )}
                             </div>
                         )}
@@ -341,7 +367,7 @@ export default function WardRound({
                 </div>
             </Modal>
 
-            {/* --- ADD DISCHARGE MODAL --- */}
+            {/* DISCHARGE MODAL */}
             <Discharge 
                 show={showDischargeModal}
                 onClose={() => setShowDischargeModal(false)}
