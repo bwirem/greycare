@@ -84,7 +84,7 @@ class OpdRegistrationPostBillsController extends Controller
       
         // Base Constraints
         $query->whereIn('stage', [3, 4]); // Proforma (3) and Saved for Later (4)
-        $query->where('payment_category','Cash');
+        $query->whereIn('payment_category',['Cash','Exemption']);
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 

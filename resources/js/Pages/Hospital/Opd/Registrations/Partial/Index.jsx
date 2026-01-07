@@ -199,17 +199,31 @@ export default function Index({ auth, orders, filters, success }) {
                                 </div>
                             </div>
 
-                            {/* Orders Table */}
+                             {/* Orders Table */}
                             <div className="overflow-x-auto rounded-lg border border-gray-200">
                                 <table className="min-w-full divide-y divide-gray-200 bg-white">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Customer Name</th>
-                                            {/* ADDED QUEUE TIME HEADER */}
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Queue Time</th>
-                                            <th scope="col" className="px-4 py-3.5 text-right text-sm font-semibold text-gray-900">Total</th>
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Stage</th>
-                                            <th scope="col" className="px-4 py-3.5 text-center text-sm font-semibold text-gray-900">Actions</th>
+                                            {/* 1. Queue Time Column Header (NEW) */}
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                                Queue Time
+                                            </th>
+                                            
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                                Customer Name
+                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                                Category
+                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-right text-sm font-semibold text-gray-900">
+                                                Total
+                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                                Stage
+                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-center text-sm font-semibold text-gray-900">
+                                                Actions
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
@@ -223,15 +237,33 @@ export default function Index({ auth, orders, filters, success }) {
 
                                                 return (
                                                     <tr key={order.id} className="hover:bg-gray-50">
+                                                        
+                                                        {/* 1. Queue Time Data (NEW) */}
+                                                        <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-gray-900">
+                                                                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500">
+                                                                    {new Date(order.created_at).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
                                                             {order.customer.customer_type === 'individual' ?
                                                                 `${order.customer.first_name} ${order.customer.other_names || ''} ${order.customer.surname}`.replace(/\s+/g, ' ').trim() :
                                                                 order.customer.company_name
                                                             }
                                                         </td>
-                                                        {/* ADDED QUEUE TIME CELL */}
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
-                                                            {formatQueueTime(order.created_at)}
+                                                            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                                                                order.payment_category === 'Insurance' ? 'bg-blue-50 text-blue-700 ring-blue-700/10' :
+                                                                order.payment_category === 'Exemption' ? 'bg-green-50 text-green-700 ring-green-600/20' :
+                                                                'bg-purple-50 text-purple-700 ring-purple-700/10'
+                                                            }`}>
+                                                                {order.payment_category}
+                                                            </span>
                                                         </td>
                                                         <td className="whitespace-nowrap px-4 py-4 text-right text-sm text-gray-700">
                                                             {parseFloat(order.total).toLocaleString(undefined, {
@@ -259,8 +291,7 @@ export default function Index({ auth, orders, filters, success }) {
                                             })
                                         ) : (
                                             <tr>
-                                                {/* UPDATED COLSPAN TO 5 */}
-                                                <td colSpan="5" className="whitespace-nowrap px-4 py-10 text-center text-sm text-gray-500">
+                                                <td colSpan="6" className="whitespace-nowrap px-4 py-10 text-center text-sm text-gray-500">
                                                     No items found matching your criteria.
                                                 </td>
                                             </tr>
