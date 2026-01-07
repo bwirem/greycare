@@ -4,12 +4,13 @@ import HospitalLayout from '@/Layouts/HospitalLayout';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton'; // Add this
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faNotesMedical, faUser, faBed, faCalendarAlt, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faNotesMedical, faUser, faBed, faCalendarAlt, faSignOutAlt, faPrint } from '@fortawesome/free-solid-svg-icons'; // Add faPrint
 
 export default function DischargeCreate({ admission, statuses }) {
     
-    // Check for Doctor's Summary (Loaded via 'dischargeSummary' relationship in Controller)
+    // Check for Doctor's Summary
     const summary = admission.discharge_summary;
 
     const { data, setData, post, processing, errors } = useForm({
@@ -23,6 +24,11 @@ export default function DischargeCreate({ admission, statuses }) {
         if(confirm('Are you sure you want to discharge this patient? This will free the bed and stop billing.')) {
             post(route('inpatient1.store', admission.id));
         }
+    };
+
+    // Handler to open PDF
+    const handlePrintReport = () => {
+        window.open(route('inpatient1.print-report', admission.id), '_blank');
     };
 
     return (
@@ -55,10 +61,20 @@ export default function DischargeCreate({ admission, statuses }) {
 
                     {/* Doctor's Summary (If Available) */}
                     {summary ? (
-                        <div className="bg-green-50 border border-green-200 p-6 rounded-lg shadow-sm">
+                        <div className="bg-green-50 border border-green-200 p-6 rounded-lg shadow-sm relative">
                             <h4 className="font-bold text-green-800 mb-3 flex items-center gap-2">
                                 <FontAwesomeIcon icon={faNotesMedical} /> Doctor's Clearance Note
                             </h4>
+                            
+                            {/* PRINT BUTTON ADDED HERE */}
+                            <button 
+                                type="button" 
+                                onClick={handlePrintReport}
+                                className="absolute top-4 right-4 text-green-700 hover:text-green-900 bg-white border border-green-200 px-3 py-1 rounded text-xs font-bold shadow-sm flex items-center gap-1 transition-colors"
+                            >
+                                <FontAwesomeIcon icon={faPrint} /> Print Report
+                            </button>
+
                             <div className="space-y-3 text-sm text-gray-700">
                                 <div><strong className="block text-xs uppercase text-green-600">Final Diagnosis</strong> {summary.final_diagnosis}</div>
                                 <div><strong className="block text-xs uppercase text-green-600">Outcome</strong> {summary.outcome}</div>
@@ -86,6 +102,7 @@ export default function DischargeCreate({ admission, statuses }) {
                         </h3>
 
                         <div className="space-y-5">
+                            {/* Form fields remain unchanged */}
                             <div>
                                 <InputLabel value="Discharge Date/Time" />
                                 <TextInput 

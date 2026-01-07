@@ -191,6 +191,7 @@ Route::prefix('inpatient1')->name('inpatient1.')->group(function () {
     Route::get('/', [IpdDischargeController::class, 'index'])->name('index'); // Pending discharges
     Route::get('/{admission}/process', [IpdDischargeController::class, 'create'])->name('create'); // Discharge form
     Route::post('/{admission}', [IpdDischargeController::class, 'store'])->name('store'); // Finalize discharge
+    Route::get('/discharge-report/{admission}', [IpdDischargeController::class, 'printDischargeReport'])->name('print-report');
 });
 
 // --- inpatient2: Transfer Wards ---

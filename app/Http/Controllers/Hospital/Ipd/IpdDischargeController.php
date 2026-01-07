@@ -16,6 +16,8 @@ use App\Models\Ipd\IpdDischargeStatus;
 use App\Models\Ipd\IpdBed;
 use App\Models\Ipd\IpdBedCharge; // Import this
 use App\Models\Patient\Patient;
+use App\Models\Facility\FacilityOption; // <--- 1. Add this Import
+use Barryvdh\DomPDF\Facade\Pdf; // Ensure this import exists
 
 // Services
 use App\Services\BillingService; // Import Billing Service
@@ -145,5 +147,29 @@ class IpdDischargeController extends Controller
 
         return redirect()->route('inpatient1.index')
             ->with('success', 'Patient discharged and final bed charges calculated.');
+    }
+      
+    public function printDischargeReport($admissionId)
+    {
+        // 1. Fetch Admission Data
+        $admission = IpdAdmission::with(['patient', 'dischargeSummary', 'ward', 'doctor'])
+            ->findOrFail($admissionId);
+
+        if (!$admission->dischargeSummary) {
+            return back()->with('error', 'Discharge Summary not yet created by doctor.');
+        }
+
+        // 2. Fetch Facility Information (Logo, Address, etc.)
+        $facility = FacilityOption::first(); 
+
+        // 3. Pass $facility to the View
+        $pdf = Pdf::loadView('pdfs.discharge_summary', [
+            'admission' => $admission,
+            'summary'   => $admission->dischargeSummary,
+            'patient'   => $admission->patient,
+            'facility'  => $facility // <--- This fixes the error
+        ]);
+
+        return $pdf->stream('Discharge_Summary_' . $admission->patientcode . '.pdf');
     }
 }

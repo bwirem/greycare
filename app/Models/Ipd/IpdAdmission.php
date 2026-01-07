@@ -46,6 +46,12 @@ class IpdAdmission extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    // --- ADD THIS HERE ---
+    public function doctor()
+    {
+        return $this->belongsTo(User::class, 'doctor_user_id');
+    }
+
     // Current Location Relationships
     public function ward()
     {
