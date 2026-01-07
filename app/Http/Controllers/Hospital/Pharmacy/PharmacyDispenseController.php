@@ -460,20 +460,20 @@ class PharmacyDispenseController extends Controller
 
                 // Determine Payment Category & Cash Status
                 $facility = FacilityOption::first();
-                if ($billingGroup) {
-                    if ($billingGroup->isexemption) {
-                        $paymentCategory = 'Exemption'; $isCash = false;
-                    } elseif ($billingGroup->isinsurance) {
-                        $paymentCategory = 'Insurance'; $isCash = false;
-                    } elseif ($facility && $billingGroup->id != $facility->default_cash_billing_group_id) {
-                        $paymentCategory = 'Invoice'; $isCash = false;
-                    } else {
-                        $paymentCategory = 'Cash'; $isCash = true;
-                    }
-                } elseif ($prescription->patient) {
-                    $paymentCategory = $prescription->patient->payment_category ?? 'Cash';
-                    $isCash = ($paymentCategory === 'Cash');
-                }
+                // if ($billingGroup) {
+                //     if ($billingGroup->isexemption) {
+                //         $paymentCategory = 'Exemption'; $isCash = false;
+                //     } elseif ($billingGroup->isinsurance) {
+                //         $paymentCategory = 'Insurance'; $isCash = false;
+                //     } elseif ($facility && $billingGroup->id != $facility->default_cash_billing_group_id) {
+                //         $paymentCategory = 'Invoice'; $isCash = false;
+                //     } else {
+                //         $paymentCategory = 'Cash'; $isCash = true;
+                //     }
+                // } elseif ($prescription->patient) {
+                //     $paymentCategory = $prescription->patient->payment_category ?? 'Cash';
+                //     $isCash = ($paymentCategory === 'Cash');
+                // }
 
                 // 2. Fetch All Related Items to Bill
                 // -----------------------------------------------------

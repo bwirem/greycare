@@ -236,6 +236,20 @@ export default function DispensingIndex({ prescriptions, filters, flash, userPer
                                                             <div className="font-bold text-gray-900">{patient?.first_name} {patient?.last_name}</div>
                                                             <div className="text-xs text-gray-500 font-mono uppercase">{patientCode}</div>
                                                             <div className="text-[10px] font-bold text-blue-600 uppercase mt-0.5">{billingGroup?.name || category}</div>
+                                                            {/* 2. Pay & Bill Button (Consolidated for Unbilled Items) */}
+                                                            {dispenseItems.length > 0 && (
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => openPostBills(dispenseItems[0])} 
+                                                                    className={`${!canPostBills ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-amber-500 hover:bg-amber-600'} text-white w-full px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition flex items-center justify-center`}
+                                                                >
+                                                                    <FontAwesomeIcon 
+                                                                        icon={!canPostBills ? faCreditCard : faFileInvoiceDollar} 
+                                                                        className="mr-2" 
+                                                                    />
+                                                                    Pay Cash
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
