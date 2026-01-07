@@ -178,6 +178,7 @@ Route::prefix('reports')->name('reports.')->group(function () {
         // --- NEW: Patient History Routes (using DoctorReportsController) ---
         Route::get('/patient-history', [DoctorReportsController::class, 'patientHistorySearch'])->name('patient_history');
         Route::get('/patient-history/{patientCode}', [DoctorReportsController::class, 'patientHistoryShow'])->name('patient_history.show');
+        Route::get('/diagnosis', [DoctorReportsController::class, 'diagnosisReport'])->name('diagnosis');
     });   
     
     // --- Theatre Report Data ---

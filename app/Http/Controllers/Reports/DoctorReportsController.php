@@ -17,6 +17,8 @@ use App\Models\User;
 use App\Models\Opd\OpdTreatmentPoint;
 use App\Models\Ipd\IpdWard;
 use App\Models\Patient\Patient; // <--- Ensure this is imported
+use App\Models\MedicalRecord\MrPatientDiagnosisIcdConfirmed;
+use Illuminate\Support\Facades\Log;
 
 class DoctorReportsController extends Controller
 {
@@ -312,6 +314,133 @@ class DoctorReportsController extends Controller
                 'status' => $lab->status,
                 'result_summary' => $lab->sample?->results->count() . ' param(s)'
             ])
+        ]);
+    }
+ 
+    /**
+     * 6. Diagnosis Report (ICD-10 Usage & Mappings)
+     */
+   public function diagnosisReport(Request $request): InertiaResponse
+    {
+        $validated = $request->validate([
+            'start_date'  => 'nullable|date_format:Y-m-d',
+            'end_date'    => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
+            'report_type' => 'nullable|in:icd,opd,ipd',
+        ]);
+
+        $startDate  = Carbon::parse($validated['start_date'] ?? Carbon::now()->startOfMonth())->startOfDay();
+        $endDate    = Carbon::parse($validated['end_date']   ?? Carbon::now())->endOfDay();
+        $reportType = $validated['report_type'] ?? 'icd';
+
+        // Start Building Query
+        $query = MrPatientDiagnosisIcdConfirmed::query()
+            ->join('patients', 'mr_patient_diagnoses_icd_confirmed.patientcode', '=', 'patients.code')
+            ->whereBetween('mr_patient_diagnoses_icd_confirmed.created_at', [$startDate, $endDate]);
+
+        // Apply Context Filters
+        if ($reportType === 'opd') {
+            $query->whereNotNull('mr_patient_diagnoses_icd_confirmed.opd_booking_id');
+        } elseif ($reportType === 'ipd') {
+            $query->where(function($q) {
+                $q->whereNotNull('mr_patient_diagnoses_icd_confirmed.ipd_admission_id')
+                  ->orWhereNotNull('mr_patient_diagnoses_icd_confirmed.ipd_ward_round_id');
+            });
+        }
+
+        // --- THE AGGREGATION LOGIC ---
+        // We assume MySQL/MariaDB syntax for TIMESTAMPDIFF. 
+        // Logic: Calculate Age in Months and Years relative to the Diagnosis Date.
+        
+        $selects = [
+            'mr_patient_diagnoses_icd_confirmed.diagnosis_id',
+            
+            // < 1 Month
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(MONTH, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) < 1 AND patients.gender = 'Male' THEN 1 ELSE 0 END) as m_under_1m"),
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(MONTH, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) < 1 AND patients.gender = 'Female' THEN 1 ELSE 0 END) as f_under_1m"),
+
+            // 1 Month to < 1 Year
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(MONTH, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) >= 1 AND TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) < 1 AND patients.gender = 'Male' THEN 1 ELSE 0 END) as m_1m_to_1y"),
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(MONTH, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) >= 1 AND TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) < 1 AND patients.gender = 'Female' THEN 1 ELSE 0 END) as f_1m_to_1y"),
+
+            // 1 Year to < 5 Years
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) >= 1 AND TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) < 5 AND patients.gender = 'Male' THEN 1 ELSE 0 END) as m_1y_to_5y"),
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) >= 1 AND TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) < 5 AND patients.gender = 'Female' THEN 1 ELSE 0 END) as f_1y_to_5y"),
+
+            // 5 Years to < 60 Years
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) >= 5 AND TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) < 60 AND patients.gender = 'Male' THEN 1 ELSE 0 END) as m_5y_to_60y"),
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) >= 5 AND TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) < 60 AND patients.gender = 'Female' THEN 1 ELSE 0 END) as f_5y_to_60y"),
+
+            // > 60 Years
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) >= 60 AND patients.gender = 'Male' THEN 1 ELSE 0 END) as m_over_60y"),
+            DB::raw("SUM(CASE WHEN TIMESTAMPDIFF(YEAR, patients.date_of_birth, mr_patient_diagnoses_icd_confirmed.created_at) >= 60 AND patients.gender = 'Female' THEN 1 ELSE 0 END) as f_over_60y"),
+
+            // Grand Totals (Calculated in SQL for sorting efficiency)
+            DB::raw("COUNT(*) as total_occurrences")
+        ];
+
+        $results = $query->select($selects)
+            ->groupBy('mr_patient_diagnoses_icd_confirmed.diagnosis_id')
+            ->orderByDesc('total_occurrences')
+            ->with([
+                'icdDiagnosis' => function($q) {
+                    $q->select('id', 'code', 'name')
+                      ->with(['opdMappings', 'ipdMappings']);
+                }
+            ])
+            ->limit(200) // Reasonable limit for a complex report
+            ->get();
+
+        // Transform Data
+        $reportData = $results->flatMap(function ($row) use ($reportType) {
+            $icd = $row->icdDiagnosis;
+            if (!$icd) return [];
+
+            // Calculate totals for each bucket (M+F)
+            $t_under_1m = $row->m_under_1m + $row->f_under_1m;
+            $t_1m_to_1y = $row->m_1m_to_1y + $row->f_1m_to_1y;
+            $t_1y_to_5y = $row->m_1y_to_5y + $row->f_1y_to_5y;
+            $t_5y_to_60y= $row->m_5y_to_60y + $row->f_5y_to_60y;
+            $t_over_60y = $row->m_over_60y + $row->f_over_60y;
+            
+            // Grand totals
+            $grand_m = $row->m_under_1m + $row->m_1m_to_1y + $row->m_1y_to_5y + $row->m_5y_to_60y + $row->m_over_60y;
+            $grand_f = $row->f_under_1m + $row->f_1m_to_1y + $row->f_1y_to_5y + $row->f_5y_to_60y + $row->f_over_60y;
+            $grand_t = $grand_m + $grand_f;
+
+            $baseStats = [
+                'stats' => [
+                    'u1m' => ['m' => $row->m_under_1m, 'f' => $row->f_under_1m, 't' => $t_under_1m],
+                    '1m1y'=> ['m' => $row->m_1m_to_1y, 'f' => $row->f_1m_to_1y, 't' => $t_1m_to_1y],
+                    '1y5y'=> ['m' => $row->m_1y_to_5y, 'f' => $row->f_1y_to_5y, 't' => $t_1y_to_5y],
+                    '5y60'=> ['m' => $row->m_5y_to_60y,'f' => $row->f_5y_to_60y,'t' => $t_5y_to_60y],
+                    'o60y'=> ['m' => $row->m_over_60y, 'f' => $row->f_over_60y, 't' => $t_over_60y],
+                    'grand'=>['m' => $grand_m,         'f' => $grand_f,         't' => $grand_t],
+                ]
+            ];
+
+            // Determine Label based on Report Type
+            if ($reportType === 'opd' && $icd->opdMappings->isNotEmpty()) {
+                return $icd->opdMappings->map(fn($map) => array_merge([
+                    'code' => $map->code, 'name' => $map->name, 'mapped' => $icd->code
+                ], $baseStats));
+            } elseif ($reportType === 'ipd' && $icd->ipdMappings->isNotEmpty()) {
+                return $icd->ipdMappings->map(fn($map) => array_merge([
+                    'code' => $map->code, 'name' => $map->name, 'mapped' => $icd->code
+                ], $baseStats));
+            } else {
+                return [array_merge([
+                    'code' => $icd->code, 'name' => $icd->name, 'mapped' => null
+                ], $baseStats)];
+            }
+        });
+
+        return Inertia::render('Reports/Doctor/DiagnosisReport', [
+            'data' => $reportData->values()->all(),
+            'filters' => [
+                'start_date'  => $startDate->format('Y-m-d'),
+                'end_date'    => $endDate->format('Y-m-d'),
+                'report_type' => $reportType,
+            ]
         ]);
     }
 }

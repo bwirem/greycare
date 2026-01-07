@@ -2,12 +2,12 @@ import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faUserMd,
     faStethoscope,
     faNotesMedical,
     faArrowRight,
     faCut,
-    faFileMedicalAlt // <--- Import this icon
+    faFileMedicalAlt,
+    faMicroscope // Using microscope for Diagnosis/Lab related reports
 } from '@fortawesome/free-solid-svg-icons';
 
 function ReportCard({ title, value, description, icon, iconBgColor, linkHref, linkText }) {
@@ -66,7 +66,7 @@ export default function DoctorReportsDashboard({ auth, stats }) {
                             linkText="View IPD Report"
                         />
                         
-                        {/* --- NEW CARD: Patient History --- */}
+                        {/* Patient History */}
                         <ReportCard
                             title="Patient Medical History"
                             description="Search and view comprehensive patient timeline."
@@ -74,6 +74,16 @@ export default function DoctorReportsDashboard({ auth, stats }) {
                             iconBgColor="bg-teal-600"
                             linkHref={route('reports.doctor.patient_history')} 
                             linkText="Search Records"
+                        />
+
+                        {/* --- NEW CARD: Diagnosis Reports --- */}
+                        <ReportCard
+                            title="Diagnosis Statistics"
+                            description="Top ICD-10 codes and Internal Mappings."
+                            icon={faMicroscope}
+                            iconBgColor="bg-purple-600"
+                            linkHref={route('reports.doctor.diagnosis')} 
+                            linkText="View Disease Stats"
                         />
 
                         {/* Placeholder for Theatre Report */}
