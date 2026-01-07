@@ -878,5 +878,31 @@ class BilPostController extends Controller
         ]);
     }   
 
+    //Pending Bills
+    public function getPendingBills(Request $request)
+    {
+        $query = BILOrder::with(['customer', 'orderitems'])
+            ->whereIn('stage', [3, 4]); // Proforma or Saved
+
+        // FILTER: If patient_code is provided, filter by it
+        if ($request->has('patient_code')) {
+            $query->whereHas('customer', function($q) use ($request) {
+                $q->where('patient_code', $request->patient_code);
+            });
+        } else {
+            // Only limit if fetching generic list
+            $query->limit(50);
+        }
+
+        $bills = $query->orderBy('created_at', 'desc')->get();
+
+        $bills->transform(function ($bill) {
+            $bill->customer_name = $bill->customer ? $bill->customer->display_name : 'Walk-in / Unknown';
+            return $bill;
+        });
+
+        return response()->json($bills);
+    }
+
 
 }

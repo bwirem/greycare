@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import HospitalLayout from '@/Layouts/HospitalLayout'; 
-// 1. Import router to trigger page reloads
 import { Head, Link, router } from '@inertiajs/react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
@@ -11,19 +10,15 @@ import {
     faStethoscope,
     faUserInjured,
     faClinicMedical,
-    faCalendarAlt // 2. Import Calendar Icon
+    faCalendarAlt,
+    faFileInvoiceDollar // <--- 1. Import Billing Icon
 } from "@fortawesome/free-solid-svg-icons";
 
-// 3. Add 'filters' to props
 export default function OpdRegistrationsIndex({ auth, registrations, treatmentPoints, filters }) {
     
     // --- STATE ---
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Initialize Date from Server Prop or Default to Today
     const [selectedDate, setSelectedDate] = useState(filters?.date || new Date().toISOString().split('T')[0]);
-
-    // Initialize Clinic from Session Storage
     const [selectedPoint, setSelectedPoint] = useState(() => {
         if (typeof window !== 'undefined') {
             return sessionStorage.getItem('opd_selected_point') || '';
@@ -32,35 +27,28 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
     });
 
     // --- EFFECTS ---
-
-    // Save Clinic selection to session storage (Client-side persistence)
     useEffect(() => {
         sessionStorage.setItem('opd_selected_point', selectedPoint);
     }, [selectedPoint]);
 
     // --- HANDLERS ---
-
-    // Handle Date Change: Triggers Server Reload
     const handleDateChange = (e) => {
         const newDate = e.target.value;
         setSelectedDate(newDate);
 
-        // Reload page with new date param
         router.get(route(route().current()), { date: newDate }, {
-            preserveState: true, // Keep scroll position and other states
+            preserveState: true, 
             preserveScroll: true,
             replace: true
         });
     };
 
-    // Filter Logic (Client Side for Search & Clinic)
     const filteredRegistrations = registrations.filter(reg => {
         const matchesSearch = 
             reg.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             reg.file_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
             reg.visit_number.toLowerCase().includes(searchTerm.toLowerCase());
 
-        // Note: Use '==' to compare string (from dropdown) vs number (from DB)
         const matchesClinic = selectedPoint === '' || reg.treatment_point_id == selectedPoint;
 
         return matchesSearch && matchesClinic;
@@ -169,7 +157,16 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
                             </div>
                         </div>
 
+                        {/* --- BUTTONS SECTION --- */}
                         <div className="flex gap-2">
+                            {/* 2. New Billing Index Button */}
+                            <Link 
+                                href={route('outpatient0.billing.index')}
+                                className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-green-700 transition ease-in-out duration-150 h-10"
+                            >
+                                <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Billing
+                            </Link>
+
                             <Link 
                                 href={route('outpatient0.create')}
                                 className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-blue-700 transition ease-in-out duration-150 h-10"
@@ -223,7 +220,7 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
                                                     <Link 
                                                         href={route('outpatient0.billing.index')}
                                                         className="text-gray-500 hover:text-blue-600 transition-colors" 
-                                                        title="View Details"
+                                                        title="View Billing"
                                                     >
                                                         <FontAwesomeIcon icon={faEye} />
                                                     </Link>

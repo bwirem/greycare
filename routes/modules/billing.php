@@ -50,6 +50,8 @@ Route::prefix('billing1')->name('billing1.')->group(function () {
     Route::put('/pay/{order}', [BilPostController::class, 'processPayment'])->name('pay_update');
 
     Route::get('/invoice-preview', [BilPostController::class, 'invoicePreview'])->name('invoice_preview');
+
+    Route::get('/api/pending-bills', [BilPostController::class, 'getPendingBills'])->name('api.pending');
 });
 
 // billing2: Pay Bills routes
