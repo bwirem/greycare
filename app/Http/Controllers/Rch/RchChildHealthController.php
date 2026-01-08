@@ -7,7 +7,7 @@ use App\Models\Rch\RchChildAssessment;
 use App\Models\Patient\Patient;
 use App\Models\Opd\OpdBooking;
 use App\Models\Opd\OpdTreatmentPoint;
-use App\Models\Billing\PatientBillingGroup;
+use App\Models\Patient\PatientBillingGroup;
 use App\Models\Billing\BLSCustomer;
 // Check your folder structure: usually 'MedicalRecord' (plural) or 'MedicalRecord' (singular)
 use App\Models\MedicalRecord\MrVitalSign; 

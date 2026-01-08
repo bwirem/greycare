@@ -143,6 +143,7 @@ class OpdRegistrationController extends Controller
                 'national_id'   => 'nullable|string|max:50|unique:patients,national_id',
                 'phone_number'  => 'required|string|max:50',
                 'middle_name'   => 'nullable|string|max:255',
+                'address'   => 'nullable|string|max:255',
             ]);
         }
 
@@ -212,6 +213,7 @@ class OpdRegistrationController extends Controller
                     'date_of_birth' => $validated['date_of_birth'],
                     'national_id'   => $validated['national_id'] ?? null,
                     'phone_number'  => $validated['phone_number'],
+                    'address'   => $validated['address'],
                     
                     'payment_category'        => $paymentCategory,
                     'insurance_provider_id'   => $insuranceProviderId,
@@ -229,7 +231,7 @@ class OpdRegistrationController extends Controller
                     'surname'       => $validated['last_name'] ?? Patient::where('code', $patientCode)->value('last_name'),
                     'other_names'   => $request->middle_name ?? Patient::where('code', $patientCode)->value('middle_name'),
                     'phone'         => $validated['phone_number'] ?? Patient::where('code', $patientCode)->value('phone_number'),
-                    'billing_group_id' => $billingGroup->id,
+                    'patient_code'  => $patientCode,                    
                 ]
             );
 
@@ -378,6 +380,7 @@ class OpdRegistrationController extends Controller
             'middle_name'    => 'nullable|string|max:255',
             'date_of_birth'  => 'nullable|date',
             'contact'        => 'nullable|string|max:50', 
+            'address'   => 'nullable|string|max:255',
             
             'treatmentpoint_id' => 'required|exists:opd_treatmentpoints,id',
             'doctor_user_id'    => 'nullable|exists:users,id', 
@@ -421,6 +424,7 @@ class OpdRegistrationController extends Controller
                 'middle_name'   => $validated['middle_name'],
                 'date_of_birth' => $validated['date_of_birth'],
                 'phone_number'  => $validated['contact'] ?? $patient->phone_number,
+                'address'   => $validated['address'],
                 
                 'payment_category'        => $paymentCategory,
                 'insurance_provider_id'   => $insuranceProviderId,

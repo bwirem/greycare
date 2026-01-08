@@ -237,7 +237,8 @@ export default function RequestsIndex({ requests, filters, flash }) {
                                                             const isRejected = req.status === 'sample_rejected';
                                                             const isCash = category === 'Cash';
                                                             
-                                                            const canCollect = !isCash || isPaid || isWaived || isRejected || isAdmitted;
+                                                            //const canCollect = !isCash || isPaid || isWaived || isRejected || isAdmitted;
+                                                            const canCollect = !isCash || isPaid || isWaived || isRejected;
 
                                                             return (
                                                                 <div key={req.id} className="h-8 flex items-center">

@@ -27,6 +27,7 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
         first_name: booking.patient?.first_name || '',
         last_name: booking.patient?.last_name || '',
         middle_name: booking.patient?.middle_name || '',
+        address: booking.patient?.address || '',
         
         // NEW: Date of Birth & Age
         date_of_birth: booking.patient?.date_of_birth || '',
@@ -173,6 +174,16 @@ export default function OpdEdit({ auth, booking, treatmentPoints, billingGroups,
                                     className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-500 sm:text-sm cursor-not-allowed"
                                 />
                             </div>
+                             
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700">Address</label>
+                                <input
+                                    type="text"
+                                    value={data.address}
+                                    onChange={e => setData('address', e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                />
+                            </div>                        
                         </div>
                     </div>
 

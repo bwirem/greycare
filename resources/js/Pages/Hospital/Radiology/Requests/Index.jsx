@@ -164,7 +164,8 @@ export default function RadRequestsIndex({ requests, filters, flash }) {
 
                                         // --- 3. ACCESS CONTROL ---
                                         // Allow if: Paid OR Waived OR Insurance OR Corporate OR ADMITTED
-                                        const canProceed = !isCash || isPaid || isWaived || isAdmitted; // <--- 3. Updated Logic
+                                        //const canProceed = !isCash || isPaid || isWaived || isAdmitted; // <--- 3. Updated Logic
+                                        const canProceed = !isCash || isPaid || isWaived; // <--- 3. Updated Logic
 
                                         // Determine Row Class
                                         let rowClass = "hover:bg-gray-50 transition-colors";

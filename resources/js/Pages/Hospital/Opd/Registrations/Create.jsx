@@ -47,7 +47,8 @@ export default function OpdCreate({
         age: '', 
         national_id: '',
         phone_number: '',
-        
+        address: '',
+
         // Visit Details
         // --- MODIFICATION START: Get default from Session Storage ---
         treatmentpoint_id: (typeof window !== 'undefined' ? sessionStorage.getItem('opd_selected_point') : '') || '',
@@ -417,6 +418,14 @@ export default function OpdCreate({
                                         />
                                         {errors.phone_number && <div className="text-red-500 text-xs mt-1">{errors.phone_number}</div>}
                                     </div>
+                                    <div>
+                                        <InputLabel value="Address" className="mb-1" />
+                                        <TextInput
+                                            value={data.address}
+                                            onChange={e => setData('address', e.target.value)}
+                                            className="w-full"
+                                        />
+                                    </div> 
                                 </div>
                             </div>
                         </div>
