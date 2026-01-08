@@ -2,13 +2,20 @@ import React from 'react';
 import { useForm } from '@inertiajs/react';
 
 export default function JobDetailsForm({ employee, departments, positions }) {
-    const activeJob = employee.jobs?.[0]; // Assuming latest job is first or singular
+    const activeJob = employee.jobs?.[0];
+
+    // Helper to format dates to YYYY-MM-DD
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        return dateString.split('T')[0]; // Extracts '2026-01-06' from timestamp
+    };
 
     const { data, setData, post, put, processing, errors } = useForm({
         department_id: activeJob?.department_id || '',
         position_id: activeJob?.position_id || '',
-        hire_date: activeJob?.hire_date || '',
-        contract_end_date: activeJob?.contract_end_date || '',
+        // Apply format helper here
+        hire_date: formatDate(activeJob?.hire_date),
+        contract_end_date: formatDate(activeJob?.contract_end_date),
         basic_salary: activeJob?.basic_salary || '',
         employment_type: activeJob?.employment_type || 'Full-time',
         social_security_number: activeJob?.social_security_number || '',
@@ -19,7 +26,8 @@ export default function JobDetailsForm({ employee, departments, positions }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (activeJob) {
-            put(route('humanresurces0.jobs.update', activeJob.id));
+            // FIX: Pass both employee.id and activeJob.id for the nested route
+            put(route('humanresurces0.jobs.update', [employee.id, activeJob.id]));
         } else {
             post(route('humanresurces0.jobs.store', employee.id));
         }
@@ -47,6 +55,7 @@ export default function JobDetailsForm({ employee, departments, positions }) {
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Hire Date</label>
                     <input type="date" value={data.hire_date} onChange={e => setData('hire_date', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+                    {errors.hire_date && <p className="text-red-500 text-xs">{errors.hire_date}</p>}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Contract End Date</label>

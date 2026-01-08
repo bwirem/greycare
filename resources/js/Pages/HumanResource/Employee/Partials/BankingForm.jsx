@@ -14,7 +14,8 @@ export default function BankingForm({ employee, banks }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (banking) {
-            put(route('humanresurces0.banking.update', banking.id));
+            // FIX: Pass [employee.id, banking.id] array for nested route
+            put(route('humanresurces0.banking.update', [employee.id, banking.id]));
         } else {
             post(route('humanresurces0.banking.store', employee.id));
         }

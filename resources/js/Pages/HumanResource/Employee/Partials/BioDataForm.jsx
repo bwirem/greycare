@@ -1,14 +1,23 @@
 import React from 'react';
-import { useForm } from '@inertiajs/react';
+// FIX: Import router here
+import { useForm, router } from '@inertiajs/react';
 
 export default function BioDataForm({ employee = null }) {
-    const { data, setData, post, put, processing, errors } = useForm({
+    
+    // Helper to format dates to YYYY-MM-DD
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        return dateString.split('T')[0];
+    };
+
+    const { data, setData, post, processing, errors } = useForm({
         first_name: employee?.first_name || '',
         last_name: employee?.last_name || '',
         other_names: employee?.other_names || '',
         employee_code: employee?.employee_code || '',
         gender: employee?.gender || 'Male',
-        date_of_birth: employee?.date_of_birth || '',
+        // FIX: Format date
+        date_of_birth: formatDate(employee?.date_of_birth),
         national_id: employee?.national_id || '',
         phone_number: employee?.phone_number || '',
         email: employee?.email || '',
@@ -20,8 +29,9 @@ export default function BioDataForm({ employee = null }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Use POST with _method: PUT for file uploads on update (Inertia limitation with PUT/files)
+        
         if (employee) {
+            // Use router.post for update to handle file upload method spoofing
             router.post(route('humanresurces0.update', employee.id), {
                 _method: 'put',
                 ...data
@@ -61,6 +71,7 @@ export default function BioDataForm({ employee = null }) {
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+                    {/* Date Input */}
                     <input type="date" value={data.date_of_birth} onChange={e => setData('date_of_birth', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
                 </div>
                 <div>
