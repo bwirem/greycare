@@ -42,6 +42,12 @@ use App\Models\{
     UserGroupPrinter,
 };
 
+
+use App\Services\BillingService;
+use App\Models\Ipd\IpdAdmission;
+use App\Models\Ipd\IpdBedCharge;
+
+
 use App\Enums\{
     BillingTransTypes, InvoiceStatus, PaymentSources, InvoiceTransTypes, StoreType
 };
@@ -877,27 +883,93 @@ class BilPostController extends Controller
             $paymentMethodColumn => $data['paid_amount'],
         ]);
     }   
+   
 
-    //Pending Bills
-    public function getPendingBills(Request $request)
+    public function getPendingBills(Request $request, BillingService $billingService)
     {
-        $query = BILOrder::with(['customer', 'orderitems'])
-            ->whereIn('stage', [3, 4]); // Proforma or Saved
+        $request->validate([
+            'patient_code' => 'required|string',
+            'discharge_date' => 'nullable|date',
+        ]);        
 
-        // FILTER: If patient_code is provided, filter by it
+
+        // 1. Fetch the Active Admission to calculate bed charges
+        // We need this to define $admission for the logic below
+        $admission = IpdAdmission::with(['ward.blsItem', 'patient'])
+            ->where('patientcode', $request->patient_code)
+            ->whereIn('status', ['Admitted', 'Discharge Pending'])// Only process for currently admitted patients
+            ->first();       
+
+        // -------------------------------------------------------------
+        // 2. CATCH-UP BILLING: Charge for any unbilled days
+        // -------------------------------------------------------------
+        if ($admission && $admission->ward && $admission->ward->blsItem) {
+            
+            $startDate = Carbon::parse($admission->admission_date);
+            // Use requested discharge date, or default to NOW if just checking status
+            $endDate = $request->discharge_date ? Carbon::parse($request->discharge_date) : Carbon::now();
+            
+            // Sanity check: ensure we don't calculate into the future beyond reasonable scope if date is mistakenly set
+            if ($endDate->gt(Carbon::now()->addDay())) {
+                $endDate = Carbon::now();
+            }
+
+            $currentDate = $startDate->copy();
+            
+            // Loop until (and including) discharge/current date
+            while ($currentDate->lte($endDate)) {
+                $dateString = $currentDate->format('Y-m-d');
+
+                // Check if charge exists for this specific date
+                $exists = IpdBedCharge::where('ipd_admission_id', $admission->id)
+                    ->where('charge_date', $dateString)
+                    ->exists();
+
+                if (!$exists) {
+                    // A. Create Clinical Log
+                    $charge = IpdBedCharge::create([
+                        'ipd_admission_id' => $admission->id,
+                        'charge_date' => $dateString,
+                        'amount' => $admission->ward->blsItem->price1
+                    ]);
+
+                    // B. Push to Billing
+                    $billingService->addToBill(
+                        $admission->patientcode,
+                        $admission->ward->blsItem->id, // Bill Item ID
+                        1,                             // Quantity
+                        'ipd_bed_charge',              // Source Type
+                        $charge->id,                   // Source ID
+                        $admission->pricecategory,
+                        $admission->patient?->payment_category
+                    );
+                }
+
+                $currentDate->addDay();
+            }
+        }
+        // -------------------------------------------------------------
+
+        // 3. Fetch Pending Bills
+        $query = BILOrder::with(['customer', 'orderitems'])
+            ->whereIn('stage', [3, 4]); // 3=Proforma, 4=Saved (Pending Payment)
+
+        // Filter by patient_code
         if ($request->has('patient_code')) {
             $query->whereHas('customer', function($q) use ($request) {
                 $q->where('patient_code', $request->patient_code);
             });
         } else {
-            // Only limit if fetching generic list
             $query->limit(50);
         }
 
         $bills = $query->orderBy('created_at', 'desc')->get();
 
+        // Transform for frontend display
         $bills->transform(function ($bill) {
             $bill->customer_name = $bill->customer ? $bill->customer->display_name : 'Walk-in / Unknown';
+            // Optional: Calculate totals if not in DB
+            $bill->total_amount = $bill->orderitems->sum(fn($item) => $item->qty * $item->price); 
             return $bill;
         });
 
