@@ -83,7 +83,7 @@ class BilPostController extends Controller
 
         //$query->where('payment_category', 'Cash'); // Proforma (3) and Saved for Later (4)
 
-        $orders = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $orders = $query->orderBy('created_at', 'desc')->paginate(30)->withQueryString();
 
         return inertia('Billing/BilPosts/Index', [
             'orders' => $orders,

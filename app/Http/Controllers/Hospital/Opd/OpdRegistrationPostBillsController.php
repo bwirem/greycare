@@ -86,7 +86,7 @@ class OpdRegistrationPostBillsController extends Controller
         $query->whereIn('stage', [3, 4]); // Proforma (3) and Saved for Later (4)
         $query->whereIn('payment_category',['Cash','Exemption']);
 
-        $orders = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $orders = $query->orderBy('created_at', 'desc')->paginate(30)->withQueryString();
 
         return inertia('Hospital/Opd/Registrations/Partial/Index', [
             'orders' => $orders,

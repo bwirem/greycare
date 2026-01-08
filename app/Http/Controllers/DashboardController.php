@@ -47,7 +47,7 @@ class DashboardController extends Controller
         // Count OPD Registrations for today
         $opdCount = 0;
         try {
-            $opdCount = DB::table('opd_registrations') // Replace with your table name
+            $opdCount = DB::table('opd_bookings') // Replace with your table name
                 ->whereDate('created_at', $today)
                 ->count();
         } catch (\Exception $e) {
@@ -59,15 +59,60 @@ class DashboardController extends Controller
         $admissionCount = 0;
         try {
             $admissionCount = DB::table('ipd_admissions') // Replace with your table name
-                ->where('status', 'active') 
+                ->where('status', 'Admitted') 
                 ->count();
         } catch (\Exception $e) {
             $admissionCount = 0;
         }
 
+
+        $surgeriesCount = 0;
+        try {
+            $surgeriesCount = DB::table('theatre_bookings') // Replace with your table name
+                ->where('status', 'Scheduled') 
+                ->count();
+        } catch (\Exception $e) {
+            $surgeriesCount = 0;
+        }
+
+        $pendingLabCount = 0;
+        try {
+            $pendingLabCount = DB::table('lab_results') // Replace with your table name
+                ->where('status', 'Requested')
+                ->whereDate('created_at', $today) 
+                ->count();
+        } catch (\Exception $e) {
+            $pendingLabCount = 0;
+        }
+
+        $pendingRadCount = 0;
+        try {
+            $pendingRadCount = DB::table('rad_requests') // Replace with your table name
+                ->where('status', 'Ordered') 
+                ->whereDate('created_at', $today)
+                ->count();
+        } catch (\Exception $e) {
+            $pendingRadCount = 0;
+        }         
+       
+        
+        $pendingPrescriptionCount = 0;
+        try {
+            $pendingPrescriptionCount = DB::table('pharmacy_prescriptions') // Replace with your table name
+                ->where('status', 'Prescribed') 
+                ->whereDate('created_at', $today)
+                ->count();
+        } catch (\Exception $e) {
+            $pendingPrescriptionCount = 0;
+        } 
+
         return Inertia::render('Dashboard/Hospital', [
             'opdRegistrationsToday' => $opdCount,
-            'activeAdmissionsCount' => $admissionCount,            
+            'activeAdmissionsCount' => $admissionCount,   
+            'pendingSurgeries' =>  $surgeriesCount, 
+            'pendingLabTests' =>  $pendingLabCount,
+            'pendingRadTests' =>  $pendingRadCount,
+            'pendingPrescriptions' =>  $pendingPrescriptionCount,
         ]);
     }
 

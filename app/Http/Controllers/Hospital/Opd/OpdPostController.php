@@ -92,7 +92,7 @@ class OpdPostController extends Controller
         $query->where('payment_category', '!=', 'Cash');
         $query->where('payment_category', '!=', 'Cash-Pharmacy');
 
-        $orders = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        $orders = $query->orderBy('created_at', 'desc')->paginate(30)->withQueryString();
 
         return inertia('Hospital/Opd/OpdPostBills/Index', [
             'orders' => $orders,

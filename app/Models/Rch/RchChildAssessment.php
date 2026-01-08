@@ -8,7 +8,7 @@ use App\Models\Patient\Patient;
 use App\Models\Opd\OpdBooking;
 use App\Models\User;
 // Assuming you have this model from the core system
-use App\Models\MedicalRecords\MrVitalSign; 
+use App\Models\MedicalRecord\MrVitalSign; 
 
 class RchChildAssessment extends Model
 {

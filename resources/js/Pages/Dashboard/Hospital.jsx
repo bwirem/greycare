@@ -65,6 +65,7 @@ export default function Hospital({
     doctorsOnDuty = 0,
     pendingSurgeries = 0,
     pendingLabTests = 0,
+    pendingRadTests = 0,
     mortuaryOccupancy = 0,
     pendingPrescriptions = 0,
 
@@ -322,6 +323,7 @@ export default function Hospital({
                              {modules.some(module => module.modulekey === 'radiology') && (
                             <SummaryCard
                                 title="Radiology"
+                                value={pendingRadTests}
                                 description="X-Ray, CT & MRI Requests"
                                 icon={faRadiation}
                                 iconBgColor="bg-yellow-500"
