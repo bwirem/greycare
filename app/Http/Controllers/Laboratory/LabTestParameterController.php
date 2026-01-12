@@ -69,7 +69,8 @@ class LabTestParameterController extends Controller
 
             // Dropdown Options (Type 3) - Expecting array of strings
             'dropdown_options' => 'nullable|array',
-            'dropdown_options.*' => 'string|max:255'
+            'dropdown_options.*' => 'string|max:255',
+            'machine_code' => 'nullable|string|max:50', // Validate the new field
         ]);
 
         try {
@@ -82,6 +83,7 @@ class LabTestParameterController extends Controller
                     'result_type'  => $validated['result_type'],
                     'sort_order'   => $validated['sort_order'] ?? 0,
                     'code'         => strtoupper(substr($validated['name'], 0, 3)) . rand(100,999), // Simple code gen
+                    'machine_code' => $validated['machine_code'] ?? null, // Save the new field
                 ]);
 
                 // 2. Handle Numeric Ranges (Result Type 1)
@@ -152,7 +154,9 @@ class LabTestParameterController extends Controller
 
             // Dropdown Options
             'dropdown_options' => 'nullable|array',
-            'dropdown_options.*' => 'string|max:255'
+            'dropdown_options.*' => 'string|max:255',
+            'machine_code' => 'nullable|string|max:50', // Validate the new field
+
         ]);
 
         try {
@@ -164,6 +168,7 @@ class LabTestParameterController extends Controller
                     'units'        => $validated['units'],
                     'result_type'  => $validated['result_type'],
                     'sort_order'   => $validated['sort_order'] ?? 0,
+                    'machine_code' => $validated['machine_code'] ?? null, // Update the new field
                 ]);
 
                 // 2. Handle Numeric Ranges (Type 1)

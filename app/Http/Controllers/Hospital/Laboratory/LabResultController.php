@@ -28,7 +28,7 @@ class LabResultController extends Controller
     {
         $query = LabSample::with(['prescription.patient', 'prescription.panel', 'sampleType'])
             // Allow both 'collected' (New) and 'processing' (Draft/Saved but not final)
-            ->whereIn('status', ['collected', 'processing']) 
+            ->whereIn('status', ['collected', 'processing', 'analyzed']) 
             ->orderBy('collected_at', 'asc');
 
         // 1. FILTER: Search (Existing)

@@ -95,6 +95,11 @@ class LabRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $prescription) {
+
+            $cleanDate = date('ymd'); // 250112
+            $uniqueId  = str_pad($prescription->id, 4, '0', STR_PAD_LEFT); 
+            $barcode   = $cleanDate . $uniqueId; // Result: 2501120055
+
             
             // 1. Create a NEW Sample Record (This keeps history of the old rejected one)
             LabSample::create([
@@ -103,7 +108,7 @@ class LabRequestController extends Controller
                 'collected_by' => Auth::id(),
                 'collected_at' => $request->collection_date,
                 // Generate a new unique ID (e.g. append timestamp) to differentiate from the rejected one
-                'sample_code' => 'SMP-' . date('YmdHis') . '-' . $prescription->id, 
+                'sample_code' => $barcode, //'SMP-' . date('YmdHis') . '-' . $prescription->id, 
                 'notes' => $request->notes,
                 'status' => 'collected'
             ]);
