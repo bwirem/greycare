@@ -14,18 +14,12 @@ return new class extends Migration
             // 1. Define the column first
             $table->unsignedBigInteger('pharmacy_prescription_id');
 
-            // // 2. Define the Foreign Key with a CUSTOM SHORT NAME ('nma_rx_fk')
-            // // This bypasses the 64-character limit
-            // $table->foreign('pharmacy_prescription_id', 'nma_rx_fk') 
-            //       ->references('id')
-            //       ->on('pharmacy_prescriptions')
-            //       ->cascadeOnDelete();            
-
-            // Define the Foreign Key without a custom name
-            $table->foreign('pharmacy_prescription_id') 
+            // 2. Define the Foreign Key with a CUSTOM SHORT NAME ('nma_rx_fk')
+            // This bypasses the 64-character limit
+            $table->foreign('pharmacy_prescription_id', 'nma_rx_fk') 
                   ->references('id')
                   ->on('pharmacy_prescriptions')
-                  ->onDelete('cascade');
+                  ->cascadeOnDelete();
             
             // Other Foreign Keys (These names fit within the limit, so standard syntax is fine)
             $table->foreignId('opd_booking_id')->nullable()->constrained('opd_bookings');
