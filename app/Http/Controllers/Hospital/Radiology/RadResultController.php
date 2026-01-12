@@ -38,18 +38,41 @@ class RadResultController extends Controller
     /**
      * Show Reporting Form
      */
+   
     public function create(RadRequest $request)
     {
+        // Load relationships
         $request->load(['patient', 'procedure.modality', 'report']);
+
+        $viewerUrl = null;
+
+        // WRAP IN TRY-CATCH to prevent crashing if Orthanc is offline
+        try {
+            $orthanc = new \App\Services\OrthancService();
+            
+            // Query Orthanc for the Study ID using the Accession Number
+            $studyId = $orthanc->findStudyByAccession($request->accession_number);
+            
+            if ($studyId) {
+                // Generate link to Orthanc Web Viewer
+                // Ensure no double slashes in URL
+                $baseUrl = rtrim(env('ORTHANC_URL', 'http://127.0.0.1:8042'), '/');
+                $viewerUrl = $baseUrl . "/web-viewer/app/viewer.html?study=" . $studyId;
+            }
+        } catch (\Exception $e) {
+            // Log the error but allow the page to load so the doctor can still type a report
+            \Log::warning("Orthanc Viewer Link generation failed: " . $e->getMessage());
+        }
 
         return Inertia::render('Hospital/Radiology/Results/Report', [
             'request_data' => $request,
             'patient' => $request->patient,
             'procedure' => $request->procedure,
-            'existing_report' => $request->report // Pre-fill if editing draft
+            'existing_report' => $request->report,
+            'viewer_url' => $viewerUrl // <--- Null if offline/not found, URL if found
         ]);
     }
-
+    
     /**
      * Store/Update Report
      */

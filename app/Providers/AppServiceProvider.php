@@ -5,6 +5,9 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
+use App\Models\Radiology\RadRequest;
+use App\Observers\RadRequestObserver;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -45,5 +48,7 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/physiotherapy'),
             database_path('migrations/nursing'),            
         ]);
+
+        RadRequest::observe(RadRequestObserver::class);
     }
 }
