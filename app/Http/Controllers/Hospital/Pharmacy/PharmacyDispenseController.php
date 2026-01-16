@@ -113,7 +113,8 @@ class PharmacyDispenseController extends Controller
                     $request->verified_qty,
                     'pharmacy',
                     $prescription->id,
-                    $priceCategory
+                    $priceCategory,
+                    $prescription->patient->payment_category
                 );
             }
         });
