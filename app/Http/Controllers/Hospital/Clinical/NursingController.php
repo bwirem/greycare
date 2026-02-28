@@ -14,16 +14,13 @@ use App\Models\MedicalRecord\MrVitalSign;
 
 class NursingController extends Controller
 {
-    /**
-     * Display the Nursing Queue (Patients waiting for vitals).
-     */
     public function index()
     {
-        // Fetch only bookings pending vitals
+        // Fetch bookings pending or sent (so they can be edited)
         $bookings = OpdBooking::with(['patient', 'treatmentPoint', 'user'])
-            ->whereDate('created_at', now()) // Today only
-            ->where('vitalsignstatus', 'Pending') // Only waiting patients
-            ->orderBy('created_at', 'asc') // FIFO (First In First Out)
+            ->whereDate('created_at', now()) 
+            ->whereIn('vitalsignstatus', ['Pending', 'Sent']) 
+            ->orderBy('created_at', 'asc')
             ->get();
 
         $queue = $bookings->map(function ($booking) {
@@ -40,7 +37,8 @@ class NursingController extends Controller
                 'gender'       => $booking->patient?->gender ?? '-',
                 'clinic'       => $booking->treatmentPoint?->name ?? 'General',
                 'doctor'       => $booking->DoctorName ?? 'Unassigned',
-                'time_in'      => $booking->created_at->diffForHumans(), // e.g. "10 mins ago"
+                'time_in'      => $booking->created_at->diffForHumans(),
+                'status'       => $booking->vitalsignstatus, // Pass status to frontend
             ];
         });
 
@@ -49,12 +47,12 @@ class NursingController extends Controller
         ]);
     }
 
-    /**
-     * Show the Vitals Entry Form.
-     */
     public function create($id)
     {
         $booking = OpdBooking::with('patient')->findOrFail($id);
+        
+        // Check if vitals already exist for this booking
+        $existingVitals = MrVitalSign::where('opd_booking_id', $id)->first();
 
         return Inertia::render('Hospital/Nursing/Vitals/Create', [
             'booking' => [
@@ -64,13 +62,12 @@ class NursingController extends Controller
                 'file_number'  => $booking->patient->code,
                 'age'          => Carbon::parse($booking->patient->date_of_birth)->age,
                 'gender'       => $booking->patient->gender,
-            ]
+            ],
+            // Pass existing vitals (or null)
+            'existingVitals' => $existingVitals 
         ]);
     }
 
-    /**
-     * Store Vitals and Update Workflow Status.
-     */
     public function store(Request $request, $id)
     {
         $booking = OpdBooking::findOrFail($id);
@@ -88,7 +85,7 @@ class NursingController extends Controller
             'bmi'               => 'nullable|numeric',
         ]);
 
-        // Combine BP (e.g., 120/80)
+        // Combine BP
         $bpString = null;
         if ($request->filled('systolic') && $request->filled('diastolic')) {
             $bpString = $request->systolic . '/' . $request->diastolic;
@@ -96,31 +93,31 @@ class NursingController extends Controller
 
         DB::transaction(function () use ($validated, $booking, $bpString) {
             
-            // 1. Create Vital Sign Record
-            MrVitalSign::create([
-                'opd_booking_id'   => $booking->id,
-                'patientcode'      => $booking->patientcode,
-                'user_id'          => auth()->id(),
-                'vitaldatetime'    => now(),
-                
-                // Fields
-                'weight'           => $validated['weight'] ?? 0,
-                'height'           => $validated['height'] ?? 0,
-                'temperature'      => $validated['temperature'] ?? 0,
-                'pulse'            => $validated['pulse'] ?? 0,
-                'respirationrate'  => $validated['respirationrate'] ?? 0,
-                'blood_pressure'    => $bpString,
-                'oxygensaturation' => $validated['oxygensaturation'] ?? 0,
-                'muac'             => $validated['muac'] ?? 0,
-                'bmi'              => $validated['bmi'] ?? 0,
-            ]);
+            // 1. Update or Create Vital Sign Record
+            MrVitalSign::updateOrCreate(
+                ['opd_booking_id' => $booking->id], // Search criteria
+                [
+                    'patientcode'      => $booking->patientcode ?? $booking->patient->code, // Ensure patientcode exists
+                    'user_id'          => auth()->id(),
+                    'vitaldatetime'    => now(),
+                    'weight'           => $validated['weight'] ?? 0,
+                    'height'           => $validated['height'] ?? 0,
+                    'temperature'      => $validated['temperature'] ?? 0,
+                    'pulse'            => $validated['pulse'] ?? 0,
+                    'respirationrate'  => $validated['respirationrate'] ?? 0,
+                    'blood_pressure'   => $bpString,
+                    'oxygensaturation' => $validated['oxygensaturation'] ?? 0,
+                    'muac'             => $validated['muac'] ?? 0,
+                    'bmi'              => $validated['bmi'] ?? 0,
+                ]
+            );
 
-            // 2. Update Workflow Status -> Send to Doctor
-            $booking->update([
-                'vitalsignstatus' => 'Closed' // This removes it from the queue
-            ]);
+            // 2. Ensure Workflow Status is 'Sent'
+            if ($booking->vitalsignstatus !== 'Sent') {
+                $booking->update(['vitalsignstatus' => 'Sent']);
+            }
         });
 
-        return redirect()->route('nursing0.index')->with('success', 'Vitals recorded. Patient sent to Doctor.');
+        return redirect()->route('nursing0.index')->with('success', 'Vitals saved successfully.');
     }
 }

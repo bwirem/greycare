@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 // Models
 use App\Models\Patient\Patient;
@@ -18,6 +19,7 @@ use App\Models\Patient\PatientBillingGroup;
 use App\Models\MedicalRecord\MrVitalSign;
 use App\Models\User;
 use App\Models\UserGroupFunction;
+use App\Models\UserGroupModuleItem;
 use App\Models\Billing\BLSCustomer;
 use App\Models\Facility\FacilityOption; 
 
@@ -28,6 +30,21 @@ use App\Services\BillingService;
 
 class OpdRegistrationController extends Controller
 {
+    // Helper to get user permissions
+    private function getUserPermissions() {
+        $user = Auth::user();
+        if (!$user) return [];
+
+        return UserGroupModuleItem::join('usergroupfunctions', 'usergroupmoduleitems.id', '=', 'usergroupfunctions.usergroupmoduleitem_id')
+            ->where('usergroupmoduleitems.usergroup_id', $user->usergroup_id)
+            ->get(['usergroupmoduleitems.moduleitemkey', 'usergroupfunctions.functionaccesskey'])
+            ->map(function ($item) {
+                // Creates strings like "systemconfiguration2.allow_price"
+                return $item->moduleitemkey . '.' . $item->functionaccesskey; 
+            })
+            ->toArray();
+    }
+
     /**
      * Display a listing of OPD Registrations.
      */   
@@ -57,7 +74,7 @@ class OpdRegistrationController extends Controller
                 'doctor_name'  => $booking->DoctorName ?? 'Unassigned',
                 'treatment_point_id' => $booking->treatmentpoint_id, 
                 'clinic'       => $booking->treatmentPoint?->name ?? 'General OPD', 
-                'status'       => $booking->vitalsignstatus === 'Closed' ? 'Triaged' : 'Waiting',
+                'status'       => $booking->vitalsignstatus === 'Sent' ? 'Triaged' : 'Waiting',
                 'time'         => $booking->created_at->format('h:i A'),
                 'visit_type'   => $booking->visit_classification, 
             ];
@@ -71,7 +88,8 @@ class OpdRegistrationController extends Controller
             // 3. Pass the filter back to React
             'filters' => [
                 'date' => $dateFilter
-            ]
+            ],
+            'userPermissions' => $this->getUserPermissions(),
         ]);
     }
 

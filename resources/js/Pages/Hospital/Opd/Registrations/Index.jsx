@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import HospitalLayout from '@/Layouts/HospitalLayout'; 
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router , usePage } from '@inertiajs/react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
     faSearch, 
@@ -14,7 +14,10 @@ import {
     faFileInvoiceDollar // <--- 1. Import Billing Icon
 } from "@fortawesome/free-solid-svg-icons";
 
-export default function OpdRegistrationsIndex({ auth, registrations, treatmentPoints, filters }) {
+export default function OpdRegistrationsIndex({ auth, registrations, treatmentPoints, filters, userPermissions }) {
+
+    auth  = usePage().props; 
+    const canPostBills = userPermissions.includes('outpatient4.charge_patient');
     
     // --- STATE ---
     const [searchTerm, setSearchTerm] = useState('');
@@ -159,13 +162,16 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
 
                         {/* --- BUTTONS SECTION --- */}
                         <div className="flex gap-2">
+                            
                             {/* 2. New Billing Index Button */}
-                            <Link 
-                                href={route('outpatient0.billing.index')}
-                                className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-green-700 transition ease-in-out duration-150 h-10"
-                            >
-                                <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Billing
-                            </Link>
+                           {canPostBills && (
+                                <Link 
+                                    href={route('outpatient0.billing.index')}
+                                    className="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-green-700 transition ease-in-out duration-150 h-10"
+                                >
+                                    <FontAwesomeIcon icon={faFileInvoiceDollar} className="mr-2" /> Billing
+                                </Link>
+                            )}
 
                             <Link 
                                 href={route('outpatient0.create')}

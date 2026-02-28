@@ -3,30 +3,46 @@ import HospitalLayout from '@/Layouts/HospitalLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
-    faSave, faTimes, faHeartbeat, faUser, faWeight, faLungs, faTint
+    faSave, faTimes, faHeartbeat, faWeight, faLungs, faTint
 } from "@fortawesome/free-solid-svg-icons";
 
-export default function NursingCreate({ auth, booking }) {
+// Accept existingVitals prop
+export default function NursingCreate({ auth, booking, existingVitals }) {
     
+    // Parse BP string if exists (e.g., "120/80")
+    let initialSys = '';
+    let initialDia = '';
+    
+    if (existingVitals && existingVitals.blood_pressure) {
+        const bpParts = existingVitals.blood_pressure.split('/');
+        if (bpParts.length === 2) {
+            initialSys = bpParts[0];
+            initialDia = bpParts[1];
+        }
+    }
+
     const { data, setData, post, processing, errors } = useForm({
-        weight: '',
-        height: '',
-        bmi: '',
-        temperature: '',
-        pulse: '',
-        respirationrate: '',
-        systolic: '',
-        diastolic: '',
-        oxygensaturation: '',
-        muac: '',
+        weight: existingVitals?.weight || '',
+        height: existingVitals?.height || '',
+        bmi: existingVitals?.bmi || '',
+        temperature: existingVitals?.temperature || '',
+        pulse: existingVitals?.pulse || '',
+        respirationrate: existingVitals?.respirationrate || '',
+        systolic: initialSys,
+        diastolic: initialDia,
+        oxygensaturation: existingVitals?.oxygensaturation || '',
+        muac: existingVitals?.muac || '',
     });
 
     // Auto-Calculate BMI
     useEffect(() => {
         if (data.weight && data.height) {
-            const heightInMeters = data.height / 100; // Assuming input is cm
+            const heightInMeters = data.height / 100;
             const bmiValue = (data.weight / (heightInMeters * heightInMeters)).toFixed(2);
-            setData('bmi', bmiValue);
+            // Only update BMI if calculated value is valid and different
+            if (bmiValue !== "NaN" && bmiValue !== "Infinity") {
+                 setData('bmi', bmiValue);
+            }
         }
     }, [data.weight, data.height]);
 
@@ -40,7 +56,7 @@ export default function NursingCreate({ auth, booking }) {
             header={
                 <h2 className="font-semibold text-xl text-gray-800 leading-tight">
                     <FontAwesomeIcon icon={faHeartbeat} className="mr-2 text-pink-500" />
-                    Record Vitals
+                    {existingVitals ? 'Edit Vitals' : 'Record Vitals'}
                 </h2>
             }
         >
@@ -48,7 +64,6 @@ export default function NursingCreate({ auth, booking }) {
 
             <div className="max-w-5xl mx-auto py-2">
                 
-                {/* Patient Header Card */}
                 <div className="bg-white shadow rounded-lg mb-6 p-4 flex justify-between items-center border-l-4 border-blue-500">
                     <div>
                         <h3 className="text-lg font-bold text-gray-800">{booking.patient_name}</h3>
@@ -64,6 +79,14 @@ export default function NursingCreate({ auth, booking }) {
 
                 <form onSubmit={submit}>
                     <div className="bg-white shadow rounded-lg p-6">
+                        {existingVitals && (
+                            <div className="mb-4 p-2 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
+                                <strong>Note:</strong> You are editing previously recorded vitals.
+                            </div>
+                        )}
+
+                        {/* ... The rest of the form fields remain exactly the same as your original code ... */}
+                        
                         <h4 className="text-sm font-bold text-gray-500 uppercase mb-4 border-b pb-2">Anthropometry</h4>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -96,7 +119,7 @@ export default function NursingCreate({ auth, booking }) {
                                 />
                             </div>
 
-                            {/* BMI (Read Only) */}
+                            {/* BMI */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">BMI</label>
                                 <input
@@ -110,7 +133,6 @@ export default function NursingCreate({ auth, booking }) {
 
                         <h4 className="text-sm font-bold text-gray-500 uppercase mb-4 border-b pb-2">Vital Signs</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            
                             {/* Temperature */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Temperature (°C)</label>
@@ -187,7 +209,7 @@ export default function NursingCreate({ auth, booking }) {
                                 </div>
                             </div>
 
-                            {/* MUAC (Optional, usually for children) */}
+                            {/* MUAC */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">MUAC (cm)</label>
                                 <input
@@ -199,7 +221,6 @@ export default function NursingCreate({ auth, booking }) {
                             </div>
                         </div>
 
-                        {/* Actions */}
                         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                             <Link
                                 href={route('nursing0.index')}
@@ -214,7 +235,7 @@ export default function NursingCreate({ auth, booking }) {
                                 className="inline-flex items-center px-4 py-2 bg-pink-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest shadow-sm hover:bg-pink-700 focus:outline-none transition"
                             >
                                 <FontAwesomeIcon icon={faSave} className="mr-2" /> 
-                                {processing ? 'Saving...' : 'Save & Send to Doctor'}
+                                {processing ? 'Saving...' : (existingVitals ? 'Update Vitals' : 'Save & Send to Doctor')}
                             </button>
                         </div>
                     </div>
