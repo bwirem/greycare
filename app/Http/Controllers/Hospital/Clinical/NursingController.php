@@ -20,6 +20,7 @@ class NursingController extends Controller
         $bookings = OpdBooking::with(['patient', 'treatmentPoint', 'user'])
             ->whereDate('created_at', now()) 
             ->whereIn('vitalsignstatus', ['Pending', 'Sent']) 
+            ->orderByRaw("FIELD(vitalsignstatus, 'Pending', 'Sent')")
             ->orderBy('created_at', 'asc')
             ->get();
 

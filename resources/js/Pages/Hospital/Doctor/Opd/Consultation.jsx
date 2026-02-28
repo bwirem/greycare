@@ -186,22 +186,72 @@ export default function OpdConsultation({
 
                     <div className="space-y-3">
                         <h4 className="font-bold text-xs uppercase text-gray-400 tracking-wider">Latest Vitals</h4>
+                        
                         <div className="grid grid-cols-2 gap-2 text-sm">
+                            {/* Blood Pressure */}
                             <div className="bg-gray-50 p-2 rounded text-center">
-                                <span className="block text-xs text-gray-500 uppercase">BP</span>
+                                <span className="block text-[10px] text-gray-500 uppercase">BP</span>
                                 <span className="font-bold text-gray-800">{vital_signs?.blood_pressure || '-'}</span>
+                                <span className="text-[10px] text-gray-400 ml-1">mmHg</span>
                             </div>
+
+                            {/* Pulse */}
                             <div className="bg-gray-50 p-2 rounded text-center">
-                                <span className="block text-xs text-gray-500 uppercase">Pulse</span>
+                                <span className="block text-[10px] text-gray-500 uppercase">Pulse</span>
                                 <span className="font-bold text-gray-800">{vital_signs?.pulse || '-'}</span>
+                                <span className="text-[10px] text-gray-400 ml-1">bpm</span>
                             </div>
+
+                            {/* SPO2 */}
                             <div className="bg-gray-50 p-2 rounded text-center">
-                                <span className="block text-xs text-gray-500 uppercase">Temp</span>
-                                <span className="font-bold text-gray-800">{vital_signs?.temperature || '-'}°C</span>
+                                <span className="block text-[10px] text-gray-500 uppercase">SPO2</span>
+                                <span className="font-bold text-gray-800">{vital_signs?.oxygensaturation || '-'}</span>
+                                <span className="text-[10px] text-gray-400 ml-1">%</span>
                             </div>
+
+                            {/* Temperature */}
                             <div className="bg-gray-50 p-2 rounded text-center">
-                                <span className="block text-xs text-gray-500 uppercase">Weight</span>
-                                <span className="font-bold text-gray-800">{vital_signs?.weight || '-'} kg</span>
+                                <span className="block text-[10px] text-gray-500 uppercase">Temp</span>
+                                <span className={`font-bold ${vital_signs?.temperature > 37.5 ? 'text-red-600' : 'text-gray-800'}`}>
+                                    {vital_signs?.temperature || '-'}
+                                </span>
+                                <span className="text-[10px] text-gray-400 ml-1">°C</span>
+                            </div>
+
+                            {/* Respiration Rate */}
+                            <div className="bg-gray-50 p-2 rounded text-center">
+                                <span className="block text-[10px] text-gray-500 uppercase">Resp. Rate</span>
+                                <span className="font-bold text-gray-800">{vital_signs?.respirationrate || '-'}</span>
+                                <span className="text-[10px] text-gray-400 ml-1">bpm</span>
+                            </div>
+
+                            {/* Weight */}
+                            <div className="bg-gray-50 p-2 rounded text-center">
+                                <span className="block text-[10px] text-gray-500 uppercase">Weight</span>
+                                <span className="font-bold text-gray-800">{vital_signs?.weight || '-'}</span>
+                                <span className="text-[10px] text-gray-400 ml-1">kg</span>
+                            </div>
+
+                            {/* Height */}
+                            <div className="bg-gray-50 p-2 rounded text-center">
+                                <span className="block text-[10px] text-gray-500 uppercase">Height</span>
+                                <span className="font-bold text-gray-800">{vital_signs?.height || '-'}</span>
+                                <span className="text-[10px] text-gray-400 ml-1">cm</span>
+                            </div>
+
+                            {/* BMI */}
+                            <div className="bg-gray-50 p-2 rounded text-center">
+                                <span className="block text-[10px] text-gray-500 uppercase">BMI</span>
+                                <span className="font-bold text-gray-800">{vital_signs?.bmi || '-'}</span>
+                            </div>
+
+                            {/* MUAC (Spans 2 columns) */}
+                            <div className="col-span-2 bg-gray-50 p-2 rounded flex justify-between items-center px-4">
+                                <span className="text-[10px] text-gray-500 uppercase font-bold">MUAC</span>
+                                <div>
+                                    <span className="font-bold text-gray-800">{vital_signs?.muac || '-'}</span>
+                                    <span className="text-[10px] text-gray-400 ml-1">cm</span>
+                                </div>
                             </div>
                         </div>
                     </div>
