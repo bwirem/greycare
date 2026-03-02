@@ -13,7 +13,13 @@ import {
     faHandHoldingHeart,
     faClinicMedical,
     faFilter,
-    faCalendarAlt // Import Calendar Icon
+    faCalendarAlt, 
+    faFileMedical,
+    // --- NEW IMPORTS FOR STATUS ICONS ---
+    faVial,
+    faPrescriptionBottle,
+    faProcedures,
+    faCheck
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function DoctorOpdIndex({ queue, treatmentPoints, filters }) {
@@ -167,6 +173,42 @@ export default function DoctorOpdIndex({ queue, treatmentPoints, filters }) {
                                             const isWaived = booking.payment_status === 'waived' || isExemption;
                                             const canConsult = !isCash || isPaid || isWaived;
 
+                                            // --- LOGIC: Status Configuration ---
+                                            const statusConfig = {
+                                                'ResultsReady': { 
+                                                    color: 'bg-emerald-600 hover:bg-emerald-700', 
+                                                    icon: faFileMedical, 
+                                                    label: 'Review Results' 
+                                                },
+                                                'Pending': { 
+                                                    color: 'bg-blue-600 hover:bg-blue-700', 
+                                                    icon: faStethoscope, 
+                                                    label: 'Consult' 
+                                                },
+                                                'PendingInvestigations': { 
+                                                    color: 'bg-amber-500 hover:bg-amber-600', 
+                                                    icon: faVial, 
+                                                    label: 'Pending Results' 
+                                                },
+                                                'MedicationsPrescribed': { 
+                                                    color: 'bg-indigo-600 hover:bg-indigo-700', 
+                                                    icon: faPrescriptionBottle, 
+                                                    label: 'Prescribed' 
+                                                },
+                                                'SurgeryScheduled': { 
+                                                    color: 'bg-rose-600 hover:bg-rose-700', 
+                                                    icon: faProcedures, 
+                                                    label: 'Surgery' 
+                                                },
+                                                'Seen': { 
+                                                    color: 'bg-gray-500 hover:bg-gray-600', 
+                                                    icon: faCheck, 
+                                                    label: 'Seen' 
+                                                }
+                                            };
+
+                                            const currentStatus = statusConfig[booking.consultation_status] || statusConfig['Pending'];
+
                                             return (
                                                 <tr key={booking.id} className={!canConsult ? "bg-red-50 opacity-90" : "hover:bg-gray-50"}>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -223,10 +265,11 @@ export default function DoctorOpdIndex({ queue, treatmentPoints, filters }) {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                                                         {canConsult ? (
                                                             <Link 
-                                                                href={route('doctor0.create', booking.id)} 
-                                                                className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150 shadow-sm"
+                                                                href={route('doctor0.create', booking.id)}                                                                
+                                                                className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white focus:outline-none transition ease-in-out duration-150 ${currentStatus.color}`}
                                                             >
-                                                                <FontAwesomeIcon icon={faStethoscope} className="mr-2"/> Consult
+                                                                <FontAwesomeIcon icon={currentStatus.icon} className="mr-2"/> 
+                                                                {currentStatus.label}
                                                             </Link>
                                                         ) : (
                                                             <span className="inline-flex items-center px-4 py-2 bg-gray-200 border border-transparent rounded-md font-semibold text-xs text-gray-400 uppercase tracking-widest cursor-not-allowed">

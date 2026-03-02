@@ -1,3 +1,4 @@
+import React from 'react';
 import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -74,23 +75,34 @@ export default function LabRequestsReport({ auth, reportData, panels, filters })
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Date/Time</th>
+                                    <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Time In</th>
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">File No</th>
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Patient</th>
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Test Requested</th>
-                                    <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Requested By</th>
+                                    <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Doctor</th>
                                     <th className="px-4 py-2 text-center font-bold text-gray-700 dark:text-gray-300">Status</th>
-                                    <th className="px-4 py-2 text-right font-bold text-gray-700 dark:text-gray-300">TAT (Hrs)</th>
+                                    <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Time Out</th>
+                                    <th className="px-4 py-2 text-right font-bold text-gray-700 dark:text-gray-300">TAT</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {reportData.rows.data.map(row => (
                                     <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                        <td className="px-4 py-2 whitespace-nowrap text-gray-600 dark:text-gray-300">{row.date}</td>
-                                        <td className="px-4 py-2 font-mono text-indigo-600 dark:text-indigo-400">{row.file_number}</td>
-                                        <td className="px-4 py-2 text-gray-800 dark:text-gray-200">{row.patient_name}</td>
-                                        <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{row.test_name}</td>
-                                        <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">{row.doctor}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-gray-600 dark:text-gray-300 font-mono text-xs">
+                                            {row.time_in}
+                                        </td>
+                                        <td className="px-4 py-2 font-mono text-indigo-600 dark:text-indigo-400">
+                                            {row.file_number}
+                                        </td>
+                                        <td className="px-4 py-2 text-gray-800 dark:text-gray-200">
+                                            {row.patient_name}
+                                        </td>
+                                        <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">
+                                            {row.test_name}
+                                        </td>
+                                        <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                            {row.doctor}
+                                        </td>
                                         <td className="px-4 py-2 text-center">
                                             <span className={`px-2 py-1 rounded text-xs font-bold border ${
                                                 row.status === 'Verified' ? 'bg-green-100 text-green-800 border-green-200' :
@@ -100,15 +112,26 @@ export default function LabRequestsReport({ auth, reportData, panels, filters })
                                                 {row.status}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-2 text-right text-gray-600 dark:text-gray-300">{row.tat}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-gray-600 dark:text-gray-300 font-mono text-xs">
+                                            {row.time_out}
+                                        </td>
+                                        <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200 font-bold whitespace-nowrap">
+                                            {row.tat}
+                                        </td>
                                     </tr>
                                 ))}
-                                {reportData.rows.data.length === 0 && <tr><td colSpan="7" className="text-center py-4 text-gray-500">No records found.</td></tr>}
+                                {reportData.rows.data.length === 0 && (
+                                    <tr>
+                                        <td colSpan="8" className="text-center py-4 text-gray-500">
+                                            No records found.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
                     
-                    {/* Pagination - Simplified for Report */}
+                    {/* Pagination */}
                     <div className="mt-4 print:hidden">
                         {reportData.rows.links && (
                             <div className="flex gap-1 justify-center text-xs">

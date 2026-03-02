@@ -29,9 +29,9 @@ class LabReportsController extends Controller
         // 2. Pending Samples (Not yet collected)
         $pendingCollection = LabPrescription::where('status', 'Requested')->count();
 
-        // 3. Completed/Verified Today
+        // 3. Completed/completed Today
         $completedToday = LabPrescription::whereDate('updated_at', $today)
-            ->where('status', 'Verified')
+            ->where('status', 'completed')
             ->count();
 
         // 4. Critical/Abnormal (Placeholder logic - assumes 'is_abnormal' flag exists or calculated)
@@ -52,7 +52,7 @@ class LabReportsController extends Controller
 
     /**
      * Report: Detailed Lab Request Log
-     */
+     */ 
     public function requests(Request $request): InertiaResponse
     {
         $validated = $request->validate([
@@ -85,9 +85,16 @@ class LabReportsController extends Controller
 
         $rows = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString()
             ->through(function ($row) {
+                // Determine Time Out (Verification Time)
+                // Assuming if status is completed, updated_at is the time. 
+                // Alternatively, if you have a specific 'verified_at' column on the prescription, use that.
+                $iscompleted = $row->status === 'completed';
+                $timeOut = $iscompleted ? $row->updated_at : null;
+
                 return [
                     'id'           => $row->id,
-                    'date'         => $row->created_at->format('Y-m-d H:i'),
+                    'time_in'      => $row->created_at->format('Y-m-d H:i'), // Request Time
+                    'time_out'     => $timeOut ? $timeOut->format('Y-m-d H:i') : '-',
                     'patient_name' => $row->patient
                                     ? $row->patient->first_name . ' ' . $row->patient->last_name
                                     : 'Unknown',
@@ -95,9 +102,9 @@ class LabReportsController extends Controller
                     'test_name'    => $row->panel?->name ?? 'N/A',
                     'doctor'       => $row->doctor?->name ?? 'Unassigned',
                     'status'       => $row->status,
-                    // Calculate simple Turnaround Time (TAT) if completed
-                    'tat'          => ($row->status === 'Verified' && $row->sample_collected_at) 
-                                      ? $row->updated_at->diffInHours($row->sample_collected_at) . ' hrs' 
+                    // TAT: Difference between Created (Time In) and completed (Time Out)
+                    'tat'          => $timeOut 
+                                      ? $row->created_at->diffForHumans($timeOut, ['syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE, 'parts' => 2]) 
                                       : '-'
                 ];
             });
@@ -134,7 +141,7 @@ class LabReportsController extends Controller
                 'lab_panels.name', 
                 DB::raw('count(*) as total'), 
                 // Fix: Qualify 'status' just in case, though usually unique to prescriptions
-                DB::raw("SUM(CASE WHEN lab_prescriptions.status = 'Verified' THEN 1 ELSE 0 END) as completed")
+                DB::raw("SUM(CASE WHEN lab_prescriptions.status = 'completed' THEN 1 ELSE 0 END) as completed")
             )
             ->groupBy('lab_panels.id', 'lab_panels.name')
             ->orderByDesc('total')

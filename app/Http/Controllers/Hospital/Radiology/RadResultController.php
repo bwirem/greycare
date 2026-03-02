@@ -103,6 +103,9 @@ class RadResultController extends Controller
             // 2. Update Request Status
             if ($validated['is_final']) {
                 $radRequest->update(['status' => 'completed']);
+                if ($radRequest && $radRequest->ipd_admission_id === null) {
+                    $radRequest->booking->update(['consultation_status' => 'ResultsReady']);
+                }
             } else {
                 $radRequest->update(['status' => 'reporting']);
             }

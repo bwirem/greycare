@@ -71,7 +71,8 @@ class DoctorOpdController extends Controller
             
             // --- FILTER OUT ADMITTED PATIENTS ---
             // Combine the exclusions here:
-            ->whereNotIn('consultation_status', ['Admitted', 'RchVisit'])           
+            ->whereNotIn('consultation_status', ['Admitted', 'RchVisit']) 
+            ->orderByRaw("FIELD(consultation_status,'ResultsReady' ,'Pending', 'PendingInvestigations', 'MedicationsPrescribed', 'SurgeryScheduled', 'Seen') ASC")        
             
             // --- APPLY TREATMENT POINT FILTER ---
             ->when($treatmentPointId, function ($query, $id) {
@@ -346,6 +347,7 @@ class DoctorOpdController extends Controller
                 }
             }
 
+            
              // =================================================================
             // 4. LAB ORDERS + BILLING PUSH
             // =================================================================
@@ -482,8 +484,19 @@ class DoctorOpdController extends Controller
             }
 
 
-            // 8. Update Status
-            $booking->update(['consultation_status' => 'Seen']);
+            // 8. Update Status            
+            $hasInvestigations = $request->has('lab_requests') || $request->has('rad_requests');
+
+            if($booking->consultation_status === 'ResultsReady' && $request->has('prescriptions')) {
+                $booking->update(['consultation_status' => 'MedicationsPrescribed']);
+            }else if ($hasInvestigations) {         
+                $booking->update(['consultation_status' => 'PendingInvestigations']);
+            }else if (!empty($request->surgery_request['procedure_id']) && !empty($request->surgery_request['date'])) {
+                $booking->update(['consultation_status' => 'SurgeryScheduled']);                
+            }else {
+                $booking->update(['consultation_status' => 'Seen']);
+            }
+
 
             DB::commit();
 

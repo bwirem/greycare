@@ -598,6 +598,7 @@ class BilPostController extends Controller
        
         $sale = $this->createSaleRecord($data, $transdate, $receiptNo, $invoiceNo);
         //$this->createInventoryRequisition($data, $transdate, $order->orderitems, $sale);
+        $this->createOrders($data, $order->orderitems); // Pass the newly created sale items for accurate store linkage
 
         if ($isCreditSale) {
             $this->handleInvoicingAndDebtors($data, $transdate, $invoiceNo, $receiptNo);
@@ -974,6 +975,165 @@ class BilPostController extends Controller
         });
 
         return response()->json($bills);
+    }
+
+    /**
+     * Generate clinical orders based on billed items.
+     * Handles Walk-in / Pass Buyers by auto-creating Patient & Booking.
+     */
+    public function createOrders(array $data, $orderItems)
+    {
+        // 1. Identify the Customer
+        $customer = \App\Models\Billing\BLSCustomer::find($data['customer_id']);
+        
+        // --- LOGIC START: Handle Patient & Booking (Pass Buyer Support) ---
+        
+        $patientCode = $customer ? $customer->patient_code : null;
+        $booking = null;
+
+        // A. If Patient Code doesn't exist, Create a "Dummy/Walk-in" Patient
+        if (!$patientCode) {
+            
+            // 1. Generate Unique Code
+            do {
+                $generatedCode = 'WALK-' . date('ymd') . '-' . mt_rand(100, 999);
+            } while (\App\Models\Patient\Patient::where('code', $generatedCode)->exists());
+            
+            $patientCode = $generatedCode;
+
+            // 2. Create Patient Record (Use defaults for unknown fields)
+            \App\Models\Patient\Patient::create([
+                'code'          => $patientCode,
+                'first_name'    => $customer->first_name ?? 'Walk-in',
+                'last_name'     => $customer->surname ?? 'Customer',
+                'middle_name'   => $customer->other_names ?? null,
+                'gender'        => 'Unknown', // Default for pass buyers
+                'date_of_birth' => now()->subYears(18), // Default approx adult
+                'phone_number'  => $customer->phone ?? '0000000000',
+                'payment_category' => 'Cash',
+                'address'       => 'N/A'
+            ]);
+
+            // 3. Update Customer to link to this new Patient Code
+            if ($customer) {
+                $customer->update(['patient_code' => $patientCode]);
+            }
+        }
+
+        // B. Find Active Booking for Today
+        $booking = \App\Models\Opd\OpdBooking::where('patientcode', $patientCode)
+            ->whereDate('created_at', \Carbon\Carbon::today())
+            ->latest()
+            ->first();
+
+        // C. If No Booking Exists, Create a "Dummy/Walk-in" Booking
+        if (!$booking) {
+            // Get Defaults for required fields
+            $defaultPoint = \App\Models\Opd\OpdTreatmentPoint::first(); 
+            $defaultGroup = \App\Models\Patient\PatientBillingGroup::where('name', 'Cash')->first();
+
+            $booking = \App\Models\Opd\OpdBooking::create([
+                'bookdate'           => now(),
+                'patientcode'        => $patientCode,
+                'treatmentpoint_id'  => $defaultPoint ? $defaultPoint->id : 1,
+                'billinggroup_id'    => $defaultGroup ? $defaultGroup->id : 1,
+                'user_id'            => \Illuminate\Support\Facades\Auth::id(), // Cashier ID
+                'doctor_user_id'     => null, // No Doctor
+                'wheretaken'         => 'Direct Billing',
+                'DoctorName'         => 'Walk-in',
+                'vitalsignstatus'    => 'Closed', // Skip vitals
+                'consultation_status'=> 'Seen',   // Mark as completed immediately
+                'visit_classification'=> 'Walk-in',
+                'pricecategory'      => 'price1',
+                'payment_status'     => 'paid'
+            ]);
+        }
+        
+        $bookingId = $booking->id;
+
+        // --- LOGIC END: Patient & Booking Resolved ---
+
+
+        // 2. Eager load definitions
+        if (method_exists($orderItems, 'load')) {
+            $orderItems->load(['item.labPanel', 'item.radProcedure', 'item.product', 'item.theatreProcedure']);
+        }
+
+        // 3. Create Clinical Records
+        foreach ($orderItems as $lineItem) {
+            
+            $blsItem = $lineItem->item; 
+            if (!$blsItem) continue;
+
+            // --- Laboratory ---
+            if ($blsItem->lab_panel_id) {
+                $exists = \App\Models\Laboratory\LabPrescription::where('opd_booking_id', $bookingId)
+                    ->where('lab_panel_id', $blsItem->lab_panel_id)
+                    ->exists();
+
+                if(!$exists) {
+                    \App\Models\Laboratory\LabPrescription::create([
+                        'opd_booking_id' => $bookingId,
+                        'patientcode'    => $patientCode,
+                        'doctor_user_id' => \Illuminate\Support\Facades\Auth::id(),
+                        'lab_panel_id'   => $blsItem->lab_panel_id,
+                        'status'         => 'Requested',
+                        'payment_status' => 'paid'
+                    ]);
+                }
+            }
+
+            // --- Radiology ---
+            elseif ($blsItem->rad_procedure_id) {
+                $exists = \App\Models\Radiology\RadRequest::where('opd_booking_id', $bookingId)
+                    ->where('rad_procedure_id', $blsItem->rad_procedure_id)
+                    ->exists();
+
+                if(!$exists) {
+                    \App\Models\Radiology\RadRequest::create([
+                        'opd_booking_id'   => $bookingId,
+                        'patientcode'      => $patientCode,
+                        'requested_by'     => \Illuminate\Support\Facades\Auth::id(),
+                        'rad_procedure_id' => $blsItem->rad_procedure_id,
+                        'status'           => 'Ordered',
+                        'payment_status'   => 'paid',
+                        'accession_number' => 'RAD-' . date('YmdHis') . '-' . rand(100, 999)
+                    ]);
+                }
+            }
+
+            // --- Pharmacy ---
+            elseif ($blsItem->product_id) {
+                $qty = $lineItem['quantity'] ?? 1;
+                
+                \App\Models\Pharmacy\PharmacyPrescription::create([
+                    'opd_booking_id'      => $bookingId,
+                    'patientcode'         => $patientCode,
+                    'doctor_user_id'      => \Illuminate\Support\Facades\Auth::id(),
+                    'product_id'          => $blsItem->product_id,
+                    'dosage'              => 'As Directed', 
+                    'frequency'           => 'OD',
+                    'duration'            => '1 Day',
+                    'quantity_prescribed' => $qty,
+                    'status'              => 'Prescribed',
+                    'payment_status'      => 'paid'
+                ]);
+            }
+
+            // --- Theatre ---
+            elseif ($blsItem->theatre_procedure_id) {
+                \App\Models\Theatre\TheatreBooking::firstOrCreate([
+                    'opd_booking_id'       => $bookingId,
+                    'theatre_procedure_id' => $blsItem->theatre_procedure_id,
+                ], [
+                    'patientcode'    => $patientCode,
+                    'doctor_user_id' => \Illuminate\Support\Facades\Auth::id(),
+                    'scheduled_at'   => now(),
+                    'status'         => 'Scheduled',
+                    'payment_status' => 'paid'
+                ]);
+            }
+        }
     }
 
 

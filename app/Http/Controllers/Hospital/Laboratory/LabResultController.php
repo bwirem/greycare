@@ -117,6 +117,9 @@ class LabResultController extends Controller
             if ($request->is_final) {
                 $sample->update(['status' => 'completed']);
                 $sample->prescription->update(['status' => 'completed']);
+                if ($sample->prescription && $sample->prescription->ipd_admission_id === null) {
+                    $sample->prescription->visit->update(['consultation_status' => 'ResultsReady']);
+                }
             } else {
                 $sample->update(['status' => 'processing']);
             }

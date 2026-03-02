@@ -104,7 +104,7 @@ class BLSCustomerController extends Controller
             'other_names' => 'nullable|string|max:255',
             'surname' => 'nullable|string|max:255',
             'company_name' => 'nullable|string|max:255',
-            'email' => 'required|email|max:255|unique:bls_customers',
+            'email' => 'nullable|email|max:255|unique:bls_customers',
             'phone' => 'nullable|string|max:13',            
         ]);
 
