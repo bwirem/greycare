@@ -42,9 +42,16 @@ class PharmacyDrugMasterController extends Controller
             'formulation_type' => 'required|integer|in:0,1', // 0=Solid, 1=Liquid
             'strength_amount' => 'required|numeric|min:0',
             'strength_unit' => 'required|string|max:20',
+            // Added strength_volume validation
+            'strength_volume' => 'nullable|numeric|min:0', 
             'total_volume' => 'required|numeric|min:0', // For liquids
             'volume_unit' => 'required|string|max:20',
         ]);
+
+        // Default strength_volume to 1 if not provided (avoids division by zero in calculations later)
+        if (empty($validated['strength_volume'])) {
+            $validated['strength_volume'] = 1;
+        }
 
         // Update or Create the Extension Record
         PharmacyDrugDetail::updateOrCreate(

@@ -10,8 +10,15 @@ export default function EditDrugMaster({ auth, product }) {
     const { data, setData, put, processing, errors } = useForm({
         generic_name: details.generic_name || '',
         formulation_type: details.formulation_type ?? 0, // 0=Solid, 1=Liquid
+        
+        // Strength (Numerator)
         strength_amount: details.strength_amount || 0,
         strength_unit: details.strength_unit || 'mg',
+        
+        // NEW: Strength Volume (Denominator, e.g., the 5 in 250mg/5ml)
+        strength_volume: details.strength_volume || 1,
+
+        // Container Size
         total_volume: details.total_volume || 0,
         volume_unit: details.volume_unit || 'ml',
     });
@@ -83,18 +90,22 @@ export default function EditDrugMaster({ auth, product }) {
                                         <FontAwesomeIcon icon={faFlask} className="mr-2" size="lg" /> 
                                         <div>
                                             <span className="font-bold block">Liquid</span>
-                                            <span className="text-xs opacity-75">Syrup, Suspension, Injection</span>
+                                            <span className="text-xs opacity-75">Syrup, Suspension</span>
                                         </div>
                                     </div>
                                 </label>
                             </div>
                         </div>
 
-                        {/* Strength Configuration */}
+                        {/* Dosage Strength & Concentration */}
                         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Dosage Strength</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
+                            <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+                                {data.formulation_type == 1 ? 'Concentration / Strength' : 'Dosage Strength'}
+                            </h4>
+                            
+                            <div className="flex items-end gap-2 flex-wrap">
+                                {/* Strength Amount */}
+                                <div className="flex-1 min-w-[120px]">
                                     <label className="block text-sm font-medium text-gray-700">Amount</label>
                                     <input 
                                         type="number" 
@@ -103,10 +114,10 @@ export default function EditDrugMaster({ auth, product }) {
                                         onChange={e => setData('strength_amount', e.target.value)} 
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">e.g., 500 for 500mg</p>
-                                    {errors.strength_amount && <p className="text-red-500 text-xs mt-1">{errors.strength_amount}</p>}
                                 </div>
-                                <div>
+
+                                {/* Strength Unit */}
+                                <div className="w-[100px]">
                                     <label className="block text-sm font-medium text-gray-700">Unit</label>
                                     <select 
                                         value={data.strength_unit} 
@@ -116,12 +127,45 @@ export default function EditDrugMaster({ auth, product }) {
                                         <option value="mg">mg</option>
                                         <option value="g">g</option>
                                         <option value="mcg">mcg</option>
-                                        <option value="ml">ml</option>
                                         <option value="iu">IU</option>
                                         <option value="%">%</option>
                                     </select>
                                 </div>
+
+                                {/* LIQUID ONLY: "Per Volume" logic */}
+                                {data.formulation_type == 1 && (
+                                    <>
+                                        <div className="pb-3 text-gray-400 font-bold px-1">/</div>
+                                        
+                                        {/* Strength Volume Field */}
+                                        <div className="flex-1 min-w-[100px]">
+                                            <label className="block text-sm font-medium text-gray-700">Per Vol.</label>
+                                            <input 
+                                                type="number" 
+                                                step="0.01" 
+                                                value={data.strength_volume} 
+                                                onChange={e => setData('strength_volume', e.target.value)} 
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white" 
+                                                placeholder="e.g. 5"
+                                            />
+                                        </div>
+
+                                        {/* Read-only unit for the denominator */}
+                                        <div className="pb-2 text-sm text-gray-600 font-medium">
+                                            {data.volume_unit || 'ml'}
+                                        </div>
+                                    </>
+                                )}
                             </div>
+                            
+                            <p className="text-xs text-gray-500 mt-2">
+                                {data.formulation_type == 1 
+                                    ? `Example: For "250mg per 5ml", enter Amount: 250, Per Vol: 5.` 
+                                    : `Example: For "500mg Tablet", enter Amount: 500.`
+                                }
+                            </p>
+                            {errors.strength_amount && <p className="text-red-500 text-xs mt-1">{errors.strength_amount}</p>}
+                            {errors.strength_volume && <p className="text-red-500 text-xs mt-1">{errors.strength_volume}</p>}
                         </div>
 
                         {/* Volume Configuration (Liquids Only) */}

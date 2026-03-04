@@ -37,17 +37,43 @@ export default function PharmacyTab({
         if (inputDosage > 0 && freqVal > 0 && durDays > 0) {
             if (selectedDrugDetails) {
                 const type = parseInt(selectedDrugDetails.formulation_type);
-                const strength = parseFloat(selectedDrugDetails.strength_amount) || 0;
+                
+                // Numerator: e.g., 250 (mg)
+                const strengthAmt = parseFloat(selectedDrugDetails.strength_amount) || 0;
+                
+                // Denominator: e.g., 5 (ml). Default to 1 for Solids.
+                const strengthVol = parseFloat(selectedDrugDetails.strength_volume) || 1;
+                
+                // Bottle Size: e.g., 100 (ml)
                 const bottleSize = parseFloat(selectedDrugDetails.total_volume) || 0;
                 
                 if(selectedDrugDetails.strength_unit){
                     setFinalStrenthUnit(selectedDrugDetails.strength_unit);
                 }              
 
-                if (type === 0 && strength > 0 && inputDosage >= strength) {
-                    finalQty = (inputDosage / strength) * freqVal * durDays;
-                } else if (type === 1 && bottleSize > 0) {
-                    finalQty = 1;//(inputDosage * freqVal * durDays) / bottleSize;
+                // Prevent division by zero
+                if (strengthAmt > 0) {
+                    
+                    // Step 1: Calculate how much physical product is needed per SINGLE dose
+                    // Solid Logic: (500mg Dose / 500mg Strength) * 1 = 1 Tablet
+                    // Liquid Logic: (250mg Dose / 250mg Strength) * 5ml = 5ml
+                    const qtyPerDose = (inputDosage / strengthAmt) * strengthVol;
+
+                    // Step 2: Calculate Total Amount needed for the full duration
+                    const totalNeeded = qtyPerDose * freqVal * durDays;
+
+                    if (type === 0) {
+                        // SOLIDS: Inventory is usually tracked by Tablet/Capsule count
+                        finalQty = totalNeeded; 
+                    } 
+                    else if (type === 1 && bottleSize > 0) {
+                        // LIQUIDS: Inventory is tracked by Bottles
+                        // Total mL needed / mL per bottle = Number of bottles
+                        finalQty = totalNeeded / bottleSize;
+                        
+                        // Optional: Round up to nearest whole bottle if your hospital doesn't sell partial bottles
+                        // finalQty = Math.ceil(finalQty); 
+                    }
                 }
             }
         }

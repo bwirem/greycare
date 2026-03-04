@@ -1106,32 +1106,42 @@ class BilPostController extends Controller
             elseif ($blsItem->product_id) {
                 $qty = $lineItem['quantity'] ?? 1;
                 
-                \App\Models\Pharmacy\PharmacyPrescription::create([
-                    'opd_booking_id'      => $bookingId,
-                    'patientcode'         => $patientCode,
-                    'doctor_user_id'      => \Illuminate\Support\Facades\Auth::id(),
-                    'product_id'          => $blsItem->product_id,
-                    'dosage'              => 'As Directed', 
-                    'frequency'           => 'OD',
-                    'duration'            => '1 Day',
-                    'quantity_prescribed' => $qty,
-                    'status'              => 'Prescribed',
-                    'payment_status'      => 'paid'
-                ]);
+                $exists = \App\Models\Pharmacy\PharmacyPrescription::where('opd_booking_id', $bookingId)
+                    ->where('product_id', $blsItem->product_id)
+                    ->exists();
+                if(!$exists) {
+                    \App\Models\Pharmacy\PharmacyPrescription::create([
+                        'opd_booking_id'      => $bookingId,
+                        'patientcode'         => $patientCode,
+                        'doctor_user_id'      => \Illuminate\Support\Facades\Auth::id(),
+                        'product_id'          => $blsItem->product_id,
+                        'dosage'              => 'As Directed', 
+                        'frequency'           => 'OD',
+                        'duration'            => '1 Day',
+                        'quantity_prescribed' => $qty,
+                        'status'              => 'Prescribed',
+                        'payment_status'      => 'paid'
+                    ]);
+                }
             }
 
             // --- Theatre ---
             elseif ($blsItem->theatre_procedure_id) {
-                \App\Models\Theatre\TheatreBooking::firstOrCreate([
-                    'opd_booking_id'       => $bookingId,
-                    'theatre_procedure_id' => $blsItem->theatre_procedure_id,
-                ], [
-                    'patientcode'    => $patientCode,
-                    'doctor_user_id' => \Illuminate\Support\Facades\Auth::id(),
-                    'scheduled_at'   => now(),
-                    'status'         => 'Scheduled',
-                    'payment_status' => 'paid'
-                ]);
+                $exists = \App\Models\Theatre\TheatreBooking::where('opd_booking_id', $bookingId)
+                    ->where('theatre_procedure_id', $blsItem->theatre_procedure_id)
+                    ->exists();
+                if(!$exists) {  
+                    \App\Models\Theatre\TheatreBooking::firstOrCreate([
+                        'opd_booking_id'       => $bookingId,
+                        'theatre_procedure_id' => $blsItem->theatre_procedure_id,
+                    ], [
+                        'patientcode'    => $patientCode,
+                        'doctor_user_id' => \Illuminate\Support\Facades\Auth::id(),
+                        'scheduled_at'   => now(),
+                        'status'         => 'Scheduled',
+                        'payment_status' => 'paid'
+                    ]);
+                }
             }
         }
     }
