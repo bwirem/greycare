@@ -9,8 +9,8 @@ import {
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-export default function DispenseCreate({ prescription, stores, default_store_id, initial_stock, allow_negative_stock }) {
-    
+export default function DispenseCreate({ prescription, stores, default_store_id, initial_stock, allow_negative_stock, userPermissions }) {
+    const disableDosageChange = userPermissions.includes('pharmacy0.disable_dosage_change');
     const [currentStock, setCurrentStock] = useState(initial_stock || 0);
     const [loadingStock, setLoadingStock] = useState(false);
 
@@ -156,7 +156,12 @@ export default function DispenseCreate({ prescription, stores, default_store_id,
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Quantity Issued</label>
-                                        <input type="number" step="any" className="w-full border-gray-200 rounded-xl font-black text-lg" value={data.quantity_issued} onChange={e => setData('quantity_issued', e.target.value)} required />
+                                        {!disableDosageChange && (
+                                            <input type="number" step="any" className="w-full border-gray-200 rounded-xl font-black text-lg" value={data.quantity_issued} onChange={e => setData('quantity_issued', e.target.value)} required />
+                                        )}
+                                        {disableDosageChange && (
+                                            <input type="number" step="any" className="w-full border-gray-200 rounded-xl font-black text-lg bg-gray-100 cursor-not-allowed"  value={data.quantity_issued} readOnly  />
+                                        )}
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Batch #</label>

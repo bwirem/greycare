@@ -47,7 +47,7 @@ export default function PharmacyTab({
                 if (type === 0 && strength > 0 && inputDosage >= strength) {
                     finalQty = (inputDosage / strength) * freqVal * durDays;
                 } else if (type === 1 && bottleSize > 0) {
-                    finalQty = (inputDosage * freqVal * durDays) / bottleSize;
+                    finalQty = 1;//(inputDosage * freqVal * durDays) / bottleSize;
                 }
             }
         }

@@ -454,7 +454,8 @@ class UserPermissionController extends Controller
         // // Add pharmacy-specific permissions only for 'pharmacy0'
         if ($key === 'pharmacy0') {
            return array_merge($defaultFunctionAccess, [                
-                'charge_patient' => false,                
+                'charge_patient' => false,
+                'disable_dosage_change' => false,                 
             ]);
         }
 

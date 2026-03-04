@@ -45,14 +45,13 @@ export default function OpdCreate({
         gender: '',
         date_of_birth: '',
         age: '', 
+        age_months: '', // Added field
         national_id: '',
         phone_number: '',
         address: '',
 
         // Visit Details
-        // --- MODIFICATION START: Get default from Session Storage ---
         treatmentpoint_id: (typeof window !== 'undefined' ? sessionStorage.getItem('opd_selected_point') : '') || '',
-        // --- MODIFICATION END ---
         
         doctor_user_id: '',
         billinggroup_id: '',
@@ -93,17 +92,41 @@ export default function OpdCreate({
         }
     };
 
+    // --- Helper: Calculate Age (Years & Months) from Date ---
+    const calculateAgeFromDob = (dobString) => {
+        if (!dobString) return { years: '', months: '' };
+        
+        const birthDate = new Date(dobString);
+        const today = new Date();
+        
+        let years = today.getFullYear() - birthDate.getFullYear();
+        let months = today.getMonth() - birthDate.getMonth();
+        const days = today.getDate() - birthDate.getDate();
+
+        // Adjust for negative months (e.g. Current Month is Jan, Birth Month is Dec)
+        if (months < 0 || (months === 0 && days < 0)) {
+            years--;
+            months += 12;
+        }
+
+        // Adjust month count if the specific day hasn't been reached yet in the current month
+        if (days < 0) {
+            months--;
+            if (months < 0) {
+                months = 11;
+                // Years already adjusted above if necessary, but double check edge case
+                // Usually logic above handles the year decrement, this handles the granular month
+            }
+        }
+
+        return { years: years < 0 ? 0 : years, months: months < 0 ? 0 : months };
+    };
+
     // --- 2. SELECTION HANDLERS ---
     const handleSelectExisting = (pt) => {
-        // Calculate age
-        const birthDate = new Date(pt.date_of_birth);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-        pt.age = age;
+        const { years, months } = calculateAgeFromDob(pt.date_of_birth);
 
-        setSelectedPatient(pt);
+        setSelectedPatient({ ...pt, age: years }); // Store basic age for display
         setData(values => ({
             ...values,
             existing_patient_code: pt.code,
@@ -112,7 +135,8 @@ export default function OpdCreate({
             middle_name: pt.middle_name || '',
             gender: pt.gender,
             date_of_birth: pt.date_of_birth,
-            age: age,
+            age: years,
+            age_months: months,
             national_id: pt.national_id || '',
             phone_number: pt.phone_number || '',
         }));
@@ -129,47 +153,53 @@ export default function OpdCreate({
         setSearchQuery('');
         reset(); 
         
-        // Optional: Re-apply the default treatment point after reset
         const defaultPoint = sessionStorage.getItem('opd_selected_point') || '';
         if(defaultPoint) setData('treatmentpoint_id', defaultPoint);
     };
 
     // --- 3. AGE <-> DOB LOGIC ---
+
+    // Helper: Calculate DOB from Years and Months
+    const updateDobFromAgeValues = (yearsVal, monthsVal) => {
+        const y = parseInt(yearsVal) || 0;
+        const m = parseInt(monthsVal) || 0;
+        
+        const today = new Date();
+        // Subtract Years
+        today.setFullYear(today.getFullYear() - y);
+        // Subtract Months
+        today.setMonth(today.getMonth() - m);
+        
+        return today.toISOString().split('T')[0];
+    };
+
     const handleAgeChange = (e) => {
-        const age = e.target.value;
-        let newDob = data.date_of_birth;
-        if (age && !isNaN(age)) {
-            const today = new Date();
-            const birthYear = today.getFullYear() - parseInt(age);
-            const estimatedDob = new Date(birthYear, today.getMonth(), today.getDate());
-            newDob = estimatedDob.toISOString().split('T')[0];
-        }
-        setData(prev => ({ ...prev, age: age, date_of_birth: newDob }));
+        const newAge = e.target.value;
+        const newDob = updateDobFromAgeValues(newAge, data.age_months);
+        setData(prev => ({ ...prev, age: newAge, date_of_birth: newDob }));
+    };
+
+    const handleMonthChange = (e) => {
+        const newMonths = e.target.value;
+        const newDob = updateDobFromAgeValues(data.age, newMonths);
+        setData(prev => ({ ...prev, age_months: newMonths, date_of_birth: newDob }));
     };
 
     const handleDobChange = (e) => {
         const dob = e.target.value;
-        let newAge = data.age;
-        if (dob) {
-            const birthDate = new Date(dob);
-            const today = new Date();
-            let age = today.getFullYear() - birthDate.getFullYear();
-            if (today.getMonth() < birthDate.getMonth() || (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate())) {
-                age--;
-            }
-            newAge = age >= 0 ? age : 0;
-        }
-        setData(prev => ({ ...prev, date_of_birth: dob, age: newAge }));
+        const { years, months } = calculateAgeFromDob(dob);
+        setData(prev => ({ ...prev, date_of_birth: dob, age: years, age_months: months }));
     };
 
     // --- 4. AUTHORIZATION CALLBACK ---
     const handleAuthorizationSuccess = (authData) => {
-        let apiAge = '';
+        let apiYears = '';
+        let apiMonths = '';
+        
         if (authData.patient_details.date_of_birth) {
-            const birthDate = new Date(authData.patient_details.date_of_birth);
-            const today = new Date();
-            let age = today.getFullYear() - birthDate.getFullYear();
-            apiAge = age >= 0 ? age : 0;
+            const { years, months } = calculateAgeFromDob(authData.patient_details.date_of_birth);
+            apiYears = years;
+            apiMonths = months;
         }
 
         if(mode === 'search') setMode('new');
@@ -188,7 +218,8 @@ export default function OpdCreate({
             middle_name: values.middle_name || authData.patient_details.middle_name,
             gender: values.gender || authData.patient_details.gender,
             date_of_birth: values.date_of_birth || authData.patient_details.date_of_birth,
-            age: values.age || apiAge,
+            age: values.age || apiYears,
+            age_months: values.age_months || apiMonths,
             national_id: values.national_id || authData.patient_details.national_id,
             phone_number: values.phone_number || authData.patient_details.phone_number
         }));
@@ -305,7 +336,7 @@ export default function OpdCreate({
                                         {selectedPatient.code}
                                     </span>
                                     <span>{selectedPatient.gender}</span>
-                                    <span>{selectedPatient.age} Years</span>
+                                    <span>{selectedPatient.age} Yrs</span>
                                     <span className="flex items-center gap-1"><FontAwesomeIcon icon={faIdCard} className="text-gray-400"/> {selectedPatient.national_id || 'N/A'}</span>
                                     <span className="flex items-center gap-1"><FontAwesomeIcon icon={faPhone} className="text-gray-400"/> {selectedPatient.phone_number || 'N/A'}</span>
                                 </div>
@@ -374,17 +405,32 @@ export default function OpdCreate({
                                 </div>
 
                                 <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                                    <div>
-                                        <InputLabel value="Age (Years)" className="mb-1" />
-                                        <TextInput
-                                            type="number"
-                                            min="0"
-                                            max="120"
-                                            value={data.age}
-                                            onChange={handleAgeChange} 
-                                            className="w-full"
-                                            placeholder="e.g. 25"
-                                        />
+                                    {/* Split Age into Years and Months */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <InputLabel value="Age (Years)" className="mb-1" />
+                                            <TextInput
+                                                type="number"
+                                                min="0"
+                                                max="120"
+                                                value={data.age}
+                                                onChange={handleAgeChange} 
+                                                className="w-full"
+                                                placeholder="Yrs"
+                                            />
+                                        </div>
+                                        <div>
+                                            <InputLabel value="Months" className="mb-1" />
+                                            <TextInput
+                                                type="number"
+                                                min="0"
+                                                max="11"
+                                                value={data.age_months}
+                                                onChange={handleMonthChange} 
+                                                className="w-full"
+                                                placeholder="Mos"
+                                            />
+                                        </div>
                                     </div>
                                     <div>
                                         <InputLabel value="Date of Birth *" className="mb-1" />

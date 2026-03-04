@@ -57,6 +57,7 @@ class OpdRegistrationController extends Controller
         $bookings = OpdBooking::with(['patient', 'billingGroup', 'treatmentPoint', 'latestVitalSign'])
             // 2. Use the variable instead of now()
             ->whereDate('created_at', $dateFilter) 
+            ->whereNotIn('consultation_status', ['Seen']) 
             ->latest() 
             ->get();
 

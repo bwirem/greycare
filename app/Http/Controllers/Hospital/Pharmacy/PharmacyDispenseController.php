@@ -193,6 +193,7 @@ class PharmacyDispenseController extends Controller
             'default_store_id'     => $defaultStoreId, 
             'initial_stock'        => (float)$currentStock,
             'allow_negative_stock' => $allowNegative,
+            'userPermissions' => $this->getUserPermissions(),
         ]);
     }
 
