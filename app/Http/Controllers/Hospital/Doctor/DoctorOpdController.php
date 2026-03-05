@@ -46,9 +46,12 @@ use App\Models\Opd\OpdTreatmentPoint; // Import this
 use App\Models\Billing\BILOrderItem;
 use App\Models\Billing\BILOrder;
 
+use App\Models\Facility\FacilityOption;
+
 
 // Services
 use App\Services\BillingService; // <--- NEW IMPORT
+
 
 class DoctorOpdController extends Controller
 {
@@ -150,6 +153,14 @@ class DoctorOpdController extends Controller
         // Sort by Date Descending
         $sortedHistory = $history->sortByDesc('created_at')->values();
 
+        // Get logged in user's default store
+        $storeId = auth()->user()->store_id;
+
+        // Build the sum column for that store only
+        $sumColumns = "COALESCE(pc.qty_$storeId, 0)";
+
+
+
         return Inertia::render('Hospital/Doctor/Opd/Consultation', [
             'booking' => $booking,
             'patient' => $booking->patient,
@@ -168,11 +179,28 @@ class DoctorOpdController extends Controller
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
             'rad_procedures' => RadProcedure::select('id', 'name')->orderBy('name')->get(),
             'surgery_procedures' => TheatreProcedure::select('id', 'name')->orderBy('name')->get(),
-            'drugs_list' => SIV_Product::with('drugDetails')->select('id', 'name', 'costprice')->orderBy('name')->get(),
+
+            //'drugs_list' => SIV_Product::with('drugDetails')->select('id', 'name', 'costprice')->orderBy('name')->get(),
+            // --- UPDATED: drugs_list with Stock Balance ---
+            'drugs_list' => SIV_Product::leftJoin('iv_productcontrol as pc', 'siv_products.id', '=', 'pc.product_id')
+                ->with('drugDetails')
+                ->select(
+                    'siv_products.id', 
+                    'siv_products.name', 
+                    'siv_products.costprice',
+                    // Calculate total stock. If sum is null (no record), default to 0.
+                    DB::raw("COALESCE(($sumColumns), 0) as current_stock") 
+                )
+                ->orderBy('siv_products.name')
+                ->get(),
+            // ---------------------------------------------
+
             'pharmacy_frequencies' => PharmacyFrequency::select('id', 'name', 'code', 'value')->get(),
             'pharmacy_durations' => PharmacyDuration::select('id', 'name', 'code', 'days')->where('is_active', true)->orderBy('days')->get(),
+            'facilityoption' => FacilityOption::first(),
             // --- ADDED THIS LINE ---
             'wards_list' => IpdWard::select('id', 'name')->orderBy('name')->get(),
+
         ]);
     }
 
@@ -225,6 +253,8 @@ class DoctorOpdController extends Controller
             }
         }
     }
+
+
 
     /**
      * 3. The Save (Updated Diagnosis Logic)

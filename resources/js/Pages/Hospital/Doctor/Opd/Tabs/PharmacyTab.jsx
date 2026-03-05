@@ -14,6 +14,7 @@ export default function PharmacyTab({
     rawDrugsList, 
     frequencies, 
     durations,
+    facilityoption,
     onDeleteOrder // <--- NEW PROP for server-side delete
 }) {
     
@@ -91,8 +92,8 @@ export default function PharmacyTab({
         const details = fullDrug?.drug_details || null;
         const initialDose = details && parseFloat(details.strength_amount) > 0 
             ? parseFloat(details.strength_amount) : 1;
-
-        setNewRx(prev => ({ ...prev, product_id: opt.value, product_name: opt.label, dosage: initialDose }));
+        const allowNegative = facilityoption?.allownegativestock; 
+        setNewRx(prev => ({ ...prev, product_id: opt.value, product_name: opt.label, dosage: initialDose,stock: fullDrug.current_stock, allowNegative: allowNegative }));
         setSelectedDrugDetails(details);
     };
 
@@ -101,6 +102,13 @@ export default function PharmacyTab({
             toast.error("Please check details and quantity.");
             return;
         }
+        
+        // ---- STOCK CHECK ----
+        if (newRx.quantity > newRx.stock && !newRx.allowNegative) {
+            toast.error(`Not enough stock. Available: ${newRx.stock}`);
+            return;
+        }
+        // ---------------------
         const freqCode = frequencies.find(f => f.id == newRx.frequency_id)?.code || '';
         const durCode = durations.find(d => d.id == newRx.duration_id)?.code || '';
 

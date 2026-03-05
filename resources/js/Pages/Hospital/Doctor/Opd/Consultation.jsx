@@ -40,6 +40,7 @@ export default function OpdConsultation({
     surgery_procedures = [],
     pharmacy_frequencies = [], 
     pharmacy_durations = [],
+    facilityoption = null,
     wards_list = [] 
 }) {
     
@@ -314,6 +315,7 @@ export default function OpdConsultation({
                                     rawDrugsList={drugs_list} 
                                     frequencies={pharmacy_frequencies}
                                     durations={pharmacy_durations}
+                                    facilityoption={facilityoption}
                                     onDeleteOrder={handleDeleteOrder} 
                                 />
                             }

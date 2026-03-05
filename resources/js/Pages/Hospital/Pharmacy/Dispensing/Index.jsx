@@ -16,6 +16,7 @@ export default function DispensingIndex({ prescriptions, filters, flash, userPer
 
     const { auth } = usePage().props; 
     const canPostBills = userPermissions.includes('pharmacy0.charge_patient');
+    const disableDosageChange = userPermissions.includes('pharmacy0.disable_dosage_change');
 
     // State
     const [search, setSearch] = useState(filters.search || '');
@@ -344,7 +345,13 @@ export default function DispensingIndex({ prescriptions, filters, flash, userPer
                         <div className="bg-amber-500 p-4 flex justify-between items-center text-white"><h3 className="font-bold">Confirm Billing</h3><button onClick={() => setShowBillModal(false)}><FontAwesomeIcon icon={faTimes} /></button></div>
                         <div className="p-6">
                             <h4 className="font-bold text-gray-800 text-lg mb-4">{selectedBillRx?.product?.name}</h4>
-                            <input type="number" className="w-full border-gray-300 rounded-lg text-lg font-bold" value={billQty} onChange={e => setBillQty(e.target.value)} />
+                            {!disableDosageChange && (
+                                <input type="number" className="w-full border-gray-300 rounded-lg text-lg font-bold" value={billQty} onChange={e => setBillQty(e.target.value)} />
+                            )}
+                            {disableDosageChange && (
+                                <input type="number" className="w-full border-gray-300 rounded-lg text-lg font-bold" value={billQty} readOnly disabled />
+                            )}
+
                         </div>
                         <div className="p-4 bg-gray-50 flex justify-end gap-3">
                             <button onClick={() => setShowBillModal(false)} className="px-4 py-2 bg-white border rounded text-gray-600">Cancel</button>
