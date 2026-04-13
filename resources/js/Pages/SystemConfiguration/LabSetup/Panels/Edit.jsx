@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head } from '@inertiajs/react';
 import PanelForm from './PanelForm';
 
-export default function Edit({ auth, panel, categories, samples, activePriceCategories }) {
+export default function Edit({ auth, panel, categories, samples,products, activePriceCategories }) {
     return (
         <AuthenticatedLayout user={auth.user} header={<h2 className="text-xl font-semibold">Edit Test Panel</h2>}>
             <Head title={`Edit ${panel.name}`} />
@@ -14,6 +14,7 @@ export default function Edit({ auth, panel, categories, samples, activePriceCate
                             panel={panel} 
                             categories={categories} 
                             samples={samples} 
+                            products={products}
                             activePriceCategories={activePriceCategories} 
                         />
                     </div>

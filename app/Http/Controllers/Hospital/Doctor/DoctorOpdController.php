@@ -262,8 +262,8 @@ class DoctorOpdController extends Controller
     public function store(Request $request, OpdBooking $booking, BillingService $billingService)
     {
         $request->validate([
-            'history_presenting_illness' => 'nullable|string',
-            'complaints' => 'nullable|array',
+            'history_presenting_illness' => 'required|string',
+            'complaints' => 'required|array|min:1',
             'general_condition' => 'nullable|string',
             'diagnoses' => 'nullable|array',
             'prescriptions' => 'nullable|array',

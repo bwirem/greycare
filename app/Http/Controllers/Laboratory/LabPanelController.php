@@ -17,6 +17,7 @@ use App\Models\Laboratory\LabNatureOfSample;
 use App\Models\Billing\BLSItem;
 use App\Models\Billing\BLSItemGroup;
 use App\Models\Billing\BLSPriceCategory;
+use App\Models\Inventory\SIV_Product;
 
 class LabPanelController extends Controller
 {
@@ -73,6 +74,7 @@ class LabPanelController extends Controller
         return Inertia::render('SystemConfiguration/LabSetup/Panels/Create', [
             'categories' => LabCategory::select('id', 'name')->orderBy('name')->get(),
             'samples' => LabNatureOfSample::select('id', 'name')->orderBy('name')->get(),
+            'products' => SIV_Product::select('id', 'name')->orderBy('name')->get(),
             'activePriceCategories' => $this->getActivePriceCategories(), // Pass price labels
         ]);
     }
@@ -89,6 +91,7 @@ class LabPanelController extends Controller
             'code' => 'nullable|string|max:50',
             'lab_category_id' => 'required|exists:lab_categories,id',
             'lab_nature_of_sample_id' => 'nullable|exists:lab_nature_of_samples,id',
+            'iv_product_id' => 'nullable|exists:siv_products,id',
             'is_available' => 'boolean', 
             
             // Billing Price Fields (These do not exist in lab_panels table)
@@ -160,6 +163,7 @@ class LabPanelController extends Controller
             'panel' => $panel,
             'categories' => LabCategory::select('id', 'name')->orderBy('name')->get(),
             'samples' => LabNatureOfSample::select('id', 'name')->orderBy('name')->get(),
+            'products' => SIV_Product::select('id', 'name')->orderBy('name')->get(),
             'activePriceCategories' => $this->getActivePriceCategories(), // Pass price labels
         ]);
     }
@@ -176,6 +180,7 @@ class LabPanelController extends Controller
             'code' => 'nullable|string|max:50',
             'lab_category_id' => 'required|exists:lab_categories,id',
             'lab_nature_of_sample_id' => 'nullable|exists:lab_nature_of_samples,id',
+            'iv_product_id' => 'nullable|exists:siv_products,id',
             'is_available' => 'boolean',
 
             'price1' => 'nullable|numeric|min:0',

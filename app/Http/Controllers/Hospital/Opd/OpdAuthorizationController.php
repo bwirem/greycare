@@ -9,11 +9,29 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\Patient\Patient;
 
-
 class OpdAuthorizationController extends Controller
 {
+
     /**
-     * Step 1: Verify Card (GetCardDetails)
+     * Extract base URL from NHIF endpoint
+     */
+    private function getBaseUrl($url)
+    {
+        if (empty($url)) return '';
+
+        $position = stripos($url, '/api');
+
+        if ($position !== false) {
+            return rtrim(substr($url, 0, $position), '/');
+        }
+
+        return rtrim($url, '/');
+    }
+
+
+    /**
+     * Step 1: Verify NHIF Card
+     * GET /api/Verification/GetCardDetails
      */
     public function verifyCard(Request $request)
     {
@@ -25,158 +43,171 @@ class OpdAuthorizationController extends Controller
         $group = PatientBillingGroup::find($request->group_id);
 
         if (!$group || !$group->verification_url) {
-            return response()->json(['error' => 'API URL is missing settings.'], 400);
+            return response()->json([
+                'error' => 'API URL missing in settings'
+            ], 400);
         }
 
         try {
-            $token = $this->getToken($group);
-            if (!$token) return response()->json(['error' => 'Auth Failed: No Token'], 401);
 
-            // Construct URL
-            $baseUrl = rtrim($group->verification_url, '/');
-            if (!str_ends_with($baseUrl, 'breeze')) $baseUrl .= '/breeze';
-            $endpoint = $baseUrl . '/verification/GetCardDetails';
+            $baseUrl = $this->getBaseUrl($group->verification_url);
+            $endpoint = $baseUrl . '/api/Verification/GetCardDetails';
 
-            $response = Http::withToken($token)
+            Log::info("NHIF Verify Request", [
+                'endpoint' => $endpoint,
+                'cardNo' => $request->card_no
+            ]);
+
+            $response = Http::timeout(30)
                 ->withoutVerifying()
-                ->timeout(30)
-                ->get($endpoint, ['CardNo' => $request->card_no]);
+                ->acceptJson()
+                ->withHeaders([
+                    'Username' => $group->username,
+                    'ClientId' => '181003',//$group->facility_code,
+                    'ClientSecret' => 'uViitGoULBuwTpDW11yC6g==', //$group->secret_key,
+                ])
+                ->get($endpoint, [
+                    'cardNo' => $request->card_no
+                ]);
+
+            Log::info("NHIF Verify Response", [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
             if ($response->successful()) {
 
-                $data = $response->json();     
-                // Local            
-                $localPatientCode = Patient::where('insurance_member_no', $request->card_no)
-                                            ->value('code');
-                $data['existing_patient_code'] = $localPatientCode ?? ''; 
+                $data = $response->json();
+
+                $localPatientCode = Patient::where(
+                    'insurance_member_no',
+                    $request->card_no
+                )->value('code');
+
+                $data['existing_patient_code'] = $localPatientCode ?? '';
 
                 return response()->json($data);
             }
 
-            return $this->handleApiError($response, 'Verification Failed');
+            return $this->handleApiError($response, 'Card Verification Failed');
 
         } catch (\Exception $e) {
+
             Log::error("NHIF Verify Exception: " . $e->getMessage());
-            return response()->json(['error' => 'Connection Error'], 500);
+
+            return response()->json([
+                'error' => 'NHIF Connection Error',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
+
     /**
-     * Step 2: Request Authorization (AuthorizeCard)
+     * Step 2: Request Authorization
+     * POST /api/Verification/VerifyCard
      */
     public function requestAuthorization(Request $request)
     {
         $request->validate([
             'card_no' => 'required|string',
             'group_id' => 'required|exists:patient_billing_groups,id',
-            'visit_type_id' => 'required|integer', 
+            'visit_type_id' => 'required|integer',
             'referral_no' => 'nullable|string',
             'remarks' => 'nullable|string',
+            'verifier_id' => 'nullable|string',
         ]);
 
         $group = PatientBillingGroup::find($request->group_id);
 
+        if (!$group || !$group->verification_url) {
+            return response()->json([
+                'error' => 'API URL missing in settings'
+            ], 400);
+        }
+
         try {
-            $token = $this->getToken($group);
-            if (!$token) {
-                return response()->json(['error' => 'Authentication Failed: Could not get Token'], 401);
-            }
-            
-            $baseUrl = rtrim($group->verification_url, '/');
-            if (!str_ends_with($baseUrl, 'breeze')) {
-                $baseUrl .= '/breeze';
-            }
-            $endpoint = $baseUrl . '/verification/AuthorizeCard';
 
-            // --- FIX: Use "N/A" for Remarks instead of empty string ---
-            // The API backend seems to drop empty strings, causing the SQL error.
-            
-            $queryParams = [
-                'CardNo'      => $request->card_no,
-                'VisitTypeID' => (int) $request->visit_type_id,
-                'ReferralNo'  => $request->referral_no ?? '', // Keep empty for Referral
-                'Remarks'     => $request->filled('remarks') ? $request->remarks : 'N/A', // Must have text
+            $baseUrl = $this->getBaseUrl($group->verification_url);
+            $endpoint = $baseUrl . '/api/Verification/VerifyCard';
+
+            $payload = [
+                'cardNo'      => $request->card_no,
+                'visitTypeID' => (int) $request->visit_type_id,
+                'referralNo'  => $request->referral_no ?? null,
+                'remarks'     => $request->filled('remarks') ? $request->remarks : 'N/A',
             ];
-            
-            //Log::info("NHIF Auth Request: $endpoint", $queryParams);
 
-            $response = Http::withToken($token)
-                ->timeout(60)
+            if ($request->filled('verifier_id')) {
+                $payload['verifierID'] = $request->verifier_id;
+            }
+
+            Log::info("NHIF Authorization Request", $payload);
+
+            $response = Http::timeout(60)
                 ->withoutVerifying()
-                ->get($endpoint, $queryParams);
+                ->acceptJson()
+                ->withHeaders([
+                    'client_id' => $group->facility_code,
+                    'client_secret' => $group->secret_key,
+                ])
+                ->post($endpoint, $payload);
+
+            Log::info("NHIF Authorization Response", [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
             if ($response->successful()) {
+
                 $data = $response->json();
-                
-                if (isset($data['AuthorizationStatus']) && $data['AuthorizationStatus'] !== 'ACCEPTED') {
-                     Log::warning("NHIF Auth Rejected: " . json_encode($data));
+
+                if (isset($data['authorizationStatus']) &&
+                    $data['authorizationStatus'] !== 'ACCEPTED') {
+
+                    Log::warning("NHIF Authorization Rejected", $data);
                 }
 
                 return response()->json($data);
             }
 
-            //Log::error("NHIF Auth Http Error: " . $response->body());
-            
-            $errorMsg = $response->body();
-            $jsonError = $response->json();
-            if (isset($jsonError['Message'])) {
-                $errorMsg = $jsonError['Message'];
-            }
-
-            return response()->json(['error' => 'Provider Error: ' . $errorMsg], $response->status());
+            return $this->handleApiError($response, 'Authorization Failed');
 
         } catch (\Exception $e) {
-            Log::error("NHIF Auth Exception: " . $e->getMessage());
-            return response()->json(['error' => 'System Error: ' . $e->getMessage()], 500);
-        }
-    }
-    /**
-     * Helper: Get Bearer Token
-     */
-    private function getToken($group)
-    {
-        // Token URL is typically at root, not inside /breeze
-        $baseUrl = rtrim($group->verification_url, '/');
-        $baseUrl = preg_replace('/\/breeze$/', '', $baseUrl); // Remove /breeze if present
-        $tokenUrl = $baseUrl . '/Token';
 
-        try {
-            $response = Http::asForm()
-                ->withoutVerifying()
-                ->post($tokenUrl, [
-                    'grant_type' => 'password',
-                    'username' => $group->username,
-                    'password' => $group->password,
-                ]);
+            Log::error("NHIF Authorization Exception: " . $e->getMessage());
 
-            if ($response->successful()) {
-                return $response->json()['access_token'];
-            }
-            
-            //Log::error("NHIF Token Error: " . $response->body());
-            return null;
-        } catch (\Exception $e) {
-            Log::error("NHIF Token Exception: " . $e->getMessage());
-            return null;
+            return response()->json([
+                'error' => 'System Error',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
+
     /**
-     * Helper: Format Error Messages
+     * API Error Handler
      */
     private function handleApiError($response, $defaultMsg)
     {
-        Log::error("NHIF API Error: " . $response->body());
-        
+        Log::error("NHIF API Error Status[{$response->status()}]: " . $response->body());
+
         $errorMsg = $defaultMsg;
         $json = $response->json();
-        
+
         if (isset($json['Message'])) {
             $errorMsg = $json['Message'];
         } elseif (isset($json['error_description'])) {
             $errorMsg = $json['error_description'];
+        } elseif (isset($json['title'])) {
+            $errorMsg = $json['title'];
         }
 
-        return response()->json(['error' => $errorMsg], $response->status());
+        return response()->json([
+            'error' => $errorMsg,
+            'details' => $json ?? $response->body()
+        ], $response->status());
     }
+
 }
+

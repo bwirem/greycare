@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/HospitalLayout'; // Assumed ResourceL
 import { Head } from '@inertiajs/react';
 import PanelForm from './PanelForm';
 
-export default function Create({ auth, categories, samples, activePriceCategories }) {
+export default function Create({ auth, categories, samples,products, activePriceCategories }) {
     return (
         <AuthenticatedLayout user={auth.user} header={<h2 className="text-xl font-semibold">Create Test Panel</h2>}>
             <Head title="Create Panel" />
@@ -13,6 +13,7 @@ export default function Create({ auth, categories, samples, activePriceCategorie
                         <PanelForm 
                             categories={categories} 
                             samples={samples} 
+                            products={products}
                             activePriceCategories={activePriceCategories} 
                         />
                     </div>

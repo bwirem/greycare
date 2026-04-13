@@ -13,15 +13,13 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 
 import Modal from '@/Components/CustomModal.jsx';
 
-// Define constants outside the component for clarity and performance
 const ORDER_STAGE_LABELS = {
     3: 'Pending',
-    4: 'Profoma', 
+    4: 'Control No Generated', 
 };
 
-const DEBOUNCE_DELAY = 300; // milliseconds for search debounce
+const DEBOUNCE_DELAY = 300; 
 
-// Helper to format the queue time
 const formatQueueTime = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
@@ -35,8 +33,8 @@ const formatQueueTime = (dateString) => {
     });
 };
 
-export default function Index({ auth, orders, filters, success }) {
-    // The form now initializes directly from the server-provided props.
+// 🔥 Added `error` to the props destructuring
+export default function Index({ auth, orders, filters, success, error }) {
     const { data, setData, errors, processing } = useForm({
         search: filters.search || "",
         stage: filters.stage || "",
@@ -44,7 +42,7 @@ export default function Index({ auth, orders, filters, success }) {
         end_date: filters.end_date,   
     });
 
-    const [modalState, setModalState] = useState({
+    const[modalState, setModalState] = useState({
         isOpen: false,
         message: '',
         isAlert: false,
@@ -52,16 +50,15 @@ export default function Index({ auth, orders, filters, success }) {
     });
 
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false); // 🔥 Added error modal state
     const searchTimeoutRef = useRef(null);
 
-    // Effect to show a success modal if a success message is flashed from the server
+    // 🔥 Effect handles both success and error flashes
     useEffect(() => {
-        if (success) {
-            setShowSuccessModal(true);
-        }
-    }, [success]);
+        if (success) setShowSuccessModal(true);
+        if (error) setShowErrorModal(true);
+    }, [success, error]);
 
-    // This useEffect handles user-initiated filter changes.
     useEffect(() => {
         if (searchTimeoutRef.current) {
             clearTimeout(searchTimeoutRef.current);
@@ -76,9 +73,7 @@ export default function Index({ auth, orders, filters, success }) {
         }, DEBOUNCE_DELAY);
 
         return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current);
-            }
+            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         };
     }, [data]); 
 
@@ -98,11 +93,11 @@ export default function Index({ auth, orders, filters, success }) {
             isAlert: false,
             orderToDeleteId: id,
         });
-    }, []);
+    },[]);
 
     const handleModalClose = useCallback(() => {
         setModalState(prev => ({ ...prev, isOpen: false }));
-    }, []);
+    },[]);
 
     const showAlert = useCallback((message) => {
         setModalState({
@@ -111,7 +106,7 @@ export default function Index({ auth, orders, filters, success }) {
             isAlert: true,
             orderToDeleteId: null,
         });
-    }, []);
+    },[]);
 
     const handleModalConfirm = useCallback(() => {
         if (!modalState.orderToDeleteId) return;
@@ -121,11 +116,10 @@ export default function Index({ auth, orders, filters, success }) {
                 setModalState({ isOpen: false, message: '', isAlert: false, orderToDeleteId: null });
             },
             onError: (errorResponse) => {
-                console.error("Failed to delete item:", errorResponse);
                 showAlert((errorResponse && errorResponse.message) || "There was an error deleting the item.");
             },
         });
-    }, [modalState.orderToDeleteId, showAlert]);
+    },[modalState.orderToDeleteId, showAlert]);
 
     return (
         <AuthenticatedLayout
@@ -205,7 +199,6 @@ export default function Index({ auth, orders, filters, success }) {
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Customer Name</th>
-                                            {/* ADDED QUEUE TIME HEADER */}
                                             <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Queue Time</th>
                                             <th scope="col" className="px-4 py-3.5 text-right text-sm font-semibold text-gray-900">Total</th>
                                             <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Stage</th>
@@ -216,7 +209,7 @@ export default function Index({ auth, orders, filters, success }) {
                                         {orders.data.length > 0 ? (
                                             orders.data.map((order) => {
                                                 const isEditStage = order.stage === 3;
-                                                const actionButtonText = isEditStage ? "Process" : "Preview";
+                                                const actionButtonText = isEditStage ? "Process" : "Payment";
                                                 const actionButtonTitle = isEditStage ? "Edit Item" : "Preview Item";
                                                 const actionButtonIcon = isEditStage ? faEdit : faEye;
                                                 const actionButtonBgColor = isEditStage ? "bg-yellow-500 hover:bg-yellow-600" : "bg-sky-500 hover:bg-sky-600";
@@ -229,7 +222,6 @@ export default function Index({ auth, orders, filters, success }) {
                                                                 order.customer.company_name
                                                             }
                                                         </td>
-                                                        {/* ADDED QUEUE TIME CELL */}
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
                                                             {formatQueueTime(order.created_at)}
                                                         </td>
@@ -259,7 +251,6 @@ export default function Index({ auth, orders, filters, success }) {
                                             })
                                         ) : (
                                             <tr>
-                                                {/* UPDATED COLSPAN TO 5 */}
                                                 <td colSpan="5" className="whitespace-nowrap px-4 py-10 text-center text-sm text-gray-500">
                                                     No items found matching your criteria.
                                                 </td>
@@ -283,6 +274,21 @@ export default function Index({ auth, orders, filters, success }) {
                 confirmButtonText="OK"
             >
                 <p className="text-sm text-gray-600">{success}</p>
+            </Modal>
+
+            {/* 🔥 ADDED: Error Modal (Handles the Redirect with Error) */}
+            <Modal
+                isOpen={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                onConfirm={() => setShowErrorModal(false)}
+                title="API Gateway Error"
+                isAlert={true}
+                confirmButtonText="OK"
+            >
+                <div className="flex flex-col text-center">
+                    <p className="text-sm text-red-600 font-semibold mb-2">Order aborted because:</p>
+                    <p className="text-sm text-gray-800 bg-red-50 p-3 rounded-md border border-red-200">{error}</p>
+                </div>
             </Modal>
 
             {/* Confirmation/Alert Modal */}

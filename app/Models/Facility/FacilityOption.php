@@ -29,7 +29,14 @@ class FacilityOption extends Model
         'affectstockatcashier',
         'doubleentryissuing',
         'allownegativestock',        
-        'show_register_button', // Newly added field
+        'show_register_button', 
+        // Newly added API fields
+        'corporate_id',
+        'token_id',
+        'access_token',
+        'registration_url',
+        'check_payment_url',
+        'crdb_payment_type'
     ];
 
 

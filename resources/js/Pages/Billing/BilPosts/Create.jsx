@@ -8,7 +8,6 @@ import axios from 'axios';
 
 import Modal from '@/Components/CustomModal.jsx';
 import InputField from '@/Components/CustomInputField.jsx';
-// 1. IMPORT TOAST
 import { toast } from 'react-toastify';
 
 const debounce = (func, delay) => {
@@ -94,24 +93,31 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
         store_id: auth?.user?.store_id || null,
         pricecategory_id: auth?.user?.pricecategory_id || null,
         total: 0,
-        orderitems: [],
+        orderitems: [],        
     });
-
+    
     const [orderItems, setOrderItems] = useState([]);
     const [itemSearchQuery, setItemSearchQuery] = useState('');
-    const [itemSearchResults, setItemSearchResults] = useState([]);
+    const[itemSearchResults, setItemSearchResults] = useState([]);
     const [showItemDropdown, setShowItemDropdown] = useState(false);
     const [isItemSearchLoading, setIsItemSearchLoading] = useState(false);
-    const [isAddingItem, setIsAddingItem] = useState(false);
+    const[isAddingItem, setIsAddingItem] = useState(false);
     
     // Logic for Stock Modal
-    const [pendingItem, setPendingItem] = useState(null);
+    const[pendingItem, setPendingItem] = useState(null);
     const [showStockModal, setShowStockModal] = useState(false);
     const [availableAlternativeStores, setAvailableAlternativeStores] = useState([]);
     const [isCheckingStock, setIsCheckingStock] = useState(false);
 
-    // Modal state only for Confirmations now
+    // Modal state for Confirmations
     const [modalState, setModalState] = useState({ isOpen: false, message: '', isAlert: false, itemToRemoveIndex: null });
+    
+    // --- ADDED: States for Description Modal ---
+    const[showDescriptionModal, setShowDescriptionModal] = useState(false);
+    const [orderDescription, setOrderDescription] = useState('Medical Services'); // Default value
+    const [proceedDestination, setProceedDestination] = useState(null);
+    // ------------------------------------------
+
     const itemDropdownRef = useRef(null);
     const itemSearchInputRef = useRef(null);
 
@@ -119,16 +125,18 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
         const savedData = sessionStorage.getItem(STORAGE_KEY);
         if (savedData) {
             try {
-                const { orderItems: savedItems, store_id, pricecategory_id } = JSON.parse(savedData);
+                // ADDED: Restore description from session storage if it exists
+                const { orderItems: savedItems, store_id, pricecategory_id, description } = JSON.parse(savedData);
                 if (savedItems) setOrderItems(savedItems);
                 if (store_id) setData('store_id', store_id);
                 if (pricecategory_id) setData('pricecategory_id', pricecategory_id);
+                if (description) setOrderDescription(description);
             } catch (e) {
                 console.error("Failed to parse pending order data", e);
                 sessionStorage.removeItem(STORAGE_KEY);
             }
         }
-    }, []);
+    },[]);
 
     const fetchItems = useCallback((query) => {
         if (!query.trim() || !data.pricecategory_id) {
@@ -144,8 +152,8 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
                 store_id: data.store_id 
             } 
         })
-        .then((response) => setItemSearchResults(response.data.items?.slice(0, 10) || []))
-        .catch(() => toast.error('Failed to fetch items.')) // UPDATED
+        .then((response) => setItemSearchResults(response.data.items?.slice(0, 10) ||[]))
+        .catch(() => toast.error('Failed to fetch items.')) 
         .finally(() => setIsItemSearchLoading(false));
     }, [data.pricecategory_id, data.store_id]);
 
@@ -187,13 +195,12 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
         const handleClickOutside = (event) => { if (itemDropdownRef.current && !itemDropdownRef.current.contains(event.target)) setShowItemDropdown(false); };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    },[]);
 
     const checkStockAndAdd = (selectedItem) => {
-        // Price Check
         const price = parseFloat(selectedItem.price) || 0;
         if (price <= 0) {
-            toast.error(`Cannot add "${selectedItem.name}". The price is zero.`); // UPDATED
+            toast.error(`Cannot add "${selectedItem.name}". The price is zero.`); 
             setShowItemDropdown(false);
             return;
         }
@@ -220,7 +227,7 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
                 })
                 .catch(error => {
                     console.error("Stock check failed", error);
-                    toast.error("Failed to check stock in other stores."); // UPDATED
+                    toast.error("Failed to check stock in other stores."); 
                     setShowStockModal(false);
                 })
                 .finally(() => {
@@ -308,7 +315,6 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
                 if (isInventoryItem && !allowNegative && hasStockData) {
                     const maxStock = parseFloat(item.stock_quantity);
                     if (parsedValue > maxStock) {
-                        // UPDATED: Use Toast
                         toast.error(`Cannot exceed available stock (${maxStock}) for "${item.item_name}" from ${item.source_store_name || 'Store'}.`);
                         parsedValue = maxStock; 
                     }
@@ -327,26 +333,40 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
         setModalState({ isOpen: false, message: '', isAlert: false, itemToRemoveIndex: null });
     };
     
-    // handleProceed Validation
-    const handleProceed = (destination) => {
+    // --- UPDATED: initiateProceed triggers the description modal ---
+    const initiateProceed = (destination) => {
         if (!data.store_id || !data.pricecategory_id) { 
-            toast.error('Store and Price Category are required.'); // UPDATED
+            toast.error('Store and Price Category are required.');
             return; 
         }
         if (orderItems.length === 0) { 
-            toast.error('Add at least one item.'); // UPDATED
+            toast.error('Add at least one item.');
             return; 
         }
 
+        setProceedDestination(destination);
+        setShowDescriptionModal(true); // Open Modal
+    };
+
+    // --- ADDED: confirmProceed routes after confirming the description ---
+    const confirmProceed = () => {
+        setShowDescriptionModal(false);
+
         const payload = {
             ...data,
-            orderitems: orderItems 
+            orderitems: orderItems,
+            description: orderDescription // Bundle the description
         };
 
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ orderItems, store_id: data.store_id, pricecategory_id: data.pricecategory_id }));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+            orderItems, 
+            store_id: data.store_id, 
+            pricecategory_id: data.pricecategory_id,
+            description: orderDescription
+        }));
 
-        if (destination === 'save') router.post(route('billing1.confirmSave'), payload);
-        else if (destination === 'pay') router.post(route('billing1.confirmPayment'), payload);
+        if (proceedDestination === 'save') router.post(route('billing1.confirmSave'), payload);
+        else if (proceedDestination === 'pay') router.post(route('billing1.confirmPayment'), payload);
     };
 
     return (
@@ -359,6 +379,7 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
                             
                             {/* Setup Section */}
                             <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                {/* ... Your existing Setup Section code remains unchanged ... */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Store</label>
@@ -385,6 +406,7 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
                             {/* Items Section */}
                             <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                                 <div className="mb-4">
+                                    {/* ... Your existing Search Input code ... */}
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Add Item</label>
                                     <div className="relative" ref={itemDropdownRef}>
                                         <input
@@ -419,6 +441,7 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
                                 {orderItems.length > 0 && (
                                     <div className="overflow-x-auto border rounded-md">
                                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                            {/* ... Your existing Table Content code ... */}
                                             <thead className="bg-gray-50 dark:bg-gray-700/50">
                                                 <tr>
                                                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Details</th>
@@ -466,8 +489,9 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
 
                             <div className="flex justify-end space-x-3 pt-4 border-t">
                                 <button onClick={() => { sessionStorage.removeItem(STORAGE_KEY); router.visit(route('billing1.index')); }} className="px-4 py-2 bg-gray-200 rounded-md">Close</button>
-                                <button onClick={() => handleProceed('save')} disabled={processing} className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center"><FontAwesomeIcon icon={faSave} className="mr-2" /> Save</button>
-                                <button onClick={() => handleProceed('pay')} disabled={processing} className="px-4 py-2 bg-green-600 text-white rounded-md flex items-center"><FontAwesomeIcon icon={faMoneyBill} className="mr-2" /> Pay</button>
+                                {/* UPDATED: Button clicks now trigger initiateProceed */}
+                                <button onClick={() => initiateProceed('save')} disabled={processing} className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center"><FontAwesomeIcon icon={faSave} className="mr-2" /> Save</button>
+                                <button onClick={() => initiateProceed('pay')} disabled={processing} className="px-4 py-2 bg-green-600 text-white rounded-md flex items-center"><FontAwesomeIcon icon={faMoneyBill} className="mr-2" /> Pay</button>
                             </div>
                         </form>
                     </div>
@@ -484,6 +508,30 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
                 stores={availableAlternativeStores} 
                 isLoading={isCheckingStock}
             />
+
+            {/* ADDED: Description Modal before proceeding */}
+            <Modal 
+                isOpen={showDescriptionModal} 
+                onClose={() => setShowDescriptionModal(false)} 
+                onConfirm={confirmProceed} 
+                title="Confirm Order Description" 
+                confirmButtonText="Proceed"
+            >
+                <div className="space-y-4 pt-2">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Description (Used for Control Number generation)
+                        </label>
+                        <textarea
+                            value={orderDescription}
+                            onChange={(e) => setOrderDescription(e.target.value)}
+                            placeholder="e.g., Medical Services"
+                            className="w-full mt-2 border border-gray-300 p-2 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:ring-blue-500 focus:border-blue-500"
+                            rows="3"
+                        ></textarea>
+                    </div>
+                </div>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

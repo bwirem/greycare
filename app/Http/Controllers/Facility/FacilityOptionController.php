@@ -24,7 +24,7 @@ class FacilityOptionController extends Controller
 
         $facilityoptions = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Index', [
+        return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Index',[
             'facilityoptions' => $facilityoptions,
             'filters' => $request->only(['search']),
         ]);
@@ -44,7 +44,7 @@ class FacilityOptionController extends Controller
         $chartOfAccounts = ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
         $billinggroups = PatientBillingGroup::where('isinsurance', false)->orderBy('name')->get();
 
-        return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Create', [
+        return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Create',[
             'chartOfAccounts' => $chartOfAccounts,
             'billinggroups' => $billinggroups,
         ]);
@@ -70,6 +70,14 @@ class FacilityOptionController extends Controller
             'doubleentryissuing' => 'boolean',
             'allownegativestock' => 'boolean',
             'show_register_button' => 'boolean',
+            
+            // Payment Gateway API Configuration Validation
+            'corporate_id' => 'nullable|string|max:255',
+            'token_id' => 'nullable|string|max:255',
+            'access_token' => 'nullable|string',
+            'registration_url' => 'nullable|url|max:255',
+            'check_payment_url' => 'nullable|url|max:255',
+            'crdb_payment_type' => 'nullable|string|max:50',
         ]);
 
         // Handle Logo Upload
@@ -92,7 +100,7 @@ class FacilityOptionController extends Controller
         $chartOfAccounts = ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
         $billinggroups = PatientBillingGroup::where('isinsurance', false)->orderBy('name')->get();
 
-        return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Edit', [
+        return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Edit',[
             'facilityoption' => $facilityoption,
             'chartOfAccounts' => $chartOfAccounts,
             'billinggroups' => $billinggroups,
@@ -119,6 +127,14 @@ class FacilityOptionController extends Controller
             'doubleentryissuing' => 'boolean',
             'allownegativestock' => 'boolean',
             'show_register_button' => 'boolean',
+
+            // Payment Gateway API Configuration Validation
+            'corporate_id' => 'nullable|string|max:255',
+            'token_id' => 'nullable|string|max:255',
+            'access_token' => 'nullable|string',
+            'registration_url' => 'nullable|url|max:255',
+            'check_payment_url' => 'nullable|url|max:255',
+            'crdb_payment_type' => 'nullable|string|max:50',
         ]);
 
         // Handle Logo Upload
@@ -137,6 +153,4 @@ class FacilityOptionController extends Controller
         return redirect()->route('systemconfiguration5.facilityoptions.index')
             ->with('success', 'Facility option updated successfully.');
     }
-
-    // ... search method remains the same
 }

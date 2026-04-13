@@ -33,6 +33,7 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
         pricecategory_id: orderData.pricecategory_id || null,
         total: orderData.total || 0,
         orderitems: orderData.orderitems || [],
+        description: orderData.description || 'Medical Services',
     });
 
     const [customerSearchQuery, setCustomerSearchQuery] = useState('');

@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\HandlesOrdering;
 use App\Http\Controllers\Traits\GeneratesUniqueNumbers;
 use App\Services\InventoryService; // Import the service
+use App\Services\Billing\ControlNumberService;
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -120,11 +121,13 @@ class BilPostController extends Controller
      */
     public function confirmSave(Request $request)
     {
+        Log::info('Confirm Save Payload:', $request->all());
         // Validate the incoming order data
         $validatedData = $request->validate([
             'store_id' => 'required|integer|exists:siv_stores,id',
             'pricecategory_id' => 'required|string',
             'total' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:255', // <-- YOU MUST ADD THIS LINE
            
             'orderitems' => 'required|array|min:1',
             'orderitems.*.item_id' => 'required|integer|exists:bls_items,id',
@@ -147,7 +150,7 @@ class BilPostController extends Controller
      * Store a newly created order with a "Saved for Later" status.
      */
     public function store(Request $request)
-    {
+    {       
         $this->createOrder($request); // Uses HandlesOrdering trait
         return redirect()->route('billing1.index')->with('success', 'Order created successfully.');
     }
@@ -227,7 +230,7 @@ class BilPostController extends Controller
      * Update the specified order.
      */
     public function update(Request $request, BILOrder $order)
-    {
+    {       
         $this->updateOrder($request, $order); // Uses HandlesOrdering trait
         return redirect()->route('billing1.index')->with('success', 'Order updated successfully.');
     }
@@ -622,9 +625,31 @@ class BilPostController extends Controller
      */
     private function createSaleRecord(array $data, Carbon $transdate, ?string $receiptNo, ?string $invoiceNo):BILSale
     {
+        // Identify the Customer
+        $customer = BLSCustomer::find($data['customer_id']);
+        $patientCode = $customer?->patient_code;
+
+        $billinggroup_id = null;
+
+        // Only query if we actually have a patient code
+        if ($patientCode) {
+            $today = today(); // Helper for Carbon::today()
+
+            $billinggroup_id = \App\Models\Opd\OpdBooking::where('patientcode', $patientCode)
+                ->whereDate('created_at', $today)
+                ->latest()
+                ->value('billinggroup_id') 
+                ?? 
+                \App\Models\Ipd\IpdAdmission::where('patientcode', $patientCode)
+                ->whereDate('created_at', $today)
+                ->latest()
+                ->value('billinggroup_id');
+        }        
+
         $sale = BILSale::create([
             'transdate' => $transdate,
             'customer_id' => $data['customer_id'],
+            'billinggroup_id' => $billinggroup_id,
             'receiptno' => $receiptNo,
             'invoiceno' => $invoiceNo,
             'totaldue' => $data['total'],

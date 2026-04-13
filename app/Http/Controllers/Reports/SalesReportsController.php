@@ -11,6 +11,7 @@ use App\Models\Billing\BLSPaymentType;
 use App\Models\Billing\BILCollection;
 use App\Models\Billing\BLSItem;
 use App\Models\Billing\BLSCustomer;
+use App\Models\Patient\PatientBillingGroup;
 
 use App\Models\Inventory\SIV_Store;
 use App\Models\User;
@@ -34,30 +35,48 @@ class SalesReportsController extends Controller
     {
         $validated = $request->validate([
             'report_date' => 'nullable|date_format:Y-m-d',
+            'billinggroup_id' => 'nullable|exists:patient_billing_groups,id',
         ]);
+
         $reportDate = Carbon::parse($validated['report_date'] ?? Carbon::today())->startOfDay();
+        $billingGroupId = $validated['billinggroup_id'] ?? null;
 
-        $baseSalesQuery = BILSale::whereDate('transdate', $reportDate)->where('voided', '!=', 1);
+        // Base query
+        $baseSalesQuery = BILSale::whereDate('transdate', $reportDate)
+            ->where('voided', '!=', 1)
+            ->when($billingGroupId, function ($query) use ($billingGroupId) {
+                $query->where('billinggroup_id', $billingGroupId);
+            });
 
+        // Summary
         $summaries = (clone $baseSalesQuery)->select(
             DB::raw('SUM(totalpaid) as total_sales'),
             DB::raw('COUNT(id) as transaction_count'),
             DB::raw('SUM(discount) as total_discount')
         )->first();
 
+        // Aggregated Items
         $aggregatedItems = BILSaleItem::query()
             ->join('bil_sales', 'bil_saleitems.sale_id', '=', 'bil_sales.id')
             ->join('bls_items', 'bil_saleitems.item_id', '=', 'bls_items.id')
             ->leftJoin('bls_itemgroups', 'bls_items.itemgroup_id', '=', 'bls_itemgroups.id')
             ->whereDate('bil_sales.transdate', $reportDate)
             ->where('bil_sales.voided', '!=', 1)
+            ->when($billingGroupId, function ($query) use ($billingGroupId) {
+                $query->where('bil_sales.billinggroup_id', $billingGroupId);
+            })
             ->select(
-                'bls_items.id as item_id', 'bls_items.name as item_name',
+                'bls_items.id as item_id',
+                'bls_items.name as item_name',
                 DB::raw("COALESCE(bls_itemgroups.name, 'Uncategorized') as item_group"),
                 DB::raw('SUM(bil_saleitems.quantity) as total_quantity'),
                 DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_amount')
-            )->groupBy('bls_items.id', 'bls_items.name', 'item_group')->orderBy('item_name')->get();
+            )
+            ->groupBy('bls_items.id', 'bls_items.name', 'item_group')
+            ->orderBy('item_name')
+            ->get();
 
+        // Grouping
         $salesByItemGroup = $aggregatedItems->groupBy('item_group')
             ->map(fn ($items, $group) => [
                 'name' => $group,
@@ -65,7 +84,11 @@ class SalesReportsController extends Controller
                 'total_amount' => $items->sum('total_amount'),
             ])->values();
 
-        $detailedSales = (clone $baseSalesQuery)->with(['items.item', 'customer'])->orderBy('transdate', 'asc')->get();
+        // Detailed Sales
+        $detailedSales = (clone $baseSalesQuery)
+            ->with(['items.item', 'customer'])
+            ->orderBy('transdate', 'asc')
+            ->get();
 
         return Inertia::render('Reports/Sales/Daily', [
             'reportData' => [
@@ -74,25 +97,43 @@ class SalesReportsController extends Controller
                 'total_sales_amount' => (float) $summaries->total_sales,
                 'number_of_transactions' => (int) $summaries->transaction_count,
                 'total_discount' => (float) $summaries->total_discount,
+
                 'detailed_sales' => $detailedSales->map(function ($sale) {
                     $customerName = 'N/A';
+
                     if ($sale->customer) {
-                         $customerName = $sale->customer->customer_type === 'individual'
+                        $customerName = $sale->customer->customer_type === 'individual'
                             ? trim("{$sale->customer->first_name} {$sale->customer->other_names} {$sale->customer->surname}")
                             : $sale->customer->company_name;
                     }
+
                     return [
-                        'id' => $sale->id, 'receipt_no' => $sale->receiptno, 'invoice_no' => $sale->invoiceno,
+                        'id' => $sale->id,
+                        'receipt_no' => $sale->receiptno,
+                        'invoice_no' => $sale->invoiceno,
                         'transdate' => Carbon::parse($sale->transdate)->format('Y-m-d H:i:s'),
                         'customer_name' => $customerName ?: 'N/A',
-                        'total_due' => (float) $sale->totaldue, 'total_paid' => (float) $sale->totalpaid,
-                        'items_summary' => $sale->items->map(fn($item) => $item->item ? "{$item->item->name} (Qty: {$item->quantity})" : 'Unknown Item')->implode(', '),
+                        'total_due' => (float) $sale->totaldue,
+                        'total_paid' => (float) $sale->totalpaid,
+                        'items_summary' => $sale->items
+                            ->map(fn($item) => $item->item 
+                                ? "{$item->item->name} (Qty: {$item->quantity})" 
+                                : 'Unknown Item'
+                            )->implode(', '),
                     ];
                 }),
+
                 'aggregated_items' => $aggregatedItems,
                 'sales_by_item_group' => $salesByItemGroup,
             ],
-            'filters' => ['report_date' => $reportDate->format('Y-m-d')]
+
+            'filters' => [
+                'report_date' => $reportDate->format('Y-m-d'),
+                'billinggroup_id' => $billingGroupId,
+            ],
+            'billingGroups' => PatientBillingGroup::orderBy('name')->get(['id', 'name']),
+
+
         ]);
     }
 
@@ -102,18 +143,25 @@ class SalesReportsController extends Controller
     public function summary(Request $request): InertiaResponse
     {
         $validated = $request->validate([
-            'start_date' => 'nullable|date_format:Y-m-d',
-            'end_date'   => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
-            'group_by'   => 'nullable|string|in:day,week,month,item_group,product',
+            'start_date'      => 'nullable|date_format:Y-m-d',
+            'end_date'        => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
+            'group_by'        => 'nullable|string|in:day,week,month,item_group,product',
+            'billinggroup_id' => 'nullable|exists:patient_billing_groups,id',
         ]);
 
-        $startDate = Carbon::parse($validated['start_date'] ?? Carbon::now()->startOfMonth())->startOfDay();
-        $endDate   = Carbon::parse($validated['end_date']   ?? Carbon::now()->endOfMonth())->endOfDay();
-        $groupBy   = $validated['group_by'] ?? 'day';
+        $startDate      = Carbon::parse($validated['start_date'] ?? Carbon::now()->startOfMonth())->startOfDay();
+        $endDate        = Carbon::parse($validated['end_date']   ?? Carbon::now()->endOfMonth())->endOfDay();
+        $groupBy        = $validated['group_by'] ?? 'day';
+        $billingGroupId = $validated['billinggroup_id'] ?? null;
 
-        $baseSalesQuery = BILSale::whereBetween('transdate', [$startDate, $endDate])->where('voided', '!=', 1);
+        $baseSalesQuery = BILSale::whereBetween('transdate', [$startDate, $endDate])
+            ->where('voided', '!=', 1)
+            ->when($billingGroupId, function ($query) use ($billingGroupId) {
+                $query->where('billinggroup_id', $billingGroupId);
+            });
 
         $summaries = (clone $baseSalesQuery)->select(
+            DB::raw('SUM(totaldue) as total_dues'),
             DB::raw('SUM(totalpaid) as total_sales'),
             DB::raw('COUNT(id) as transaction_count'),
             DB::raw('SUM(discount) as total_discount')
@@ -125,45 +173,91 @@ class SalesReportsController extends Controller
             case 'day':
                 $period = CarbonPeriod::create($startDate, $endDate);
                 $dailySales = (clone $baseSalesQuery)
-                    ->select(DB::raw('DATE(transdate) as sale_date'), DB::raw('SUM(totalpaid) as daily_total'), DB::raw('COUNT(id) as daily_transactions'))
+                    ->select(
+                        DB::raw('DATE(transdate) as sale_date'), 
+                        DB::raw('SUM(totaldue) as daily_dues'), // Added
+                        DB::raw('SUM(totalpaid) as daily_total'), 
+                        DB::raw('COUNT(id) as daily_transactions')
+                    )
                     ->groupBy('sale_date')->orderBy('sale_date', 'asc')->get()->keyBy(fn($item) => Carbon::parse($item->sale_date)->format('Y-m-d'));
                 foreach ($period as $date) {
                     $dateString = $date->format('Y-m-d');
                     $saleForDate = $dailySales->get($dateString);
                     $chartLabels[] = $date->format('M d');
                     $chartData[] = $saleForDate ? (float) $saleForDate->daily_total : 0;
-                    $groupedSalesData[] = ['period_label' => $date->format('D, M d, Y'), 'total_sales' => $saleForDate ? (float) $saleForDate->daily_total : 0, 'transactions' => $saleForDate ? (int) $saleForDate->daily_transactions : 0];
+                    $groupedSalesData[] = [
+                        'period_label' => $date->format('D, M d, Y'), 
+                        'total_dues' => $saleForDate ? (float) $saleForDate->daily_dues : 0, // Added
+                        'total_sales' => $saleForDate ? (float) $saleForDate->daily_total : 0, 
+                        'transactions' => $saleForDate ? (int) $saleForDate->daily_transactions : 0
+                    ];
                 }
                 break;
             case 'week':
                 $weeklySales = (clone $baseSalesQuery)
-                    ->select(DB::raw(config('database.default') === 'sqlite' ? "strftime('%Y-%W', transdate) as sale_week" : "DATE_FORMAT(transdate, '%x-%v') as sale_week"), DB::raw('SUM(totalpaid) as weekly_total'), DB::raw('COUNT(id) as weekly_transactions'))
+                    ->select(
+                        DB::raw(config('database.default') === 'sqlite' ? "strftime('%Y-%W', transdate) as sale_week" : "DATE_FORMAT(transdate, '%x-%v') as sale_week"), 
+                        DB::raw('SUM(totaldue) as weekly_dues'), // Added
+                        DB::raw('SUM(totalpaid) as weekly_total'), 
+                        DB::raw('COUNT(id) as weekly_transactions')
+                    )
                     ->groupBy('sale_week')->orderBy('sale_week', 'asc')->get();
                 foreach($weeklySales as $sale) {
                     $year = substr($sale->sale_week, 0, 4); $week = substr($sale->sale_week, 5);
                     $label = "Week of " . Carbon::now()->setISODate($year, $week)->startOfWeek()->format('M d, Y');
                     $chartLabels[] = $label; $chartData[] = (float) $sale->weekly_total;
-                    $groupedSalesData[] = ['period_label' => $label, 'total_sales' => (float) $sale->weekly_total, 'transactions' => (int) $sale->weekly_transactions];
+                    $groupedSalesData[] = [
+                        'period_label' => $label, 
+                        'total_dues' => (float) $sale->weekly_dues, // Added
+                        'total_sales' => (float) $sale->weekly_total, 
+                        'transactions' => (int) $sale->weekly_transactions
+                    ];
                 }
                 break;
             case 'month':
                  $monthlySales = (clone $baseSalesQuery)
-                    ->select(DB::raw(config('database.default') === 'sqlite' ? "strftime('%Y-%m', transdate) as sale_month" : "DATE_FORMAT(transdate, '%Y-%m') as sale_month"), DB::raw('SUM(totalpaid) as monthly_total'), DB::raw('COUNT(id) as monthly_transactions'))
+                    ->select(
+                        DB::raw(config('database.default') === 'sqlite' ? "strftime('%Y-%m', transdate) as sale_month" : "DATE_FORMAT(transdate, '%Y-%m') as sale_month"), 
+                        DB::raw('SUM(totaldue) as monthly_dues'), // Added
+                        DB::raw('SUM(totalpaid) as monthly_total'), 
+                        DB::raw('COUNT(id) as monthly_transactions')
+                    )
                     ->groupBy('sale_month')->orderBy('sale_month', 'asc')->get();
                 foreach($monthlySales as $sale) {
                     $label = Carbon::createFromFormat('Y-m', $sale->sale_month)->format('M Y');
                     $chartLabels[] = $label; $chartData[] = (float) $sale->monthly_total;
-                    $groupedSalesData[] = ['period_label' => $label, 'total_sales' => (float) $sale->monthly_total, 'transactions' => (int) $sale->monthly_transactions];
+                    $groupedSalesData[] = [
+                        'period_label' => $label, 
+                        'total_dues' => (float) $sale->monthly_dues, // Added
+                        'total_sales' => (float) $sale->monthly_total, 
+                        'transactions' => (int) $sale->monthly_transactions
+                    ];
                 }
                 break;
-            case 'item_group': case 'product':
-                $itemsQuery = BILSaleItem::query()->join('bil_sales', 'bil_saleitems.sale_id', '=', 'bil_sales.id')->join('bls_items', 'bil_saleitems.item_id', '=', 'bls_items.id')->whereBetween('bil_sales.transdate', [$startDate, $endDate])->where('bil_sales.voided', '!=', 1);
+            case 'item_group': 
+            case 'product':
+                $itemsQuery = BILSaleItem::query()
+                    ->join('bil_sales', 'bil_saleitems.sale_id', '=', 'bil_sales.id')
+                    ->join('bls_items', 'bil_saleitems.item_id', '=', 'bls_items.id')
+                    ->whereBetween('bil_sales.transdate', [$startDate, $endDate])
+                    ->where('bil_sales.voided', '!=', 1)
+                    ->when($billingGroupId, function ($query) use ($billingGroupId) {
+                        $query->where('bil_sales.billinggroup_id', $billingGroupId);
+                    });
+
                 if ($groupBy === 'item_group') {
-                    $itemsQuery->join('bls_itemgroups', 'bls_items.itemgroup_id', '=', 'bls_itemgroups.id')->select('bls_itemgroups.name as group_name', DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales'), DB::raw('SUM(bil_saleitems.quantity) as total_quantity'))->groupBy('bls_itemgroups.name')->orderBy('group_name');
+                    $itemsQuery->join('bls_itemgroups', 'bls_items.itemgroup_id', '=', 'bls_itemgroups.id')
+                        ->select('bls_itemgroups.name as group_name', DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales'), DB::raw('SUM(bil_saleitems.quantity) as total_quantity'))
+                        ->groupBy('bls_itemgroups.name')
+                        ->orderBy('group_name');
                 } else {
-                    $itemsQuery->select('bls_items.name as product_name', 'bls_items.id as product_id', DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales'), DB::raw('SUM(bil_saleitems.quantity) as total_quantity'))->groupBy('bls_items.id', 'bls_items.name')->orderBy('product_name');
+                    $itemsQuery->select('bls_items.name as product_name', 'bls_items.id as product_id', DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales'), DB::raw('SUM(bil_saleitems.quantity) as total_quantity'))
+                        ->groupBy('bls_items.id', 'bls_items.name')
+                        ->orderBy('product_name');
                 }
+                
                 $aggregatedItems = $itemsQuery->get();
+                
                 foreach ($aggregatedItems as $item) {
                     $label = $item->group_name ?? $item->product_name;
                     $chartLabels[] = $label; $chartData[] = (float) $item->total_sales;
@@ -175,12 +269,20 @@ class SalesReportsController extends Controller
         return Inertia::render('Reports/Sales/Summary', [
             'reportData' => [
                 'report_title' => "Sales Summary ({$startDate->format('M d, Y')} - {$endDate->format('M d, Y')})",
-                'start_date_input' => $startDate->format('Y-m-d'), 'end_date_input'   => $endDate->format('Y-m-d'), 'group_by_selected' => $groupBy,
-                'total_sales_amount' => (float) $summaries->total_sales, 'number_of_transactions' => (int) $summaries->transaction_count, 'total_discount' => (float) $summaries->total_discount,
+                'start_date_input' => $startDate->format('Y-m-d'), 
+                'end_date_input'   => $endDate->format('Y-m-d'), 
+                'group_by_selected' => $groupBy,
+                'total_dues_amount' => (float) $summaries->total_dues, 
+                'total_sales_amount' => (float) $summaries->total_sales, 
+                'number_of_transactions' => (int) $summaries->transaction_count, 
+                'total_discount' => (float) $summaries->total_discount,
                 'grouped_data_title' => "Sales by " . ucwords(str_replace('_', ' ', $groupBy)),
-                'grouped_sales_data' => $groupedSalesData, 'chart_labels' => $chartLabels, 'chart_data' => $chartData,
+                'grouped_sales_data' => $groupedSalesData, 
+                'chart_labels' => $chartLabels, 
+                'chart_data' => $chartData,
             ],
-            'filters' => $request->only(['start_date', 'end_date', 'group_by'])
+            'filters' => $request->only(['start_date', 'end_date', 'group_by', 'billinggroup_id']),
+            'billingGroups' => PatientBillingGroup::orderBy('name')->get(['id', 'name']), 
         ]);
     }
 

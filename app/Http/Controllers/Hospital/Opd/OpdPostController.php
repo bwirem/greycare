@@ -623,9 +623,31 @@ class OpdPostController extends Controller
      */
     private function createSaleRecord(array $data, Carbon $transdate, ?string $receiptNo, ?string $invoiceNo):BILSale
     {
+        // Identify the Customer
+        $customer = BLSCustomer::find($data['customer_id']);
+        $patientCode = $customer?->patient_code;
+
+        $billinggroup_id = null;
+
+        // Only query if we actually have a patient code
+        if ($patientCode) {
+            $today = today(); // Helper for Carbon::today()
+
+            $billinggroup_id = \App\Models\Opd\OpdBooking::where('patientcode', $patientCode)
+                ->whereDate('created_at', $today)
+                ->latest()
+                ->value('billinggroup_id') 
+                ?? 
+                \App\Models\Ipd\IpdAdmission::where('patientcode', $patientCode)
+                ->whereDate('created_at', $today)
+                ->latest()
+                ->value('billinggroup_id');
+        }     
+
         $sale = BILSale::create([
             'transdate' => $transdate,
             'customer_id' => $data['customer_id'],
+            'billinggroup_id' => $billinggroup_id,
             'receiptno' => $receiptNo,
             'invoiceno' => $invoiceNo,
             'totaldue' => $data['total'],

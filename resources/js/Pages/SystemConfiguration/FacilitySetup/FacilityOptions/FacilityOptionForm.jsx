@@ -19,7 +19,7 @@ const CheckboxInput = ({ id, label, checked, onChange }) => (
 );
 
 export default function FacilityOptionForm({ option = null, chartOfAccounts, billinggroups }) {
-    // Initialize form data with new fields
+    // Initialize form data with new Control Number API fields
     const { data, setData, post, processing, errors, reset } = useForm({
         name: option?.name || '',
         address: option?.address || '',
@@ -37,8 +37,16 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
         affectstockatcashier: option ? Boolean(option.affectstockatcashier) : false,
         doubleentryissuing: option ? Boolean(option.doubleentryissuing) : false,
         allownegativestock: option ? Boolean(option.allownegativestock) : false,        
-        show_register_button: option ? Boolean(option.show_register_button) : true, // Added this field
+        show_register_button: option ? Boolean(option.show_register_button) : true, 
         
+        // Payment Gateway API Configuration Fields
+        corporate_id: option?.corporate_id || '',
+        token_id: option?.token_id || '',
+        access_token: option?.access_token || '',
+        registration_url: option?.registration_url || '',
+        check_payment_url: option?.check_payment_url || '',
+        crdb_payment_type: option?.crdb_payment_type || '1088',
+
         _method: option ? 'PUT' : 'POST', 
     });
 
@@ -194,7 +202,7 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
                             <option value="">Select an account</option>
-                            {chartOfAccounts.map(account => (
+                            {chartOfAccounts?.map(account => (
                                 <option key={account.id} value={account.id}>
                                     {account.account_name} ({account.account_code})
                                 </option>
@@ -211,7 +219,7 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
                             <option value="">Select a Billing Group</option>
-                            {billinggroups.map(billinggroup => (
+                            {billinggroups?.map(billinggroup => (
                                 <option key={billinggroup.id} value={billinggroup.id}>
                                     {billinggroup.name}
                                 </option>
@@ -222,14 +230,94 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
                 </div>
             </div>
 
-            {/* 4. System Settings */}
+            {/* 4. Payment Gateway API Configuration (Control Numbers) */}
+            <div>
+                <h3 className="text-base font-medium text-gray-800 border-b pb-2 mb-4">Payment Gateway API (Control Numbers)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label htmlFor="corporate_id" className="block text-sm font-medium text-gray-700">Corporate ID</label>
+                        <input
+                            id="corporate_id"
+                            type="text"
+                            value={data.corporate_id}
+                            onChange={e => setData('corporate_id', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        {errors.corporate_id && <p className="text-red-500 text-xs mt-1">{errors.corporate_id}</p>}
+                    </div>
+
+                    <div>
+                        <label htmlFor="token_id" className="block text-sm font-medium text-gray-700">Token ID</label>
+                        <input
+                            id="token_id"
+                            type="text"
+                            value={data.token_id}
+                            onChange={e => setData('token_id', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        {errors.token_id && <p className="text-red-500 text-xs mt-1">{errors.token_id}</p>}
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <label htmlFor="access_token" className="block text-sm font-medium text-gray-700">Access Token</label>
+                        <textarea
+                            id="access_token"
+                            rows="2"
+                            value={data.access_token}
+                            onChange={e => setData('access_token', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        {errors.access_token && <p className="text-red-500 text-xs mt-1">{errors.access_token}</p>}
+                    </div>
+
+                    <div>
+                        <label htmlFor="registration_url" className="block text-sm font-medium text-gray-700">Registration URL (Generation Endpoint)</label>
+                        <input
+                            id="registration_url"
+                            type="url"
+                            placeholder="http://example.com/api/regctrno"
+                            value={data.registration_url}
+                            onChange={e => setData('registration_url', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        {errors.registration_url && <p className="text-red-500 text-xs mt-1">{errors.registration_url}</p>}
+                    </div>
+
+                    <div>
+                        <label htmlFor="check_payment_url" className="block text-sm font-medium text-gray-700">Check Payment URL (Validation Endpoint)</label>
+                        <input
+                            id="check_payment_url"
+                            type="url"
+                            placeholder="http://example.com/api/checkctrno"
+                            value={data.check_payment_url}
+                            onChange={e => setData('check_payment_url', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        {errors.check_payment_url && <p className="text-red-500 text-xs mt-1">{errors.check_payment_url}</p>}
+                    </div>
+
+                    <div>
+                        <label htmlFor="crdb_payment_type" className="block text-sm font-medium text-gray-700">CRDB Payment Type</label>
+                        <input
+                            id="crdb_payment_type"
+                            type="text"
+                            placeholder="1088"
+                            value={data.crdb_payment_type}
+                            onChange={e => setData('crdb_payment_type', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                        {errors.crdb_payment_type && <p className="text-red-500 text-xs mt-1">{errors.crdb_payment_type}</p>}
+                    </div>
+                </div>
+            </div>
+
+            {/* 5. System Settings */}
             <div className="p-4 border rounded-md bg-gray-50">
                 <h3 className="text-base font-medium text-gray-800 mb-4">System Configuration</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <CheckboxInput id="affectstockatcashier" label="Affect Stock at Cashier" checked={data.affectstockatcashier} onChange={e => setData('affectstockatcashier', e.target.checked)} />
                     <CheckboxInput id="doubleentryissuing" label="Double Entry Issuing" checked={data.doubleentryissuing} onChange={e => setData('doubleentryissuing', e.target.checked)} />
                     <CheckboxInput id="allownegativestock" label="Allow Negative Stock" checked={data.allownegativestock} onChange={e => setData('allownegativestock', e.target.checked)} />
-                    {/* New Checkbox Added Here */}
                     <CheckboxInput id="show_register_button" label="Show Register Button" checked={data.show_register_button} onChange={e => setData('show_register_button', e.target.checked)} />
                 </div>
                 {errors.affectstockatcashier && <p className="text-red-500 text-xs mt-2">{errors.affectstockatcashier}</p>}

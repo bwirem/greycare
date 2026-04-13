@@ -11,18 +11,26 @@ const formatCurrency = (amount, currencyCode = 'TZS') => {
     return parsedAmount.toLocaleString(locale, { style: 'currency', currency: currencyCode, minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-export default function DailySalesReport({ auth, reportData, filters }) {
+// Added `billingGroups` to the component props
+export default function DailySalesReport({ auth, reportData, filters, billingGroups }) {
+    
+    // Added `billinggroup_id` to the form state
     const { data, setData, get, processing } = useForm({
         report_date: filters.report_date || new Date().toISOString().slice(0, 10),
+        billinggroup_id: filters.billinggroup_id || '',
     });
 
     const handleDateChange = (e) => {
         setData('report_date', e.target.value);
     };
 
+    const handleBillingGroupChange = (e) => {
+        setData('billinggroup_id', e.target.value);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        get(route('reports.sales.daily'), { // 'get' from useForm for form submission to reload data
+        get(route('reports.sales.daily'), { 
             preserveState: true,
             preserveScroll: true,
         });
@@ -52,6 +60,28 @@ export default function DailySalesReport({ auth, reportData, filters }) {
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                                 />
                             </div>
+
+                            {/* Added Billing Group Dropdown here */}
+                            <div>
+                                <label htmlFor="billinggroup_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Billing Group
+                                </label>
+                                <select
+                                    id="billinggroup_id"
+                                    name="billinggroup_id"
+                                    value={data.billinggroup_id}
+                                    onChange={handleBillingGroupChange}
+                                    className="mt-1 block w-full min-w-[200px] rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                                >
+                                    <option value="">All Billing Groups</option>
+                                    {billingGroups && billingGroups.map((group) => (
+                                        <option key={group.id} value={group.id}>
+                                            {group.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             <button
                                 type="submit"
                                 disabled={processing}
@@ -112,14 +142,12 @@ export default function DailySalesReport({ auth, reportData, filters }) {
                                     </section>
                                 )}
 
-
                                 {/* Aggregated Items Sold */}
                                 {reportData.aggregated_items && reportData.aggregated_items.length > 0 && (
                                     <section>
                                         <h4 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-3">Summary of Items Sold</h4>
                                         <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                                             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
-                                                {/* ... table head ... */}
                                                 <thead className="bg-gray-100 dark:bg-gray-700/50">
                                                     <tr>
                                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Item Name</th>

@@ -3,7 +3,7 @@ import { Link, useForm, usePage } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSave, faSpinner, faLock, faUnlock, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
-export default function PanelForm({ panel = null, categories, samples, activePriceCategories = [] }) {
+export default function PanelForm({ panel = null, categories, samples,products, activePriceCategories = [] }) {
     
     // 1. Get Auth/Permissions (Assuming generic permission check or allow all for now)
     // You can adjust 'systemconfiguration6.allow_price' based on your actual permission keys
@@ -18,6 +18,7 @@ export default function PanelForm({ panel = null, categories, samples, activePri
         code: panel?.code || '',
         lab_category_id: panel?.lab_category_id || '',
         lab_nature_of_sample_id: panel?.lab_nature_of_sample_id || '',
+        iv_product_id: panel?.iv_product_id || '',
         is_available: panel ? Boolean(panel.is_available) : true,
 
         // Initialize dynamic selling prices
@@ -76,6 +77,14 @@ export default function PanelForm({ panel = null, categories, samples, activePri
                         <select value={data.lab_nature_of_sample_id} onChange={e => setData('lab_nature_of_sample_id', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">Select Sample</option>
                             {samples.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Mapped Stock</label>
+                        <select value={data.iv_product_id} onChange={e => setData('iv_product_id', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Select Product</option>
+                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
 

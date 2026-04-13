@@ -113,6 +113,9 @@ class DoctorIpdController extends Controller
             'booking.prescriptions.product',
             'booking.theatreBookings.procedure', 
             'booking.user',
+           
+            //History 
+            'booking.history',
 
             // --- IPD Active Orders (Already correct) ---
             'labRequests.panel', 

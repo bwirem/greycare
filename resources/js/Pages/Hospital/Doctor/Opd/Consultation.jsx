@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, Link} from '@inertiajs/react';
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
 import DangerButton from '@/Components/DangerButton'; // <--- Import this
@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faEye, faFlask, faPills, 
-    faCheckCircle, faClock, faStethoscope, faBed, faUserInjured, faExclamationTriangle
+    faCheckCircle, faClock, faStethoscope, faBed, faUserInjured, faExclamationTriangle, faArrowRight
 } from '@fortawesome/free-solid-svg-icons';
 
 // --- Import Child Components ---
@@ -60,7 +60,7 @@ export default function OpdConsultation({
         past_medical_history: existing_history?.past_medical_history || '',
         social_and_family_history: existing_history?.social_and_family_history || '',
         review_of_other_systems: existing_history?.review_of_other_systems || '',
-        complaints: existing_history?.complains?.length > 0 ? existing_history.complains : [{ chief_complaint: '', duration: '' }],
+        complaints: existing_history?.complains?.length > 0 ? existing_history.complains : [{ chief_complaint: '', duration: '' }] || [],
         
         // Exam
         general_condition: existing_exam?.general_condition || '',
@@ -90,7 +90,13 @@ export default function OpdConsultation({
     const [confirmingDeletion, setConfirmingDeletion] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null); // { id: 1, type: 'lab' }
 
+// --- CHECK FOR CONFIRMED DIAGNOSIS ---
+    const hasConfirmedDiagnosis = 
+        data.diagnoses.some(d => d.status === 'confirmed') || 
+        previous_diagnoses.some(d => d.status_label === 'Confirmed' || d.status === 'Confirmed');
+
     // --- 4. Handlers ---
+
 
     const submit = (e) => {
         e.preventDefault();
@@ -106,9 +112,9 @@ export default function OpdConsultation({
                 }));
                 toast.success("Consultation saved successfully!");
             },
-            onError: (err) => {
+            onError: (errors) => {
                 toast.error("Failed to save. Check required fields.");
-                console.error(err);
+                console.error(errors);
             }
         });
     };
@@ -255,6 +261,12 @@ export default function OpdConsultation({
                                 </div>
                             </div>
                         </div>
+                        <Link 
+                            href={route('reports.doctor.patient_history.show', patient?.code)} 
+                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center justify-end"
+                        >
+                            Past History <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
+                        </Link>
                     </div>
                 </div>
 
@@ -288,7 +300,7 @@ export default function OpdConsultation({
                     <div className="flex-1 p-6 overflow-y-auto">
                         <form id="consultForm" onSubmit={submit} className="h-full">
                             
-                            {activeTab === 'history' && <HistoryTab data={data} setData={setData} />}
+                            {activeTab === 'history' && <HistoryTab data={data} setData={setData} errors={errors}  />}
                             
                             {activeTab === 'exam' && <ExaminationTab data={data} setData={setData} />}
                             
@@ -317,6 +329,8 @@ export default function OpdConsultation({
                                     durations={pharmacy_durations}
                                     facilityoption={facilityoption}
                                     onDeleteOrder={handleDeleteOrder} 
+                                    // PASS NEW DIAGNOSIS CHECK HERE:
+                                    hasConfirmedDiagnosis={hasConfirmedDiagnosis}
                                 />
                             }
                         </form>

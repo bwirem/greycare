@@ -5,7 +5,7 @@ import TextArea from '@/Components/TextArea';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 
-export default function HistoryTab({ data, setData }) {
+export default function HistoryTab({ data, setData,errors = {} }) {
     
     // --- Helper Functions for Chief Complaints ---
     const addComplaint = () => {
@@ -65,6 +65,7 @@ export default function HistoryTab({ data, setData }) {
                         </button>
                     </div>
                 ))}
+                {errors.complaints && <p className="text-red-500 text-sm mt-1">{errors.complaints}</p>}
             </div>
             
             {/* 2. History of Presenting Illness */}
@@ -77,6 +78,7 @@ export default function HistoryTab({ data, setData }) {
                     value={data.history_presenting_illness} 
                     onChange={e => setData('history_presenting_illness', e.target.value)} 
                 />
+                {errors.history_presenting_illness && <p className="text-red-500 text-sm mt-1">{errors.history_presenting_illness}</p>}
             </div>
 
             {/* 3. Past Medical & Social History (Grid) */}
