@@ -291,6 +291,7 @@ class UserPermissionController extends Controller
             'laboratory' => [
                 ['key' => 'laboratory0', 'text' => 'Test Requests', 'icon' => 'vials'],
                 ['key' => 'laboratory1', 'text' => 'Test Results', 'icon' => 'poll'],
+                ['key' => 'laboratory2', 'text' => 'Test History', 'icon' => 'test_history'],
             ],
             'blood-bank' => [
                 ['key' => 'bloodbank0', 'text' => 'Donor Management', 'icon' => 'hand_holding_heart'],
@@ -299,7 +300,8 @@ class UserPermissionController extends Controller
             ],
             'radiology' => [
                 ['key' => 'radiology0', 'text' => 'Imaging Requests', 'icon' => 'x_ray'],
-                ['key' => 'radiology1', 'text' => 'Imaging Results', 'icon' => 'images'],                
+                ['key' => 'radiology1', 'text' => 'Imaging Results', 'icon' => 'images'],
+                ['key' => 'radiology2', 'text' => 'Imaging History', 'icon' => 'imaging_history'],             
             ],
             'pharmacy' => [
                 ['key' => 'pharmacy0', 'text' => 'Drug Dispensing', 'icon' => 'capsule'],

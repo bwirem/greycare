@@ -1,8 +1,10 @@
+
 import AuthenticatedLayout from '@/Layouts/FinanceLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import React, { useState } from 'react'; // For date picker state
+import React, { useState } from 'react'; 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarAlt, faPrint, faFileExcel } from '@fortawesome/free-solid-svg-icons';
+// Added faFilePdf and faFileExcel
+import { faCalendarAlt, faPrint, faFilePdf, faFileExcel } from '@fortawesome/free-solid-svg-icons';
 
 const formatCurrency = (amount, currencyCode = 'TZS') => {
     const parsedAmount = parseFloat(amount);
@@ -11,10 +13,8 @@ const formatCurrency = (amount, currencyCode = 'TZS') => {
     return parsedAmount.toLocaleString(locale, { style: 'currency', currency: currencyCode, minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-// Added `billingGroups` to the component props
 export default function DailySalesReport({ auth, reportData, filters, billingGroups }) {
     
-    // Added `billinggroup_id` to the form state
     const { data, setData, get, processing } = useForm({
         report_date: filters.report_date || new Date().toISOString().slice(0, 10),
         billinggroup_id: filters.billinggroup_id || '',
@@ -34,6 +34,14 @@ export default function DailySalesReport({ auth, reportData, filters, billingGro
             preserveState: true,
             preserveScroll: true,
         });
+    };
+
+    // Helper function to build export URLs cleanly
+    const getExportUrl = (format) => {
+        const params = { format };
+        if (data.report_date) params.report_date = data.report_date;
+        if (data.billinggroup_id) params.billinggroup_id = data.billinggroup_id;
+        return route('reports.sales.daily.export', params);
     };
 
     return (
@@ -61,7 +69,6 @@ export default function DailySalesReport({ auth, reportData, filters, billingGro
                                 />
                             </div>
 
-                            {/* Added Billing Group Dropdown here */}
                             <div>
                                 <label htmlFor="billinggroup_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                     Billing Group
@@ -88,9 +95,33 @@ export default function DailySalesReport({ auth, reportData, filters, billingGro
                                 className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                             >
                                 <FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />
-                                {processing ? 'Generating...' : 'Generate Report'}
+                                {processing ? 'Generating...' : 'Generate'}
                             </button>
-                            {/* Add Print/Export buttons here if needed */}
+
+                            {/* Export Buttons */}
+                            <div className="flex items-center gap-2 ml-auto">
+                                <a 
+                                    href={getExportUrl('pdf')} 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                                    title="Export to PDF"
+                                >
+                                    <FontAwesomeIcon icon={faFilePdf} className="mr-2 h-4 w-4 text-red-600" />
+                                    PDF
+                                </a>
+
+                                <a 
+                                    href={getExportUrl('excel')} 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                                    title="Export to Excel"
+                                >
+                                    <FontAwesomeIcon icon={faFileExcel} className="mr-2 h-4 w-4 text-green-600" />
+                                    Excel
+                                </a>
+                            </div>
                         </form>
 
                         {reportData && (

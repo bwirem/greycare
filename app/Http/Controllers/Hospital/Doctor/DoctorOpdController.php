@@ -74,7 +74,7 @@ class DoctorOpdController extends Controller
             
             // --- FILTER OUT ADMITTED PATIENTS ---
             // Combine the exclusions here:
-            ->whereNotIn('consultation_status', ['Admitted', 'RchVisit', 'Seen']) 
+            ->whereNotIn('consultation_status', ['Admitted', 'RchVisit'])//, 'Seen']) 
             ->orderByRaw("FIELD(consultation_status,'ResultsReady' ,'Pending', 'PendingInvestigations', 'MedicationsPrescribed', 'SurgeryScheduled', 'Seen') ASC")        
             
             // --- APPLY TREATMENT POINT FILTER ---

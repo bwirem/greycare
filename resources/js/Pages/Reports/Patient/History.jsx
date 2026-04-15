@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
+import Modal from '@/Components/Modal'; // Import your Modal component
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faPrint, 
@@ -14,12 +15,17 @@ import {
     faHistory,
     faStethoscope,
     faProcedures,
-    faAllergies,
-    faFileMedical
+    faFileMedical,
+    faEye,
+    faFlask,
+    faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function PatientHistoryReport({ auth, patient, timeline, diagnoses, medications, labs }) {
     const [activeTab, setActiveTab] = useState('visits');
+    
+    // --- Modal State for Viewing Labs ---
+    const [viewLab, setViewLab] = useState(null);
 
     const tabs = [
         { id: 'visits', label: 'Timeline & Visits', icon: faHistory },
@@ -85,16 +91,9 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
                             <span className="text-xs text-gray-400 italic">Last Updated: {new Date().toLocaleDateString()}</span>
                         </div>
                     </div>
-
-                    {/* Clinical Alert Flags (If needed in future) */}
-                    {/* <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex gap-4">
-                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
-                            <FontAwesomeIcon icon={faAllergies} className="mr-1"/> Allergies: Penicillin
-                        </span>
-                    </div> */}
                 </div>
 
-                {/* 2. TABS NAVIGATION (Hidden on Print) */}
+                {/* 2. TABS NAVIGATION */}
                 <div className="border-b border-gray-200 dark:border-gray-700 mb-6 print:hidden overflow-x-auto">
                     <nav className="-mb-px flex space-x-8">
                         {tabs.map((tab) => (
@@ -116,8 +115,6 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
                 </div>
 
                 {/* 3. REPORT CONTENT SECTIONS */}
-                {/* Note: 'print:block' ensures ALL sections show when printing, regardless of activeTab */}
-                
                 <div className="space-y-8">
 
                     {/* --- SECTION A: VISITS TIMELINE --- */}
@@ -126,7 +123,6 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
                             <FontAwesomeIcon icon={faHistory} className="text-gray-400"/>
                             <h3 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">Clinical Timeline</h3>
                         </div>
-                        
                         <div className="p-6 relative">
                             {timeline.length === 0 ? (
                                 <EmptyState message="No visit history found for this patient." />
@@ -134,9 +130,7 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
                                 <div className="border-l-2 border-indigo-100 dark:border-gray-700 ml-3 space-y-8 pb-4">
                                     {timeline.map((event, idx) => (
                                         <div key={idx} className="relative pl-8">
-                                            {/* Timeline Dot */}
                                             <div className={`absolute -left-[9px] top-1 h-5 w-5 rounded-full border-4 border-white dark:border-gray-800 ${event.type === 'IPD' ? 'bg-purple-500' : 'bg-blue-500'}`}></div>
-                                            
                                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1">
@@ -156,7 +150,6 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
                                                     </p>
                                                 </div>
                                                 
-                                                {/* Vitals / Outcome Box */}
                                                 {(event.vitals !== '-' || event.outcome) && (
                                                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-3 text-sm border border-gray-100 dark:border-gray-600 max-w-md w-full sm:w-auto">
                                                         {event.type === 'OPD' ? (
@@ -193,15 +186,15 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-700">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Diagnosis</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Diagnosis</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                         {diagnoses.map((diag, i) => (
-                                            <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 w-40">{diag.date}</td>
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{diag.name}</td>
+                                            <tr key={i} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-40">{diag.date}</td>
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{diag.name}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -223,19 +216,19 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-700">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Drug Name</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Dosage Instruction</th>
-                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Qty</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Drug Name</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Dosage Instruction</th>
+                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Qty</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
                                         {medications.map((rx, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 w-32">{rx.date}</td>
-                                                <td className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">{rx.drug}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 font-mono text-xs">{rx.dose}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-800 dark:text-gray-200">{rx.qty}</td>
+                                            <tr key={idx} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-32">{rx.date}</td>
+                                                <td className="px-6 py-4 text-sm font-bold text-gray-800">{rx.drug}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-600 font-mono text-xs">{rx.dose}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-800">{rx.qty}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -246,40 +239,49 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
 
                     {/* --- SECTION D: LABS & RADIOLOGY --- */}
                     <div className={`bg-white dark:bg-gray-800 shadow rounded-xl overflow-hidden ${activeTab === 'labs' ? 'block' : 'hidden print:block'}`}>
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                        <div className="p-6 border-b border-gray-100 flex items-center gap-2">
                             <FontAwesomeIcon icon={faVials} className="text-gray-400"/>
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white uppercase tracking-wider">Laboratory & Radiology</h3>
+                            <h3 className="text-lg font-bold text-gray-800 uppercase tracking-wider">Laboratory & Radiology</h3>
                         </div>
                         <div className="overflow-x-auto">
                             {labs.length === 0 ? (
                                 <div className="p-6"><EmptyState message="No lab or radiology requests found." /></div>
                             ) : (
-                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                    <thead className="bg-gray-50 dark:bg-gray-700">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Test / Procedure</th>
-                                            <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Results Summary</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Test / Procedure</th>
+                                            <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider print:hidden">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tbody className="bg-white divide-y divide-gray-200">
                                         {labs.map((lab, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 w-32">{lab.date}</td>
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{lab.test}</td>
+                                            <tr key={idx} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 w-32">{lab.date}</td>
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">{lab.test}</td>
                                                 <td className="px-6 py-4 text-center">
                                                     <span className={`
                                                         px-2 py-1 text-xs rounded-full border font-semibold
-                                                        ${lab.status === 'Verified' || lab.status === 'Completed' 
-                                                            ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400' 
-                                                            : 'bg-yellow-50 border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-800 dark:text-yellow-400'}
+                                                        ${lab.status === 'Verified' || lab.status === 'completed' 
+                                                            ? 'bg-green-50 border-green-200 text-green-700' 
+                                                            : 'bg-yellow-50 border-yellow-200 text-yellow-700'}
                                                     `}>
                                                         {lab.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 italic">
-                                                    {lab.result_summary}
+                                                <td className="px-6 py-4 text-right print:hidden">
+                                                    {lab.results && lab.results.length > 0 ? (
+                                                        <button 
+                                                            onClick={() => setViewLab(lab)}
+                                                            className="text-indigo-600 hover:text-indigo-900 text-sm font-semibold flex items-center justify-end gap-1 w-full"
+                                                        >
+                                                            <FontAwesomeIcon icon={faEye} /> View Results
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-xs italic">Pending / No Results</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
@@ -296,6 +298,75 @@ export default function PatientHistoryReport({ auth, patient, timeline, diagnose
                     <p>Report Generated on {new Date().toLocaleString()} | Confidential Medical Record</p>
                 </div>
             </div>
+
+            {/* --- LAB RESULTS MODAL --- */}
+            <Modal show={viewLab !== null} onClose={() => setViewLab(null)} maxWidth="2xl">
+                {viewLab && (
+                    <div className="p-6">
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-start border-b pb-4 mb-6">
+                            <div>
+                                <h2 className="text-xl font-bold text-indigo-900 flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faFlask} /> 
+                                    {viewLab.test}
+                                </h2>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    <strong>Date:</strong> {viewLab.date} 
+                                    <span className="mx-2">|</span> 
+                                    <strong>Sample ID:</strong> <span className="font-mono">{viewLab.sample_code}</span>
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-800">
+                                    <FontAwesomeIcon icon={faCheckCircle} className="mr-1" /> FINAL
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Results Data Grid */}
+                        <div className="overflow-hidden rounded-lg border border-gray-200 mb-6">
+                            <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left font-semibold text-gray-600">Parameter</th>
+                                        <th className="px-4 py-3 text-left font-semibold text-gray-600">Result</th>
+                                        <th className="px-4 py-3 text-left font-semibold text-gray-600">Units</th>
+                                        <th className="px-4 py-3 text-left font-semibold text-gray-600">Ref. Range</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {viewLab.results.map((res, i) => (
+                                        <tr key={res.id || i} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 font-medium text-gray-900">
+                                                {res.parameter}
+                                            </td>
+                                            <td className="px-4 py-3 font-bold text-indigo-700">
+                                                {res.value}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-500">
+                                                {res.units}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-500 text-xs">
+                                                {res.range}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Modal Footer Actions */}
+                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                            <button 
+                                onClick={() => setViewLab(null)}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 font-semibold text-sm transition"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </AuthenticatedLayout>
     );
 }

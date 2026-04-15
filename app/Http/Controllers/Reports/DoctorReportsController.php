@@ -220,7 +220,7 @@ class DoctorReportsController extends Controller
     /**
      * 5. Patient History - Detailed Timeline
      */
-    public function patientHistoryShow($patientCode): InertiaResponse
+    public function patientHistoryShow($patientCode): \Inertia\Response
     {
         $patient = Patient::where('code', $patientCode)
             ->with([
@@ -237,9 +237,9 @@ class DoctorReportsController extends Controller
                     $q->with('product')->orderBy('created_at', 'desc');
                 },
 
-                // 3. Labs
+                // 3. Labs (UPDATED: Added parameter and ranges for detailed view)
                 'labRequests.panel',
-                'labRequests.sample.results',
+                'labRequests.sample.results.parameter.ranges',
 
                 // 4. Diagnoses
                 'diagnosesConfirmed.diagnosis',
@@ -266,8 +266,8 @@ class DoctorReportsController extends Controller
         foreach($patient->ipdAdmissions as $ipd) {
             $timeline->push([
                 'type' => 'IPD',
-                'date' => Carbon::parse($ipd->admission_date),
-                'date_str' => Carbon::parse($ipd->admission_date)->format('Y-m-d'),
+                'date' => \Carbon\Carbon::parse($ipd->admission_date),
+                'date_str' => \Carbon\Carbon::parse($ipd->admission_date)->format('Y-m-d'),
                 'location' => $ipd->ward?->name ?? 'Ward',
                 'doctor' => $ipd->user?->name ?? 'Unassigned',
                 'outcome' => $ipd->dischargeSummary?->outcome ?? $ipd->status
@@ -290,7 +290,7 @@ class DoctorReportsController extends Controller
         }
 
         // You can save the view file at resources/js/Pages/Reports/Patient/History.jsx
-        return Inertia::render('Reports/Patient/History', [
+        return \Inertia\Inertia::render('Reports/Patient/History', [
             'patient' => [
                 'code' => $patient->code,                
                 'name' => $patient->first_name . ' ' . $patient->last_name,
@@ -308,12 +308,37 @@ class DoctorReportsController extends Controller
                 'dose' => "{$rx->dosage} {$rx->frequency} x {$rx->duration}",
                 'qty'  => $rx->quantity_prescribed
             ]),
-            'labs' => $patient->labRequests->map(fn($lab) => [
-                'date' => $lab->created_at->format('Y-m-d'),
-                'test' => $lab->panel?->name ?? 'Unknown Test',
-                'status' => $lab->status,
-                'result_summary' => $lab->sample?->results->count() . ' param(s)'
-            ])
+            
+            // UPDATED: Map Lab Results Detailed Data
+            'labs' => $patient->labRequests->map(function($lab) {
+                $results = [];
+                if ($lab->sample && $lab->sample->results) {
+                    $results = $lab->sample->results->map(function($res) {
+                        $rangeStr = 'N/A';
+                        if ($res->parameter && $res->parameter->ranges && $res->parameter->ranges->count() > 0) {
+                            $r = $res->parameter->ranges->first();
+                            $rangeStr = "M: {$r->male_min}-{$r->male_max} / F: {$r->female_min}-{$r->female_max}";
+                        }
+
+                        return [
+                            'id' => $res->id,
+                            'parameter' => $res->parameter?->name ?? 'Unknown',
+                            'value' => $res->result_value,
+                            'units' => $res->parameter?->units ?? '-',
+                            'range' => $rangeStr
+                        ];
+                    });
+                }
+
+                return [
+                    'id' => $lab->id,
+                    'date' => $lab->created_at->format('Y-m-d H:i'),
+                    'test' => $lab->panel?->name ?? 'Unknown Test',
+                    'status' => $lab->status,
+                    'sample_code' => $lab->sample?->sample_code ?? 'Pending',
+                    'results' => $results
+                ];
+            })
         ]);
     }
  

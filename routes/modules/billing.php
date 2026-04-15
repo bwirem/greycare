@@ -67,6 +67,9 @@ Route::prefix('billing2')->name('billing2.')->group(function () {
 // billing3: Sales History
 Route::prefix('billing3')->name('billing3.')->group(function () {
     Route::get('/', [BilSalesHistoryController::class, 'saleHistory'])->name('salehistory'); 
+    // --> ADD THIS LINE HERE (Before the {sale} routes) <--
+    Route::get('/export', [BilSalesHistoryController::class, 'export'])->name('export');
+    
     Route::get('/{sale}/preview', [BilSalesHistoryController::class, 'previewSale'])->name('preview');
     Route::put('/{sale}', [BilSalesHistoryController::class, 'postVoidSale'])->name('voidsale');  
     Route::get('/{sale}/print-invoice', [BilSalesHistoryController::class, 'printInvoice'])->name('print.invoice');

@@ -25,6 +25,7 @@ use App\Http\Controllers\Hospital\Doctor\DoctorIpdController;
 // Laboratory Controllers
 use App\Http\Controllers\Hospital\Laboratory\LabRequestController;
 use App\Http\Controllers\Hospital\Laboratory\LabResultController;
+use App\Http\Controllers\Hospital\Laboratory\LabHistoryController;
 
 // Radiology Controllers
 use App\Http\Controllers\Hospital\Radiology\RadRequestController;
@@ -300,6 +301,14 @@ Route::prefix('laboratory1')->name('laboratory1.')->group(function () {
 
     Route::post('/{sample}/reject', [LabResultController::class, 'rejectSample'])->name('reject_sample');
 });
+
+
+// --- laboratory2: Test History ---
+Route::prefix('laboratory2')->name('laboratory2.')->group(function () {
+    // List of Completed/Verified Tests with Filters
+    Route::get('/', [LabHistoryController::class, 'index'])->name('index');
+});
+
 
 
 

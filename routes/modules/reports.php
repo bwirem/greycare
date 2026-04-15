@@ -105,7 +105,13 @@ Route::prefix('reporting17')->name('reporting17.')->group(function () {
 
 Route::prefix('reports')->name('reports.')->group(function () {
     Route::get('/sales/daily', [SalesReportsController::class, 'daily'])->name('sales.daily');
+    // --> ADD THIS EXPORT ROUTE <--
+    Route::get('/sales/daily/export', [SalesReportsController::class, 'exportDaily'])->name('sales.daily.export');
+    
     Route::get('/sales/summary', [SalesReportsController::class, 'summary'])->name('sales.summary');        
+    // Add Export Route here:
+    Route::get('/sales/summary/export', [SalesReportsController::class, 'exportSummary'])->name('sales.summary.export');
+    
     Route::get('/sales/cashiersession', [SalesReportsController::class, 'cashierSession'])->name('sales.cashiersession');
     Route::get('/sales/by-item', [SalesReportsController::class, 'salesByItem'])->name('sales.by_item');
     Route::get('/payments/methods', [SalesReportsController::class, 'paymentMethods'])->name('payments.methods');        

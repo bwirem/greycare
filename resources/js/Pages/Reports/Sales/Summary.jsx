@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/FinanceLayout';
 import { Head, useForm } from '@inertiajs/react';
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFilter } from '@fortawesome/free-solid-svg-icons';
+import { faFilter, faFilePdf, faFileExcel } from '@fortawesome/free-solid-svg-icons'; // Added PDF/Excel icons
 
 const formatCurrency = (amount, currencyCode = 'TZS') => {
     const parsedAmount = parseFloat(amount);
@@ -32,6 +32,17 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
         });
     };
 
+    // Helper function to build export URLs cleanly without empty parameters
+    const getExportUrl = (format) => {
+        const params = { format };
+        if (data.start_date) params.start_date = data.start_date;
+        if (data.end_date) params.end_date = data.end_date;
+        if (data.group_by) params.group_by = data.group_by;
+        if (data.billinggroup_id) params.billinggroup_id = data.billinggroup_id;
+        
+        return route('reports.sales.summary.export', params);
+    };
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -43,7 +54,7 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6">
                         
-                        <form onSubmit={handleSubmit} className="mb-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+                        <form onSubmit={handleSubmit} className="mb-8 flex flex-wrap items-end gap-4">
                             <div>
                                 <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
                                 <input type="date" name="start_date" id="start_date" value={data.start_date} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" />
@@ -56,7 +67,7 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
                             
                             <div>
                                 <label htmlFor="group_by" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Group By</label>
-                                <select name="group_by" id="group_by" value={data.group_by} onChange={handleInputChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                                <select name="group_by" id="group_by" value={data.group_by} onChange={handleInputChange} className="mt-1 block w-full min-w-[150px] rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
                                     <option value="day">Day</option>
                                     <option value="week">Week</option>
                                     <option value="month">Month</option>
@@ -72,7 +83,7 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
                                     id="billinggroup_id" 
                                     value={data.billinggroup_id} 
                                     onChange={handleInputChange} 
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                                    className="mt-1 block w-full min-w-[200px] rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                                 >
                                     <option value="">All Billing Groups</option>
                                     {billingGroups && billingGroups.map((group) => (
@@ -87,6 +98,31 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
                                 <FontAwesomeIcon icon={faFilter} className="mr-2" />
                                 {processing ? 'Generating...' : 'Generate Report'}
                             </button>
+
+                            {/* Export Buttons */}
+                            <div className="flex items-center gap-2 ml-auto">
+                                <a 
+                                    href={getExportUrl('pdf')} 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                    title="Export to PDF"
+                                >
+                                    <FontAwesomeIcon icon={faFilePdf} className="mr-2 h-4 w-4 text-red-600" />
+                                    PDF
+                                </a>
+
+                                <a 
+                                    href={getExportUrl('excel')} 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                                    title="Export to Excel"
+                                >
+                                    <FontAwesomeIcon icon={faFileExcel} className="mr-2 h-4 w-4 text-green-600" />
+                                    Excel
+                                </a>
+                            </div>
                         </form>
 
                         {reportData && (
@@ -95,7 +131,6 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
                                     {reportData.report_title}
                                 </h3>
 
-                                {/* Adjusted grid layout to lg:grid-cols-4 so the 4 cards sit nicely */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow">
                                         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Dues Amount</p>
@@ -133,7 +168,6 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
                                                         { (reportData.group_by_selected === 'day' || reportData.group_by_selected === 'week' || reportData.group_by_selected === 'month') && (
                                                             <>
                                                                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Transactions</th>
-                                                                {/* Only show Total Dues if grouping by Period (since dues are invoice level) */}
                                                                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total Dues</th>
                                                             </>
                                                         )}
@@ -150,7 +184,6 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
                                                             { (reportData.group_by_selected === 'day' || reportData.group_by_selected === 'week' || reportData.group_by_selected === 'month') && (
                                                                 <>
                                                                     <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{row.transactions}</td>
-                                                                    {/* Render the row's Total Dues */}
                                                                     <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{formatCurrency(row.total_dues)}</td>
                                                                 </>
                                                             )}
@@ -169,12 +202,6 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
 
                             </div>
                         )}
-                         {!reportData && !processing && (
-                             <p className="text-center text-gray-500 dark:text-gray-400 mt-8">
-                                Please select criteria and generate the report.
-                            </p>
-                        )}
-
                     </div>
                 </div>
             </div>

@@ -24,6 +24,7 @@ import {
     faChartBar, faCog,
     // Setup Icons
     faFlask,
+    faHistory,
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -49,11 +50,11 @@ const allowedFinanceItemKeys = [
     //Theatre Module Items
     'theatre0', 'theatre1', 'theatre2', 'theatre3',
     //Laboratory Module Items
-    'laboratory0', 'laboratory1',
+    'laboratory0', 'laboratory1','laboratory2',
     //Blood Bank Module Items
     'bloodbank0', 'bloodbank1', 'bloodbank2',
     //Radiology Module Items
-    'radiology0', 'radiology1',
+    'radiology0', 'radiology1', 'radiology2',
     //Pharmacy Module Items
     'pharmacy0', 'pharmacy1',
 
@@ -142,6 +143,8 @@ const iconMap = {
     theatre_setup: faProcedures,   // Operating Theatre
     pharmacy_setup: faPills,       // Pharmacy
     blood_bank_setup: faTint,      // Blood Bank
+    test_history: faHistory,
+    imaging_history: faHistory,
 };
 
 // SidebarNavLink Component
