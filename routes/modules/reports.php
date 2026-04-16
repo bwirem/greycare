@@ -183,7 +183,10 @@ Route::prefix('reports')->name('reports.')->group(function () {
         // Future: Route::get('/procedures', ...);
         // --- NEW: Patient History Routes (using DoctorReportsController) ---
         Route::get('/patient-history', [DoctorReportsController::class, 'patientHistorySearch'])->name('patient_history');
+
         Route::get('/patient-history/{patientCode}', [DoctorReportsController::class, 'patientHistoryShow'])->name('patient_history.show');
+        Route::get('/patient/history/{patientCode}/export', [DoctorReportsController::class, 'exportPatientHistory'])->name('patient.history.export');
+        
         Route::get('/diagnosis', [DoctorReportsController::class, 'diagnosisReport'])->name('diagnosis');
     });   
     

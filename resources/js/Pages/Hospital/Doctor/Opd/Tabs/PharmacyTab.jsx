@@ -119,8 +119,29 @@ export default function PharmacyTab({
             
             {/* 1. Medication History (Posted Orders) */}
             {ordered_meds?.length > 0 && (
-                <div className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
-                    {/* ... (Existing ordered meds table code, leave as is) ... */}
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200 shadow-sm">
+                    <h4 className="font-bold text-green-800 text-sm mb-2 uppercase tracking-wide">Current Medications</h4>
+                    <ul className="text-sm space-y-1">
+                        {ordered_meds.map(rx => (
+                            <li key={rx.id} className="flex justify-between items-center border-b border-green-200 pb-1 last:border-0">
+                                <span>{rx.product?.name} ({rx.dosage} x {rx.frequency})</span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`font-bold text-xs ${rx.status === 'Dispensed' ? 'text-green-700' : 'text-yellow-700'}`}>{rx.status}</span>
+                                    {/* DELETE BUTTON for Initial Stage */}
+                                    {rx.status === 'Prescribed' && onDeleteOrder && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => onDeleteOrder(rx.id, 'pharmacy')} 
+                                            className="text-red-500 hover:text-red-700 ml-2" 
+                                            title="Delete Prescription"
+                                        >
+                                            <FontAwesomeIcon icon={faTrashAlt} />
+                                        </button>
+                                    )}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             )}
 

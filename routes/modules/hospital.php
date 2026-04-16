@@ -30,6 +30,7 @@ use App\Http\Controllers\Hospital\Laboratory\LabHistoryController;
 // Radiology Controllers
 use App\Http\Controllers\Hospital\Radiology\RadRequestController;
 use App\Http\Controllers\Hospital\Radiology\RadResultController;
+use App\Http\Controllers\Hospital\Radiology\RadHistoryController;
 
 // Pharmacy Controllers
 use App\Http\Controllers\Hospital\Pharmacy\PharmacyDispenseController;  
@@ -50,6 +51,8 @@ use App\Http\Controllers\BloodBank\BbCrossmatchController;
 
 // 1. Update the Import
 use App\Http\Controllers\Hospital\Clinical\NursingMedicationController;
+
+use App\Http\Controllers\Hospital\Consumables\ConsumablesDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -232,6 +235,12 @@ Route::prefix('nursing1')->name('nursing1.')->group(function () {
     Route::post('/record-vitals', [NursingMedicationController::class, 'storeVitals'])->name('store_vitals');
 });
 
+//
+Route::prefix('nursing4')->name('nursing4.')->group(function () {
+// The Dashboard page 
+    Route::get('/', [ConsumablesDashboardController::class, 'index'])->name('consumables.index');
+});    
+
 /*
 |--------------------------------------------------------------------------
 | Doctor Module Routes
@@ -344,6 +353,13 @@ Route::prefix('radiology1')->name('radiology1.')->group(function () {
     // View Final Report
     Route::get('/{report}/view', [RadResultController::class, 'show'])->name('show');
 });
+
+// --- radiology2: Imaging History---
+Route::prefix('radiology2')->name('radiology2.')->group(function () {
+    //List of completed/finalized studies with filters
+    Route::get('/', [RadHistoryController::class, 'index'])->name('index');
+});
+
 
 
 /*
@@ -528,6 +544,16 @@ Route::prefix('bloodbank2')->name('bloodbank2.')->group(function () {
     
     // Save the Crossmatch Result & Issue Bag
     Route::post('/{request}', [BbCrossmatchController::class, 'store'])->name('store');
+});
+
+
+Route::prefix('hospital')->name('hospital.')->group(function () {
+    
+    // The individual feature indexes (Make sure these exist)
+    Route::get('/requisitions', function() { /* ... */ })->name('requisitions.index');
+    Route::get('/receipts', function() { /* ... */ })->name('receipts.index');
+    Route::get('/usage', function() { /* ... */ })->name('usage.index');
+    Route::get('/disposals', function() { /* ... */ })->name('disposals.index');
 });
 
 

@@ -9,6 +9,11 @@ use Inertia\Response as InertiaResponse;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\PatientHistoryExport;
+use App\Models\Facility\FacilityOption;
+
 // Models
 use App\Models\Opd\OpdBooking;
 use App\Models\Ipd\IpdWardRound;
@@ -220,36 +225,64 @@ class DoctorReportsController extends Controller
     /**
      * 5. Patient History - Detailed Timeline
      */
-    public function patientHistoryShow($patientCode): \Inertia\Response
+    public function patientHistoryShow(\Illuminate\Http\Request $request, $patientCode): \Inertia\Response
     {
+        // 1. Get Dates from Request (Defaults to null/all-time)
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        // 2. Helper Closure to apply Date Filters to relationships
+        $filterByDate = function($query, $column = 'created_at') use ($startDate, $endDate) {
+            if ($startDate) {
+                $query->whereDate($column, '>=', $startDate);
+            }
+            if ($endDate) {
+                $query->whereDate($column, '<=', $endDate);
+            }
+        };
+
+        // 3. Fetch Patient with Filtered Relationships
         $patient = Patient::where('code', $patientCode)
             ->with([
-                // 1. Visits
-                'visits' => function($q) { 
+                // Visits
+                'visits' => function($q) use ($filterByDate) { 
+                    $filterByDate($q);
                     $q->with(['treatmentPoint', 'doctor', 'latestVitalSign'])->orderBy('created_at', 'desc');
                 },
-                'ipdAdmissions' => function($q) { 
+                // IPD (Uses admission_date instead of created_at)
+                'ipdAdmissions' => function($q) use ($filterByDate) { 
+                    $filterByDate($q, 'admission_date');
                     $q->with(['ward', 'user', 'dischargeSummary'])->orderBy('admission_date', 'desc');
                 },
-                
-                // 2. Meds
-                'prescriptions' => function($q) {
+                // Meds
+                'prescriptions' => function($q) use ($filterByDate) {
+                    $filterByDate($q);
                     $q->with('product')->orderBy('created_at', 'desc');
                 },
-
-                // 3. Labs (UPDATED: Added parameter and ranges for detailed view)
-                'labRequests.panel',
-                'labRequests.sample.results.parameter.ranges',
-
-                // 4. Diagnoses
-                'diagnosesConfirmed.diagnosis',
-                'icdDiagnosesConfirmed.icdDiagnosis'
+                // Labs
+                'labRequests' => function($q) use ($filterByDate) {
+                    $filterByDate($q);
+                    $q->with(['panel', 'sample.results.parameter.ranges']);
+                },
+                // Radiology
+                'radiologyRequests' => function($q) use ($filterByDate) {
+                    $filterByDate($q);
+                    $q->with(['procedure.modality', 'report']);
+                },
+                // Diagnoses
+                'diagnosesConfirmed' => function($q) use ($filterByDate) {
+                    $filterByDate($q);
+                    $q->with('diagnosis');
+                },
+                'icdDiagnosesConfirmed' => function($q) use ($filterByDate) {
+                    $filterByDate($q);
+                    $q->with('icdDiagnosis');
+                }
             ])
             ->firstOrFail();
 
         // --- Data Transformation ---
 
-        // A. Timeline (Merge OPD and IPD)
         $timeline = collect();
         
         foreach($patient->visits as $opd) {
@@ -274,7 +307,6 @@ class DoctorReportsController extends Controller
             ]);
         }
 
-        // B. Merged Diagnoses
         $diagnoses = collect();
         foreach($patient->diagnosesConfirmed as $d) {
             $diagnoses->push([
@@ -289,7 +321,60 @@ class DoctorReportsController extends Controller
             ]);
         }
 
-        // You can save the view file at resources/js/Pages/Reports/Patient/History.jsx
+        $investigations = collect();
+
+        foreach($patient->labRequests as $lab) {
+            $results = [];
+            if ($lab->sample && $lab->sample->results) {
+                $results = $lab->sample->results->map(function($res) {
+                    $rangeStr = 'N/A';
+                    if ($res->parameter && $res->parameter->ranges && $res->parameter->ranges->count() > 0) {
+                        $r = $res->parameter->ranges->first();
+                        $rangeStr = "M: {$r->male_min}-{$r->male_max} / F: {$r->female_min}-{$r->female_max}";
+                    }
+                    return [
+                        'id' => $res->id,
+                        'parameter' => $res->parameter?->name ?? 'Unknown',
+                        'value' => $res->result_value,
+                        'units' => $res->parameter?->units ?? '-',
+                        'range' => $rangeStr
+                    ];
+                });
+            }
+
+            $investigations->push([
+                'type' => 'LAB',
+                'id' => $lab->id,
+                'raw_date' => $lab->created_at,
+                'date' => $lab->created_at->format('Y-m-d H:i'),
+                'test' => $lab->panel?->name ?? 'Unknown Lab Test',
+                'status' => $lab->status,
+                'identifier' => $lab->sample?->sample_code ?? 'Pending',
+                'results' => $results,
+                'report' => null
+            ]);
+        }
+
+        foreach($patient->radiologyRequests as $rad) {
+            $investigations->push([
+                'type' => 'RAD',
+                'id' => $rad->id,
+                'raw_date' => $rad->created_at,
+                'date' => $rad->created_at->format('Y-m-d H:i'),
+                'test' => $rad->procedure?->name ?? 'Unknown Imaging',
+                'modality' => $rad->procedure?->modality?->name ?? 'Imaging',
+                'status' => $rad->status,
+                'identifier' => $rad->accession_number ?? 'Pending',
+                'results' => [], 
+                'report' => $rad->report ? [
+                    'findings' => $rad->report->findings,
+                    'impression' => $rad->report->impression,
+                    'suggestion' => $rad->report->suggestion,
+                    'finalized_at' => $rad->report->updated_at->format('Y-m-d H:i')
+                ] : null
+            ]);
+        }
+
         return \Inertia\Inertia::render('Reports/Patient/History', [
             'patient' => [
                 'code' => $patient->code,                
@@ -308,38 +393,114 @@ class DoctorReportsController extends Controller
                 'dose' => "{$rx->dosage} {$rx->frequency} x {$rx->duration}",
                 'qty'  => $rx->quantity_prescribed
             ]),
-            
-            // UPDATED: Map Lab Results Detailed Data
-            'labs' => $patient->labRequests->map(function($lab) {
-                $results = [];
-                if ($lab->sample && $lab->sample->results) {
-                    $results = $lab->sample->results->map(function($res) {
-                        $rangeStr = 'N/A';
-                        if ($res->parameter && $res->parameter->ranges && $res->parameter->ranges->count() > 0) {
-                            $r = $res->parameter->ranges->first();
-                            $rangeStr = "M: {$r->male_min}-{$r->male_max} / F: {$r->female_min}-{$r->female_max}";
-                        }
-
-                        return [
-                            'id' => $res->id,
-                            'parameter' => $res->parameter?->name ?? 'Unknown',
-                            'value' => $res->result_value,
-                            'units' => $res->parameter?->units ?? '-',
-                            'range' => $rangeStr
-                        ];
-                    });
-                }
-
-                return [
-                    'id' => $lab->id,
-                    'date' => $lab->created_at->format('Y-m-d H:i'),
-                    'test' => $lab->panel?->name ?? 'Unknown Test',
-                    'status' => $lab->status,
-                    'sample_code' => $lab->sample?->sample_code ?? 'Pending',
-                    'results' => $results
-                ];
-            })
+            'investigations' => $investigations->sortByDesc('raw_date')->values(),
+            // Return filters back to view
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date'   => $endDate
+            ]
         ]);
+    }
+
+    /**
+     * 5.5 Export Patient History to PDF or Excel
+     */
+    public function exportPatientHistory(Request $request, $patientCode)
+    {
+        $validated = $request->validate([
+            'start_date' => 'nullable|date_format:Y-m-d',
+            'end_date'   => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
+            'format'     => 'required|in:pdf,excel',
+        ]);
+
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $format = $validated['format'];
+
+        $filterByDate = function($query, $column = 'created_at') use ($startDate, $endDate) {
+            if ($startDate) $query->whereDate($column, '>=', $startDate);
+            if ($endDate) $query->whereDate($column, '<=', $endDate);
+        };
+
+        // Re-fetch Data Exact Same Way
+        $patient = Patient::where('code', $patientCode)
+            ->with([
+                'visits' => function($q) use ($filterByDate) { 
+                    $filterByDate($q); $q->with(['treatmentPoint', 'doctor', 'latestVitalSign'])->orderBy('created_at', 'desc');
+                },
+                'ipdAdmissions' => function($q) use ($filterByDate) { 
+                    $filterByDate($q, 'admission_date'); $q->with(['ward', 'user', 'dischargeSummary'])->orderBy('admission_date', 'desc');
+                },
+                'prescriptions' => function($q) use ($filterByDate) {
+                    $filterByDate($q); $q->with('product')->orderBy('created_at', 'desc');
+                },
+                'labRequests' => function($q) use ($filterByDate) {
+                    $filterByDate($q); $q->with(['panel', 'sample.results.parameter.ranges']);
+                },
+                'radiologyRequests' => function($q) use ($filterByDate) {
+                    $filterByDate($q); $q->with(['procedure.modality', 'report']);
+                },
+                'diagnosesConfirmed' => function($q) use ($filterByDate) {
+                    $filterByDate($q); $q->with('diagnosis');
+                },
+                'icdDiagnosesConfirmed' => function($q) use ($filterByDate) {
+                    $filterByDate($q); $q->with('icdDiagnosis');
+                }
+            ])->firstOrFail();
+
+        // Process Timeline
+        $timeline = collect();
+        foreach($patient->visits as $opd) {
+            $timeline->push(['type' => 'OPD', 'date' => $opd->created_at, 'date_str' => $opd->created_at->format('Y-m-d H:i'), 'location' => $opd->treatmentPoint?->name ?? 'General', 'doctor' => $opd->doctor?->name ?? $opd->DoctorName ?? 'Unassigned', 'vitals' => $opd->latestVitalSign ? "BP: {$opd->latestVitalSign->systolic}/{$opd->latestVitalSign->diastolic}" : '-']);
+        }
+        foreach($patient->ipdAdmissions as $ipd) {
+            $timeline->push(['type' => 'IPD', 'date' => \Carbon\Carbon::parse($ipd->admission_date), 'date_str' => \Carbon\Carbon::parse($ipd->admission_date)->format('Y-m-d'), 'location' => $ipd->ward?->name ?? 'Ward', 'doctor' => $ipd->user?->name ?? 'Unassigned', 'outcome' => $ipd->dischargeSummary?->outcome ?? $ipd->status]);
+        }
+
+        // Process Diagnoses
+        $diagnoses = collect();
+        foreach($patient->diagnosesConfirmed as $d) {
+            $diagnoses->push(['date' => $d->created_at->format('Y-m-d'), 'name' => $d->diagnosis?->name ?? $d->diagnosisdescription]);
+        }
+        foreach($patient->icdDiagnosesConfirmed as $d) {
+            $diagnoses->push(['date' => $d->created_at->format('Y-m-d'), 'name' => ($d->icdDiagnosis?->name ?? 'Unknown') . ' (' . ($d->icdDiagnosis?->code ?? '-') . ')']);
+        }
+
+        // Process Medications
+        $medications = $patient->prescriptions->map(fn($rx) => [
+            'date' => $rx->created_at->format('Y-m-d'), 'drug' => $rx->product?->name ?? 'Unknown', 'dose' => "{$rx->dosage} {$rx->frequency} x {$rx->duration}", 'qty'  => $rx->quantity_prescribed
+        ]);
+
+        // Process Investigations
+        $investigations = collect();
+        foreach($patient->labRequests as $lab) {
+            $investigations->push(['type' => 'LAB', 'raw_date' => $lab->created_at, 'date' => $lab->created_at->format('Y-m-d H:i'), 'test' => $lab->panel?->name ?? 'Unknown Lab Test', 'status' => $lab->status]);
+        }
+        foreach($patient->radiologyRequests as $rad) {
+            $investigations->push(['type' => 'RAD', 'raw_date' => $rad->created_at, 'date' => $rad->created_at->format('Y-m-d H:i'), 'test' => $rad->procedure?->name ?? 'Unknown Imaging', 'status' => $rad->status]);
+        }
+
+        $facility = FacilityOption::first();
+        $filename = "Medical_Record_{$patient->code}_" . date('Y_m_d');
+
+        $viewData = [
+            'facility' => $facility,
+            'patient' => [
+                'code' => $patient->code, 'name' => $patient->first_name . ' ' . $patient->last_name, 'age' => $patient->age, 'gender' => $patient->gender, 'phone' => $patient->phone_number, 'dob' => $patient->date_of_birth ? $patient->date_of_birth->format('d M Y') : 'N/A', 'address' => $patient->address ?? $patient->city,
+            ],
+            'timeline' => $timeline->sortByDesc('date')->values(),
+            'diagnoses' => $diagnoses->sortByDesc('date')->values(),
+            'medications' => $medications,
+            'investigations' => $investigations->sortByDesc('raw_date')->values(),
+            'filters' => ['start_date' => $startDate, 'end_date' => $endDate]
+        ];
+
+        if ($format === 'pdf') {
+            $pdf = Pdf::loadView('pdfs.patient_history_report', $viewData);
+            return $pdf->stream("{$filename}.pdf");
+        } else {
+            return Excel::download(new PatientHistoryExport($viewData), "{$filename}.xlsx");
+        }
     }
  
     /**

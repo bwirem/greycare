@@ -25,6 +25,7 @@ import {
     // Setup Icons
     faFlask,
     faHistory,
+    faBoxOpen,
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -44,17 +45,19 @@ const allowedFinanceItemKeys = [
     //Inpatient Module Items
     'inpatient0', 'inpatient1', 'inpatient2', 
     //Nursing Module Items
-    'nursing0', 'nursing1', 'nursing2',
+    'nursing0', 'nursing1', 'nursing2', 'nursing3', 'nursing4',
     //Doctor Module Items
     'doctor0', 'doctor1', 'doctor2', 'doctor3',
     //Theatre Module Items
-    'theatre0', 'theatre1', 'theatre2', 'theatre3',
+    'theatre0', 'theatre1', 'theatre2', 'theatre3', 'theatre4',
+    //Physiotherapy Module Items
+    'physiotherapy0', 'physiotherapy1', 'physiotherapy2',
     //Laboratory Module Items
-    'laboratory0', 'laboratory1','laboratory2',
+    'laboratory0', 'laboratory1','laboratory2', 'laboratory3',
     //Blood Bank Module Items
-    'bloodbank0', 'bloodbank1', 'bloodbank2',
+    'bloodbank0', 'bloodbank1', 'bloodbank2', 'bloodbank3',
     //Radiology Module Items
-    'radiology0', 'radiology1', 'radiology2',
+    'radiology0', 'radiology1', 'radiology2', 'radiology3',
     //Pharmacy Module Items
     'pharmacy0', 'pharmacy1',
 
@@ -145,6 +148,7 @@ const iconMap = {
     blood_bank_setup: faTint,      // Blood Bank
     test_history: faHistory,
     imaging_history: faHistory,
+    box_open: faBoxOpen,
 };
 
 // SidebarNavLink Component

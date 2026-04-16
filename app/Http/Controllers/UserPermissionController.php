@@ -270,7 +270,10 @@ class UserPermissionController extends Controller
             'nursing' => [
                 ['key' => 'nursing0', 'text' => 'Patient Vitals', 'icon' => 'thermometer'],
                 ['key' => 'nursing1', 'text' => 'Medication Admin', 'icon' => 'pills'],
-                ['key' => 'nursing2', 'text' => 'Nursing Notes', 'icon' => 'notes_medical'],                               
+                ['key' => 'nursing2', 'text' => 'Nursing Notes', 'icon' => 'notes_medical'], 
+                ['key' => 'nursing3', 'text' => 'Shift Handover', 'icon' => 'handshake'],
+                ['key' => 'nursing4', 'text' => 'Consumables', 'icon' => 'box_open'],
+
             ],
             'doctor' => [
                 ['key' => 'doctor0', 'text' => 'Patient Visits', 'icon' => 'clipboard_user'],
@@ -282,26 +285,31 @@ class UserPermissionController extends Controller
                 ['key' => 'theatre0', 'text' => 'Minor Theatre', 'icon' => 'cut'],
                 ['key' => 'theatre1', 'text' => 'Surgery Scheduling', 'icon' => 'calendar_check'],
                 ['key' => 'theatre2', 'text' => 'Surgery Records', 'icon' => 'file_medical_alt'],   
-                ['key' => 'theatre3', 'text' => 'Post-Operative Care', 'icon' => 'procedures'],                             
+                ['key' => 'theatre3', 'text' => 'Post-Operative Care', 'icon' => 'procedures'], 
+                 ['key' =>'theatre4', 'text' => 'Consumables', 'icon' => 'box_open'],                            
             ],
             'physiotherapy' => [
                 ['key' => 'physiotherapy0', 'text' => 'Therapy Sessions', 'icon' => 'hands_helping'],
-                ['key' => 'physiotherapy1', 'text' => 'Progress Notes', 'icon' => 'notes_medical'],                
+                ['key' => 'physiotherapy1', 'text' => 'Progress Notes', 'icon' => 'notes_medical'],  
+                ['key' => 'physiotherapy2', 'text' => 'Consumables', 'icon' => 'box_open'],             
             ],
             'laboratory' => [
                 ['key' => 'laboratory0', 'text' => 'Test Requests', 'icon' => 'vials'],
                 ['key' => 'laboratory1', 'text' => 'Test Results', 'icon' => 'poll'],
                 ['key' => 'laboratory2', 'text' => 'Test History', 'icon' => 'test_history'],
+                ['key' => 'laboratory3', 'text' => 'Consumables', 'icon' => 'box_open'],
             ],
             'blood-bank' => [
                 ['key' => 'bloodbank0', 'text' => 'Donor Management', 'icon' => 'hand_holding_heart'],
                 ['key' => 'bloodbank1', 'text' => 'Blood Inventory', 'icon' => 'vial'],   
-                ['key' => 'bloodbank2', 'text' => 'Transfusion Records', 'icon' => 'syringe'],             
+                ['key' => 'bloodbank2', 'text' => 'Transfusion Records', 'icon' => 'syringe'],
+                ['key' => 'bloodbank3', 'text' => 'Consumables', 'icon' => 'box_open'],            
             ],
             'radiology' => [
                 ['key' => 'radiology0', 'text' => 'Imaging Requests', 'icon' => 'x_ray'],
                 ['key' => 'radiology1', 'text' => 'Imaging Results', 'icon' => 'images'],
-                ['key' => 'radiology2', 'text' => 'Imaging History', 'icon' => 'imaging_history'],             
+                ['key' => 'radiology2', 'text' => 'Imaging History', 'icon' => 'imaging_history'                ],
+                ['key' => 'radiology3', 'text' => 'Consumables', 'icon' => 'box_open'],
             ],
             'pharmacy' => [
                 ['key' => 'pharmacy0', 'text' => 'Drug Dispensing', 'icon' => 'capsule'],
@@ -312,7 +320,8 @@ class UserPermissionController extends Controller
                 ['key' => 'rch1', 'text' => 'Antenatal Care', 'icon' => 'baby'],
                 ['key' => 'rch2', 'text' => 'Postnatal Care', 'icon' => 'hand_holding_medical'],
                 ['key' => 'rch3', 'text' => 'Child Health', 'icon' => 'child'],
-                ['key' => 'rch4', 'text' => 'Immunizations', 'icon' => 'syringe'],                
+                ['key' => 'rch4', 'text' => 'Immunizations', 'icon' => 'syringe'], 
+                ['key' => 'rch5', 'text' => 'Consumables', 'icon' => 'box_open'],              
             ],
             'hivart' => [
                 ['key' => 'hivart0', 'text' => 'Patient Enrollment', 'icon' => 'id_card'],
