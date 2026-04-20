@@ -181,12 +181,21 @@ class RchAntenatalController extends Controller
             if ($pregnancy) {
                 $preselected = $pregnancy;
 
-                $history['labs'] = LabPrescription::with(['panel', 'rejectionLog.reason'])
+                // UPDATED: Eager load sample, results, parameters, and ranges
+                $history['labs'] = LabPrescription::with([
+                        'panel', 
+                        'rejectionLog.reason',
+                        'sample.results.parameter.ranges'
+                    ])
                     ->where('patientcode', $pregnancy->patient_code)
                     ->whereDate('created_at', '>=', Carbon::today()->subDays(2))
                     ->latest()->get();
                 
-                $history['rads'] = RadRequest::with(['procedure'])
+                // UPDATED: Eager load modality and report
+                $history['rads'] = RadRequest::with([
+                        'procedure.modality',
+                        'report'
+                    ])
                     ->where('patientcode', $pregnancy->patient_code)
                     ->whereDate('created_at', '>=', Carbon::today()->subDays(2))
                     ->latest()->get();
@@ -407,11 +416,20 @@ class RchAntenatalController extends Controller
 
         // 3. Fetch Existing Orders ONLY if an OPD Booking is linked
         if ($visit->opd_booking_id) {
-            $history['labs'] = LabPrescription::with(['panel', 'rejectionLog.reason'])
+            // UPDATED: Eager load sample, results, parameters, and ranges for the modal view
+            $history['labs'] = LabPrescription::with([
+                    'panel', 
+                    'rejectionLog.reason',
+                    'sample.results.parameter.ranges'
+                ])
                 ->where('opd_booking_id', $visit->opd_booking_id)
                 ->get();
             
-            $history['rads'] = RadRequest::with(['procedure'])
+            // UPDATED: Eager load modality and the report for the modal view
+            $history['rads'] = RadRequest::with([
+                    'procedure.modality',
+                    'report'
+                ])
                 ->where('opd_booking_id', $visit->opd_booking_id)
                 ->get();
 
@@ -421,7 +439,6 @@ class RchAntenatalController extends Controller
         }
 
         // 4. Fetch Dropdowns for the "Add New" forms
-        // Ensure these tables exist and have data
         $options = [
             'lab' => LabPanel::select('id', 'name as label', 'id as value')->orderBy('name')->get(),
             'rad' => RadProcedure::select('id', 'name as label', 'id as value')->orderBy('name')->get(),

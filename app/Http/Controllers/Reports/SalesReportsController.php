@@ -9,6 +9,7 @@ use App\Models\Billing\BILSaleItem;
 use App\Models\Billing\BLSItemGroup;
 use App\Models\Billing\BLSPaymentType;
 use App\Models\Billing\BILCollection;
+use App\Models\Billing\BILRefund;
 use App\Models\Billing\BLSItem;
 use App\Models\Billing\BLSCustomer;
 use App\Models\Patient\PatientBillingGroup;
@@ -21,6 +22,10 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DailySalesExport;
 use App\Exports\SalesSummaryExport;
 use App\Models\Facility\FacilityOption;
+
+use App\Enums\{
+    BillingTransTypes,PaymentSources,VoidSources
+};
 
 
 use Carbon\Carbon;
@@ -477,6 +482,7 @@ class SalesReportsController extends Controller
      * Generate a session report for a specific cashier.
      */
     
+    
     public function cashierSession(Request $request): InertiaResponse
     {
         $validated = $request->validate([
@@ -485,59 +491,136 @@ class SalesReportsController extends Controller
             'start_date' => 'nullable|date_format:Y-m-d',
             'end_date'   => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
         ]);
+
         $cashierId = $validated['user_id'] ?? null;
-        $storeId = $validated['store_id'] ?? null;
+        $storeId   = $validated['store_id'] ?? null;
         $startDate = Carbon::parse($validated['start_date'] ?? Carbon::today())->startOfDay();
-        $endDate   = Carbon::parse($validated['end_date']   ?? Carbon::today())->endOfDay();
+        $endDate   = Carbon::parse($validated['end_date'] ?? Carbon::today())->endOfDay();
+        
         $reportData = null;
 
         if ($cashierId) {
+
             $cashier = User::findOrFail($cashierId);
-            $salesQuery = BILSale::where('user_id', $cashierId)
-                ->whereBetween('transdate', [$startDate, $endDate])
-                ->where('voided', '!=', 1);
+            
+            $getSummary = function($source,$transtype) use ($cashierId, $startDate, $endDate) {
+               
+                $cash = DB::raw('SUM(COALESCE(paytype000001, 0)) as cash');
+                $advance =  DB::raw('SUM(COALESCE(paytype000003, 0)) as advance');
+                if($transtype == BillingTransTypes::Refund->value)
+                {
+                    $cash = DB::raw('-SUM(COALESCE(paytype000001, 0)) as cash');
+                    $advance =  DB::raw('-SUM(COALESCE(paytype000003, 0)) as advance');
+                }
+            
+                $totals = DB::table('bil_collections')
+                    ->where('user_id', $cashierId)
+                    ->whereBetween('transdate', [$startDate, $endDate])
+                    ->where('paymentsource', $source)
+                    ->where('transtype', $transtype) // 'Payment' or 'Refund'
+                    ->select(
+                       $cash,
+                       $advance,                        
+                    )->first();
 
-            $salesSummaries = (clone $salesQuery)->select(DB::raw('SUM(totaldue) as total_gross'), DB::raw('SUM(discount) as total_disc'), DB::raw('SUM(totalpaid) as total_paid'), DB::raw('COUNT(id) as transaction_count'))->first();
-            $paymentsBreakdown = $this->getDynamicPaymentBreakdown($startDate, $endDate, $cashierId, $storeId);
+                $c = (float) ($totals->cash ?? 0);
+                $a = (float) ($totals->advance ?? 0);
+                $d = (float) ($totals->debt_relief ?? 0);
 
-            $reportData = [
-                'cashier_name' => $cashier->name,
-                'start_date_formatted' => $startDate->format('F d, Y H:i A'),
-                'end_date_formatted' => $endDate->format('F d, Y H:i A'),
-                'total_gross_sales' => (float) $salesSummaries->total_gross,
-                'total_discounts' => (float) $salesSummaries->total_disc,
-                'total_net_sales' => (float) $salesSummaries->total_gross - (float) $salesSummaries->total_disc,
-                'number_of_transactions' => (int) $salesSummaries->transaction_count,
-                'payments_by_type' => $paymentsBreakdown,
+                return ['cash' => $c, 'advance' => $a, 'debt_relief' => $d, 'total' => $c + $a + $d];
+            };
+           
+
+            // ============================================================
+            // 1. FROM SALES 
+            // ============================================================
+            
+            $salesCollected = $getSummary(PaymentSources::CashSale->value,BillingTransTypes::Payment->value);
+            $salesRefunds   = $getSummary(PaymentSources::CashSale->value,BillingTransTypes::Refund->value);
+            
+
+            // C. Sales Balance
+            $salesBalance = [
+                'cash'        => $salesCollected['cash'] - $salesRefunds['cash'],
+                'advance'     => $salesCollected['advance'] - $salesRefunds['advance'],
+                'debt_relief' => $salesCollected['debt_relief'] - $salesRefunds['debt_relief'],
+                'total'       => $salesCollected['total'] - $salesRefunds['total'],
+            ];
+
+
+            // ============================================================
+            // 2. FROM DEBTORS 
+            // ============================================================
+            
+            $debtorsCollected = $getSummary(PaymentSources::InvoicePayment->value,BillingTransTypes::Payment->value);
+            $debtorsRefunds   = $getSummary(VoidSources::InvoicePayment->value,BillingTransTypes::Refund->value);
+            
+            $debtorsBalance   = [
+                'cash'        => $debtorsCollected['cash'] - $debtorsRefunds['cash'],
+                'advance'     => $debtorsCollected['advance'] - $debtorsRefunds['advance'],
+                'debt_relief' => $debtorsCollected['debt_relief'] - $debtorsRefunds['debt_relief'],
+                'total'       => $debtorsCollected['total'] - $debtorsRefunds['total'],
+            ];
+
+
+            // ============================================================
+            // 3. GRAND TOTALS (Sales + Debtors)
+            // ============================================================
+            
+            $addTotals = function($a, $b) {
+                return [
+                    'cash'        => $a['cash'] + $b['cash'],
+                    'advance'     => $a['advance'] + $b['advance'],
+                    'debt_relief' => $a['debt_relief'] + $b['debt_relief'],
+                    'total'       => $a['total'] + $b['total'],
+                ];
+            };
+
+            $grandCollected = $addTotals($salesCollected, $debtorsCollected);
+            $grandRefunds   = $addTotals($salesRefunds, $debtorsRefunds);
+            
+            $grandBalance   = [
+                'cash'        => $grandCollected['cash'] - $grandRefunds['cash'],
+                'advance'     => $grandCollected['advance'] - $grandRefunds['advance'],
+                'debt_relief' => $grandCollected['debt_relief'] - $grandRefunds['debt_relief'],
+                'total'       => $grandCollected['total'] - $grandRefunds['total'],
+            ];
+
+            // ============================================================
+            // 4. PREPARE PAYLOAD
+            // ============================================================
+            $reportData = [   
                 
-                // --- FIX IS HERE: Restored the mapping logic and added 'items' to with() ---
-                'detailed_transactions' => (clone $salesQuery)->with(['customer', 'items'])->orderBy('transdate', 'asc')->get()->map(function($sale) {
-                    $customerName = 'N/A';
-                    if ($sale->customer) {
-                        $customerName = $sale->customer->customer_type === 'individual'
-                            ? trim("{$sale->customer->first_name} {$sale->customer->other_names} {$sale->customer->surname}")
-                            : $sale->customer->company_name;
-                        if (empty(trim($customerName))) $customerName = 'N/A';
-                    }
-                    return [
-                        'id' => $sale->id,
-                        'receipt_no' => $sale->receiptno,
-                        'transdate' => Carbon::parse($sale->transdate)->format('H:i:s'),
-                        'customer_name' => $customerName,
-                        'total_due' => (float) $sale->totaldue,
-                        'discount' => (float) $sale->discount,
-                        'total_paid' => (float) $sale->totalpaid,
-                        'items_count' => $sale->items->sum('quantity'),
-                    ];
-                }),
+                'sections' => [
+                    'sales' => [
+                        'collected' => $salesCollected,
+                        'refunds'   => $salesRefunds,
+                        'balance'   => $salesBalance,
+                    ],
+                    'debtors' => [
+                        'collected' => $debtorsCollected,
+                        'refunds'   => $debtorsRefunds,
+                        'balance'   => $debtorsBalance,
+                    ],
+                    'totals' => [
+                        'collected' => $grandCollected,
+                        'refunds'   => $grandRefunds,
+                        'balance'   => $grandBalance,
+                    ]
+                ]
             ];
         }
 
         return Inertia::render('Reports/Sales/CashierSession', [
             'reportData' => $reportData,
             'users' => User::orderBy('name')->get(['id', 'name']),
-            'stores' => SIV_Store::orderBy('name')->get(['id', 'name']),
-            'filters' => ['user_id' => $cashierId, 'store_id' => $storeId, 'start_date' => $startDate->format('Y-m-d'), 'end_date' => $endDate->format('Y-m-d')]
+            'stores' => SIV_Store::orderBy('name')->get(['id', 'name']), // Match your actual Store model
+            'filters' => [
+                'user_id' => $cashierId, 
+                'store_id' => $storeId, 
+                'start_date' => $startDate->format('Y-m-d'), 
+                'end_date' => $endDate->format('Y-m-d')
+            ]
         ]);
     }
 

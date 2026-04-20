@@ -4,13 +4,15 @@ import { Head, Link, useForm, router } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faSave, faSpinner, faStethoscope, faVial, 
-    faFlask, faXRay, faNotesMedical, faEye 
+    faFlask, faXRay, faNotesMedical, faEye,
+    faUserCircle, faCheckCircle, faPrint // New imports for the modal
 } from '@fortawesome/free-solid-svg-icons';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
+import Modal from '@/Components/Modal'; // Added Modal
+import SecondaryButton from '@/Components/SecondaryButton'; // Added SecondaryButton
 
-// --- SUB-COMPONENTS MOVED OUTSIDE TO PREVENT RE-RENDER ISSUES ---
-
+// --- CLINICAL TAB ---
 const ClinicalTab = ({ data, setData, errors }) => {
     return (
         <div className="space-y-6 animate-fade-in">
@@ -98,7 +100,8 @@ const ClinicalTab = ({ data, setData, errors }) => {
     );
 };
 
-const OrdersTab = ({ data, setData, options, history }) => {
+// --- ORDERS TAB ---
+const OrdersTab = ({ data, setData, options, history, setViewItem }) => {
     
     const addOrder = (field, item) => {
         if (field === 'lab_requests' && data.lab_requests.find(x => x.panel_id === item.panel_id)) return toast.warning("Lab already added.");
@@ -113,6 +116,9 @@ const OrdersTab = ({ data, setData, options, history }) => {
         setData(field, list);
     };
 
+    // Helper to determine if status implies "done"
+    const isCompleted = (status) => ['verified', 'completed', 'finalized', 'reported'].includes(status?.toLowerCase());
+
     return (
         <div className="space-y-8 animate-fade-in">
             {(history?.labs?.length > 0 || history?.rads?.length > 0 || history?.surgeries?.length > 0) && (
@@ -120,14 +126,51 @@ const OrdersTab = ({ data, setData, options, history }) => {
                     <h3 className="font-bold text-gray-700 mb-3 uppercase text-xs tracking-wider border-b pb-2">Active Orders & History</h3>
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                            <tr><th className="p-3">Type</th><th className="p-3">Details</th><th className="p-3">Status</th></tr>
+                            <tr>
+                                <th className="p-3 w-16">Type</th>
+                                <th className="p-3">Details</th>
+                                <th className="p-3 w-32">Status</th>
+                                <th className="p-3 w-24 text-right">Action</th>
+                            </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
+                            {/* Labs History */}
                             {history.labs.map(l => (
-                                <tr key={`l-${l.id}`}><td className="p-3"><span className="bg-purple-100 text-purple-800 text-[10px] px-2 py-1 rounded font-bold">LAB</span></td><td className="p-3">{l.panel?.name}</td><td className="p-3"><span className="text-xs px-2 py-1 bg-blue-50 rounded">{l.status}</span></td></tr>
+                                <tr key={`l-${l.id}`} className="hover:bg-gray-50">
+                                    <td className="p-3"><span className="bg-purple-100 text-purple-800 text-[10px] px-2 py-1 rounded font-bold">LAB</span></td>
+                                    <td className="p-3 font-medium">{l.panel?.name}</td>
+                                    <td className="p-3">
+                                        <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase ${isCompleted(l.status) ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                            {l.status}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-right">
+                                        {isCompleted(l.status) && l.sample?.results?.length > 0 && (
+                                            <button type="button" onClick={() => setViewItem({ type: 'LAB', ...l })} className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center justify-end w-full">
+                                                <FontAwesomeIcon icon={faEye} className="mr-1"/> View
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
                             ))}
+                            {/* Radiology History */}
                             {history.rads.map(r => (
-                                <tr key={`r-${r.id}`}><td className="p-3"><span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 rounded font-bold">RAD</span></td><td className="p-3">{r.procedure?.name}</td><td className="p-3"><span className="text-xs px-2 py-1 bg-blue-50 rounded">{r.status}</span></td></tr>
+                                <tr key={`r-${r.id}`} className="hover:bg-gray-50">
+                                    <td className="p-3"><span className="bg-orange-100 text-orange-800 text-[10px] px-2 py-1 rounded font-bold">RAD</span></td>
+                                    <td className="p-3 font-medium">{r.procedure?.name}</td>
+                                    <td className="p-3">
+                                        <span className={`text-[10px] px-2 py-1 rounded font-bold uppercase ${isCompleted(r.status) ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                            {r.status}
+                                        </span>
+                                    </td>
+                                    <td className="p-3 text-right">
+                                        {isCompleted(r.status) && r.report && (
+                                            <button type="button" onClick={() => setViewItem({ type: 'RAD', ...r })} className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center justify-end w-full">
+                                                <FontAwesomeIcon icon={faEye} className="mr-1"/> View
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
                             ))}
                         </tbody>
                     </table>
@@ -135,16 +178,16 @@ const OrdersTab = ({ data, setData, options, history }) => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                <div className="border border-gray-200 p-4 rounded-lg bg-gray-50 shadow-sm">
                     <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2"><FontAwesomeIcon icon={faFlask} className="text-purple-600" /> Order Lab Test</h4>
                     <Select options={options?.lab} onChange={opt => addOrder('lab_requests', { panel_id: opt.value, name: opt.label })} placeholder="Select Lab Panel..." value={null} styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body} />
-                    <div className="mt-3 space-y-1">{data.lab_requests.map((l, i) => (<div key={i} className="flex justify-between p-2 bg-white border rounded text-xs"><span>{l.name}</span><button type="button" onClick={()=>removeOrder('lab_requests', i)} className="text-red-500 font-bold">✕</button></div>))}</div>
+                    <div className="mt-3 space-y-1">{data.lab_requests.map((l, i) => (<div key={i} className="flex justify-between items-center p-2 bg-white border rounded text-xs font-medium"><span>{l.name}</span><button type="button" onClick={()=>removeOrder('lab_requests', i)} className="text-red-500 font-bold hover:text-red-700">✕</button></div>))}</div>
                 </div>
 
-                <div className="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                <div className="border border-gray-200 p-4 rounded-lg bg-gray-50 shadow-sm">
                     <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2"><FontAwesomeIcon icon={faXRay} className="text-orange-600" /> Order Radiology</h4>
                     <Select options={options?.rad} onChange={opt => addOrder('rad_requests', { procedure_id: opt.value, name: opt.label })} placeholder="Select Procedure..." value={null} styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body} />
-                    <div className="mt-3 space-y-1">{data.rad_requests.map((r, i) => (<div key={i} className="flex justify-between p-2 bg-white border rounded text-xs"><span>{r.name}</span><button type="button" onClick={()=>removeOrder('rad_requests', i)} className="text-red-500 font-bold">✕</button></div>))}</div>
+                    <div className="mt-3 space-y-1">{data.rad_requests.map((r, i) => (<div key={i} className="flex justify-between items-center p-2 bg-white border rounded text-xs font-medium"><span>{r.name}</span><button type="button" onClick={()=>removeOrder('rad_requests', i)} className="text-red-500 font-bold hover:text-red-700">✕</button></div>))}</div>
                 </div>
             </div>
             
@@ -171,6 +214,9 @@ export default function CreateVisit({ auth, preselectedPregnancy, options, histo
     const [patientOptions, setPatientOptions] = useState([]);
     const [activePregnancy, setActivePregnancy] = useState(preselectedPregnancy || null);
     const [activeTab, setActiveTab] = useState('clinical'); 
+    
+    // --- MODAL STATE ---
+    const [viewItem, setViewItem] = useState(null);
 
     const { data, setData, post, processing, errors } = useForm({
         pregnancy_id: preselectedPregnancy?.id || '',
@@ -219,6 +265,9 @@ export default function CreateVisit({ auth, preselectedPregnancy, options, histo
         });
     };
 
+    // Helper to get patient details for the modal
+    const patient = activePregnancy?.patient;
+
     return (
         <AuthenticatedLayout user={auth.user} header={<h2 className="text-xl font-semibold text-gray-800">New ANC Visit</h2>}>
             <Head title="ANC Visit" />
@@ -263,7 +312,7 @@ export default function CreateVisit({ auth, preselectedPregnancy, options, histo
                                 {activeTab === 'clinical' ? (
                                     <ClinicalTab data={data} setData={setData} errors={errors} />
                                 ) : (
-                                    <OrdersTab data={data} setData={setData} options={options} history={history} />
+                                    <OrdersTab data={data} setData={setData} options={options} history={history} setViewItem={setViewItem} />
                                 )}
 
                                 <div className="flex justify-between items-center border-t mt-8 pt-4">
@@ -280,6 +329,134 @@ export default function CreateVisit({ auth, preselectedPregnancy, options, histo
                     )}
                 </div>
             </div>
+
+            {/* --- UNIVERSAL RESULTS MODAL --- */}
+            <Modal show={viewItem !== null} onClose={() => setViewItem(null)} maxWidth={viewItem?.type === 'RAD' ? '3xl' : '2xl'}>
+                {viewItem && patient && (
+                    <div className="p-0 sm:p-6 bg-white relative">
+                        
+                        {/* Print Header */}
+                        <div className="hidden print:block mb-8 text-center border-b-2 pb-4">
+                            <h1 className="text-2xl font-bold uppercase">
+                                {viewItem.type === 'LAB' ? 'Laboratory Report' : 'Radiology Report'}
+                            </h1>
+                            <p className="text-sm text-gray-600">Generated on {new Date().toLocaleString()}</p>
+                        </div>
+
+                        {/* Modal Header */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start border-b pb-4 mb-6 pt-4 sm:pt-0 px-6 sm:px-0 bg-gray-50 sm:bg-white rounded-t-lg">
+                            <div className="flex gap-4 items-start">
+                                <div className="hidden sm:block bg-blue-100 text-blue-600 p-3 rounded-full">
+                                    <FontAwesomeIcon icon={faUserCircle} className="text-2xl" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                                        {patient.first_name} {patient.last_name}
+                                    </h2>
+                                    <div className="flex flex-wrap items-center gap-x-4 text-sm text-gray-600 mt-1">
+                                        <span className="font-mono bg-gray-200 px-2 py-0.5 rounded text-xs font-bold text-gray-800">
+                                            {patient.code}
+                                        </span>
+                                        <span>Age: {patient.age || '-'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-4 sm:mt-0 text-left sm:text-right w-full sm:w-auto bg-white p-3 sm:p-0 rounded border sm:border-0 border-gray-200">
+                                <h3 className="text-blue-800 font-bold text-base flex items-center justify-start sm:justify-end">
+                                    <FontAwesomeIcon icon={viewItem.type === 'LAB' ? faFlask : faXRay} className="mr-2" />
+                                    {viewItem.type === 'LAB' ? viewItem.panel?.name : viewItem.procedure?.name}
+                                </h3>
+                                <div className="text-xs text-gray-500 mt-1">
+                                    <strong>{viewItem.type === 'LAB' ? 'Sample ID:' : 'ACC:'}</strong> <span className="font-mono">{viewItem.type === 'LAB' ? viewItem.sample?.sample_code : viewItem.accession_number}</span>
+                                    <span className="mx-2">|</span>
+                                    <strong>Date:</strong> {new Date(viewItem.updated_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* --- RENDER LAB RESULTS --- */}
+                        {viewItem.type === 'LAB' && (
+                            <div className="px-6 sm:px-0 overflow-hidden rounded-lg border border-gray-200 mb-6">
+                                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Parameter</th>
+                                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Result</th>
+                                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Units</th>
+                                            <th className="px-4 py-3 text-left font-semibold text-gray-600">Ref. Range</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 bg-white">
+                                        {viewItem.sample?.results?.map((res, i) => {
+                                            const range = res.parameter?.ranges?.[0];
+                                            const rangeStr = range ? `M: ${range.male_min}-${range.male_max} / F: ${range.female_min}-${range.female_max}` : 'N/A';
+                                            
+                                            return (
+                                                <tr key={res.id || i} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 font-medium text-gray-900">{res.parameter?.name}</td>
+                                                    <td className="px-4 py-3 font-bold text-blue-700">{res.result_value}</td>
+                                                    <td className="px-4 py-3 text-gray-500">{res.parameter?.units || '-'}</td>
+                                                    <td className="px-4 py-3 text-gray-500 text-xs">{rangeStr}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* --- RENDER RADIOLOGY REPORT --- */}
+                        {viewItem.type === 'RAD' && (
+                            <div className="px-6 sm:px-0 space-y-6">
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center">
+                                        <FontAwesomeIcon icon={faNotesMedical} className="mr-2" /> Findings
+                                    </h4>
+                                    <div className="bg-gray-50 border border-gray-200 rounded p-4 text-gray-800 text-sm whitespace-pre-wrap font-mono min-h-[100px]">
+                                        {viewItem.report?.findings || <span className="text-gray-400 italic">No findings recorded.</span>}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                        Impression
+                                    </h4>
+                                    <div className="bg-blue-50 border border-blue-100 rounded p-4 text-blue-900 text-sm font-bold whitespace-pre-wrap">
+                                        {viewItem.report?.impression || <span className="text-blue-400 italic font-normal">No impression recorded.</span>}
+                                    </div>
+                                </div>
+
+                                {viewItem.report?.suggestion && (
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">
+                                            Recommendation
+                                        </h4>
+                                        <div className="bg-white border-l-4 border-yellow-400 p-3 text-gray-700 text-sm whitespace-pre-wrap shadow-sm">
+                                            {viewItem.report.suggestion}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Modal Footer Actions */}
+                        <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100 px-6 sm:px-0 pb-6 sm:pb-0 bg-gray-50 sm:bg-white print:hidden">
+                            <button 
+                                type="button"
+                                className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none"
+                                onClick={() => window.print()}
+                            >
+                                <FontAwesomeIcon icon={faPrint} className="mr-2 text-gray-500" /> Print
+                            </button>
+
+                            <SecondaryButton onClick={() => setViewItem(null)}>
+                                Close
+                            </SecondaryButton>
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </AuthenticatedLayout>
     );
 }
