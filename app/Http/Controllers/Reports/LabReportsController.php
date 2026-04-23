@@ -67,7 +67,9 @@ class LabReportsController extends Controller
         $status    = $validated['status'] ?? null;
         $panelId   = $validated['panel_id'] ?? null;
 
-        $query = LabPrescription::with(['patient', 'panel', 'doctor'])
+        $query = LabPrescription::with(['patient', 'panel', 'doctor',
+                                       'sample.collectedBy',                                   
+                                       'sample.results.technician'])
             ->whereBetween('created_at', [$startDate, $endDate]);
 
         if ($status) {
@@ -101,6 +103,14 @@ class LabReportsController extends Controller
                     'file_number'  => $row->patientcode,
                     'test_name'    => $row->panel?->name ?? 'N/A',
                     'doctor'       => $row->doctor?->name ?? 'Unassigned',
+                    'technician' => $row->sample && $row->sample->results->count()
+                                    ? $row->sample->results
+                                        ->pluck('technician.name')
+                                        ->filter()
+                                        ->unique()
+                                        ->implode(', ')
+                                    : 'Unassigned',
+                    'collectedby' =>$row->sample?->collectedBy?->name ?? 'Unassigned',
                     'status'       => $row->status,
                     // TAT: Difference between Created (Time In) and completed (Time Out)
                     'tat'          => $timeOut 

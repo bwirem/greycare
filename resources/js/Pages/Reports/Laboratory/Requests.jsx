@@ -80,6 +80,8 @@ export default function LabRequestsReport({ auth, reportData, panels, filters })
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Patient</th>
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Test Requested</th>
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Doctor</th>
+                                    <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Collected By</th>                                    
+                                    <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Technician</th>
                                     <th className="px-4 py-2 text-center font-bold text-gray-700 dark:text-gray-300">Status</th>
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Time Out</th>
                                     <th className="px-4 py-2 text-right font-bold text-gray-700 dark:text-gray-300">TAT</th>
@@ -102,6 +104,12 @@ export default function LabRequestsReport({ auth, reportData, panels, filters })
                                         </td>
                                         <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
                                             {row.doctor}
+                                        </td>
+                                        <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                            {row.collectedby}
+                                        </td>
+                                        <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                            {row.technician}
                                         </td>
                                         <td className="px-4 py-2 text-center">
                                             <span className={`px-2 py-1 rounded text-xs font-bold border ${

@@ -79,6 +79,7 @@ export default function RadRequestsReport({ auth, reportData, procedures, filter
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Procedure</th>
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Modality</th>
                                     <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Doctor</th>
+                                    <th className="px-4 py-2 text-left font-bold text-gray-700 dark:text-gray-300">Radiologist</th>
                                     <th className="px-4 py-2 text-center font-bold text-gray-700 dark:text-gray-300">Status</th>
                                 </tr>
                             </thead>
@@ -91,6 +92,7 @@ export default function RadRequestsReport({ auth, reportData, procedures, filter
                                         <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{row.exam_name}</td>
                                         <td className="px-4 py-2 text-gray-600 dark:text-gray-300">{row.modality}</td>
                                         <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">{row.doctor}</td>
+                                        <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">{row.radiologist}</td>
                                         <td className="px-4 py-2 text-center">
                                             <span className={`px-2 py-1 rounded text-xs font-bold border ${
                                                 row.status === 'Reported' ? 'bg-green-100 text-green-800 border-green-200' :

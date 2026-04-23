@@ -65,7 +65,7 @@ class RadReportsController extends Controller
         $procId    = $validated['procedure_id'] ?? null;
 
         // Eager load relationships (including nested modality)
-        $query = RadRequest::with(['patient', 'procedure.modality', 'doctor'])
+        $query = RadRequest::with(['patient', 'procedure.modality', 'doctor','report.radiologist'])
             ->whereBetween('created_at', [$startDate, $endDate]);
 
         if ($status) {
@@ -98,6 +98,7 @@ class RadReportsController extends Controller
                     'modality'     => $row->procedure?->modality?->name ?? 'General', 
                     
                     'doctor'       => $row->doctor?->name ?? 'Unassigned',
+                    'radiologist'  => $row->report?->radiologist?->name ?? 'Unassigned',
                     'status'       => $row->status,
                 ];
             });

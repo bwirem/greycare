@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/HospitalLayout';
+import AuthenticatedLayout from '@/Layouts/SpecializedLayout';
 import { Head, router } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilter, faChartLine } from '@fortawesome/free-solid-svg-icons';
