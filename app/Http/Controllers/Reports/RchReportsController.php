@@ -208,6 +208,66 @@ class RchReportsController extends Controller
     }
 
     /**
+     * Report: Child Growth & Nutrition Assessments
+     */
+    public function childGrowth(Request $request): InertiaResponse
+    {
+        $validated = $request->validate([
+            'start_date' => 'nullable|date_format:Y-m-d',
+            'end_date'   => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
+        ]);
+
+        $startDate = Carbon::parse($validated['start_date'] ?? Carbon::today()->startOfMonth())->startOfDay();
+        $endDate   = Carbon::parse($validated['end_date']   ?? Carbon::today())->endOfDay();
+
+        $query = RchChildAssessment::with(['patient', 'vitals'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        // Aggregate Stats (Green, Grey, Red)
+        $statusStats = (clone $query)
+            ->select('weight_for_age_status', DB::raw('count(*) as total'))
+            ->groupBy('weight_for_age_status')
+            ->pluck('total', 'weight_for_age_status');
+
+        // Supplements given during this period
+        $vitaminA = (clone $query)->where('vitamin_a_given', true)->count();
+        $deworming = (clone $query)->where('deworming_given', true)->count();
+
+        // Detailed Rows
+        $details = $query->orderBy('created_at', 'desc')->get()->map(function ($row) {
+            return [
+                'id' => $row->id,
+                'date' => Carbon::parse($row->created_at)->format('Y-m-d'),
+                'child_name' => $row->patient ? $row->patient->first_name . ' ' . $row->patient->last_name : 'Unknown',
+                'file_number' => $row->patient ? $row->patient->code : '-',
+                'age_months' => $row->age_months,
+                'weight' => $row->vitals ? $row->vitals->weight : '-',
+                'status' => $row->weight_for_age_status, // Green, Grey, Red
+                'vit_a' => $row->vitamin_a_given ? 'Yes' : 'No',
+                'deworming' => $row->deworming_given ? 'Yes' : 'No',
+            ];
+        });
+
+        return Inertia::render('Reports/Rch/ChildGrowth', [
+            'reportData' => [
+                'start' => $startDate->format('d M Y'),
+                'end'   => $endDate->format('d M Y'),
+                'total_assessments' => $details->count(),
+                'status_stats' => $statusStats,
+                'supplements' => [
+                    'Vitamin A Given' => $vitaminA,
+                    'Deworming Given' => $deworming
+                ],
+                'rows' => $details
+            ],
+            'filters' => [
+                'start_date' => $startDate->format('Y-m-d'),
+                'end_date'   => $endDate->format('Y-m-d'),
+            ]
+        ]);
+    }
+
+    /**
      * Report: RCH Stock on Hand
      */
     public function stockOnHand(Request $request): InertiaResponse

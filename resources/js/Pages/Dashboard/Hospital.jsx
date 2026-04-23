@@ -91,9 +91,9 @@ export default function Hospital({
         prescriptions: '/doctor2',
         
         // Ancillary
-        theatreHub: '/theatre',
-        labHub: '/laboratory',
-        radiologyHub: '/radiology',
+        theatreHub: '/theatre0',
+        labHub: '/laboratory0',
+        radiologyHub: '/radiology0',
 
         // Pharmacy
         pharmacyHub: '/pharmacy',
@@ -141,9 +141,9 @@ export default function Hospital({
                     <section>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Outpatient (OPD)</h3>
-                            <Link href={urls.opdHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
+                            {/* <Link href={urls.opdHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
                                 Go to OPD Hub <FontAwesomeIcon icon={faArrowRight} className="ml-1.5 h-3 w-3 transition-transform duration-200 group-hover:translate-x-1" />
-                            </Link>
+                            </Link> */}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <SummaryCard
@@ -180,9 +180,9 @@ export default function Hospital({
                     <section>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Inpatient (IPD)</h3>
-                            <Link href={urls.ipdHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
+                            {/* <Link href={urls.ipdHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
                                 Go to IPD Hub <FontAwesomeIcon icon={faArrowRight} className="ml-1.5 h-3 w-3 transition-transform duration-200 group-hover:translate-x-1" />
-                            </Link>
+                            </Link> */}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <SummaryCard
@@ -219,9 +219,9 @@ export default function Hospital({
                     <section>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Clinical Services</h3>
-                            <Link href={urls.doctorHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
+                            {/* <Link href={urls.doctorHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
                                 Go to Doctor Station <FontAwesomeIcon icon={faArrowRight} className="ml-1.5 h-3 w-3 transition-transform duration-200 group-hover:translate-x-1" />
-                            </Link>
+                            </Link> */}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <SummaryCard
@@ -257,9 +257,9 @@ export default function Hospital({
                     <section>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Pharmacy</h3>
-                            <Link href={urls.pharmacyHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
+                            {/* <Link href={urls.pharmacyHub} className="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium flex items-center group">
                                 Go to Pharmacy <FontAwesomeIcon icon={faArrowRight} className="ml-1.5 h-3 w-3 transition-transform duration-200 group-hover:translate-x-1" />
-                            </Link>
+                            </Link> */}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <SummaryCard

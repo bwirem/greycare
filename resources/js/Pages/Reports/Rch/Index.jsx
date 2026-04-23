@@ -101,7 +101,7 @@ export default function RchReportsDashboard({ auth, stats }) {
                             description="Growth assessments done today."
                             icon={faChartLine}
                             iconBgColor="bg-orange-500"
-                            linkHref="#" // Update link later when route is ready
+                            linkHref={route('reports.rch.child_growth')} 
                             linkText="View Growth Report"
                         />
 

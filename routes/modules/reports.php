@@ -223,9 +223,9 @@ Route::prefix('reports')->name('reports.')->group(function () {
     Route::prefix('rch')->name('rch.')->group(function () {
         Route::get('/deliveries', [RchReportsController::class, 'deliveries'])->name('deliveries');
         Route::get('/immunizations', [RchReportsController::class, 'immunizations'])->name('immunizations');
-        Route::get('/anc', [RchReportsController::class, 'anc'])->name('anc');
+        Route::get('/anc', [RchReportsController::class, 'anc'])->name('anc');     
+        Route::get('/child-growth', [RchReportsController::class, 'childGrowth'])->name('child_growth');
         
-        // ADD THIS LINE FOR RCH STOCK
         Route::get('/stock-on-hand', [RchReportsController::class, 'stockOnHand'])->name('stock_on_hand');
     });
 
