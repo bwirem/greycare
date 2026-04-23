@@ -65,8 +65,7 @@ const allowedFinanceItemKeys = [
     'reporting10', 'reporting11',
     'reporting12', 'reporting13',
     'reporting14', 'reporting15',
-    'reporting16', 'reporting17',
-    'reporting18',   
+    'reporting16', 'reporting17',       
 
     //System Configuration Module Items   
     'systemconfiguration6', //  

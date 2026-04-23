@@ -1,5 +1,5 @@
 
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/FinanceLayout';
 import { Head, Link } from '@inertiajs/react'; // usePage might not be needed if not using ziggy from props
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {

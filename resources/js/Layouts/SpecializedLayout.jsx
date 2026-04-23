@@ -30,6 +30,7 @@ const specializedModuleKeys = [
     'rch',
     'hivart',   
     'physiotherapy',
+    'reporting',   // Parent for Reports
     'systemConfig'
 ];
 
@@ -49,6 +50,8 @@ const allowedSpecializedItemKeys = [
     // Physio Items
     'physiotherapy0', // Sessions
     'physiotherapy1',  // Progress Notes
+
+    'reporting18', // Specialized Reports
 
     'systemconfiguration14', // System Configurations
 
@@ -89,7 +92,8 @@ const iconMap = {
 
     // Generics
     analytics: faChartBar,
-    stethoscope: faStethoscope
+    stethoscope: faStethoscope,   
+    
 };
 
 // SidebarNavLink Component

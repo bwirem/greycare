@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import AuthenticatedLayout from '@/Layouts/ResourceLayout';
 import { Head, Link } from '@inertiajs/react'; // usePage removed
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {

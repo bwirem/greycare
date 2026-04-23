@@ -50,7 +50,7 @@ const allowedResourceItemKeys = [
     'procurements0', 'procurements1',
     
     // Inventory Items
-    'inventory0', 'inventory1', 'inventory2', 'inventory3', 'inventory4',
+    'inventory0', 'inventory1', 'inventory2', 'inventory3', 'inventory4', 'inventory5',
     
     // Material Items
     'material0',

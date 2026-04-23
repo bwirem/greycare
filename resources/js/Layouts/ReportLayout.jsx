@@ -61,6 +61,7 @@ const allowedFinanceItemKeys = [
     'reporting15',
     'reporting16',
     'reporting17',
+    //RCH
     'reporting18',    
 ];
 

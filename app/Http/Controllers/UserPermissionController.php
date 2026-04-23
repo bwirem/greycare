@@ -350,7 +350,8 @@ class UserPermissionController extends Controller
                 ['key' => 'inventory1', 'text' => 'Goods Issuance', 'icon' => 'local_shipping'],
                 ['key' => 'inventory2', 'text' => 'Goods Receiving', 'icon' => 'goods_receiving'],
                 ['key' => 'inventory3', 'text' => 'Inventory Reconciliation', 'icon' => 'inventory_reconciliation'],
-                ['key' => 'inventory4', 'text' => 'Stock History', 'icon' => 'stock_history'],
+                ['key' => 'inventory4', 'text' => 'Inter-Facility Transfer', 'icon' => 'exchange_alt'],
+                ['key' => 'inventory5', 'text' => 'Stock History', 'icon' => 'stock_history'],
             ],
             'material' => [
                 ['key' => 'material0', 'text' => 'Request Materials', 'icon' => 'autorenew'],
@@ -410,6 +411,8 @@ class UserPermissionController extends Controller
                 ['key' => 'reporting15', 'text' => 'Blood Bank', 'icon' => 'blood-bank'],
                 ['key' => 'reporting16', 'text' => 'Radiology', 'icon' => 'radiology'],
                 ['key' => 'reporting17', 'text' => 'Pharmacy', 'icon' => 'pharmacy'],
+
+                // Specialized Reports
                 ['key' => 'reporting18', 'text' => 'RCH', 'icon' => 'baby_carriage'],
             ],
             'systemConfig' => [

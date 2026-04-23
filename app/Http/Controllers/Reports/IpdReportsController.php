@@ -78,7 +78,7 @@ class IpdReportsController extends Controller
                 'id' => $row->id,
                 'date' => Carbon::parse($row->admission_date)->format('Y-m-d H:i'),
                 'file_number' => $row->patientcode,
-                'patient_name' => $row->patient ? $row->patient->full_name : 'Unknown',
+                'patient_name' => $row->patient ? $row->patient->first_name . ' ' . $row->patient->last_name : 'Unknown',
                 'age_gender' => ($row->patient?->age ?? '-') . ' / ' . ($row->patient?->gender ?? '-'),
                 'ward' => $row->ward?->name ?? 'N/A',
                 'bed' => $row->bed?->bed_number ?? 'N/A',
@@ -152,9 +152,9 @@ class IpdReportsController extends Controller
                                 ->orderBy('admission_date', 'desc')
                                 ->value('admission_date');
 
-            $admit = $admissionDate ? Carbon::parse($admissionDate) : null;
-            $discharge = Carbon::parse($log->transdate);
-            $los = $admit ? $admit->diffInDays($discharge) : 0;
+            $admit = $admissionDate ? Carbon::parse($admissionDate)->startOfDay() : null;
+            $discharge = Carbon::parse($log->transdate)->startOfDay();
+            $los = $admit ? (int) $admit->diffInDays($discharge) : 0;
             // If admitted and discharged same day, counts as 1 day usually in stats, or 0. Let's say 1 minimum for billing usually.
             if($los == 0) $los = 1;
 
@@ -162,7 +162,7 @@ class IpdReportsController extends Controller
                 'id' => $log->id,
                 'date' => $discharge->format('Y-m-d H:i'),
                 'file_number' => $log->patientcode,
-                'patient_name' => $log->patient?->full_name ?? 'Unknown',
+                'patient_name' => $log->patient ? $log->patient->first_name . ' ' . $log->patient->last_name : 'Unknown',                                    
                 'ward' => $log->ward?->name ?? 'N/A',
                 'outcome' => $log->dischargeStatus?->name ?? 'Unknown',
                 'remarks' => $log->dischargeremarks,
@@ -213,10 +213,12 @@ class IpdReportsController extends Controller
                 'id' => $row->id,
                 'ward' => $row->ward->name,
                 'bed' => $row->bed?->bed_number ?? 'No Bed',
-                'patient_name' => $row->patient?->full_name,
+                'patient_name' => $row->patient 
+                                    ? $row->patient->first_name . ' ' . $row->patient->last_name 
+                                    : 'Unknown',
                 'file_number' => $row->patientcode,
                 'admission_date' => Carbon::parse($row->admission_date)->format('Y-m-d'),
-                'days_admitted' => Carbon::parse($row->admission_date)->diffInDays(Carbon::now()),
+                'days_admitted' => (int) Carbon::parse($row->admission_date)->startOfDay()->diffInDays(Carbon::today()),
                 'payer' => $row->billingGroup?->name
             ];
         });

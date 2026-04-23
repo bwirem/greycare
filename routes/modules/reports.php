@@ -14,7 +14,7 @@ use App\Http\Controllers\Reports\LabReportsController;
 use App\Http\Controllers\Reports\RadReportsController;
 use App\Http\Controllers\Reports\PharmacyReportsController;
 use App\Http\Controllers\Reports\TheatreReportsController;
-
+use App\Http\Controllers\Reports\RchReportsController;
 
 
 
@@ -97,13 +97,17 @@ Route::prefix('reporting17')->name('reporting17.')->group(function () {
     Route::get('/', [PharmacyReportsController::class, 'index'])->name('index');
 });
 
-
+// --- Reporting Hub: Reproductive & Child Health (RCH) (Assigned to reporting18) ---
+Route::prefix('reporting18')->name('reporting18.')->group(function () {
+    Route::get('/', [RchReportsController::class, 'index'])->name('index');
+});
 
 
 
 // --- Report Data Routes ---
 
 Route::prefix('reports')->name('reports.')->group(function () {
+
     Route::get('/sales/daily', [SalesReportsController::class, 'daily'])->name('sales.daily');
     // --> ADD THIS EXPORT ROUTE <--
     Route::get('/sales/daily/export', [SalesReportsController::class, 'exportDaily'])->name('sales.daily.export');
@@ -212,6 +216,17 @@ Route::prefix('reports')->name('reports.')->group(function () {
     Route::prefix('pharmacy')->name('pharmacy.')->group(function () {
         Route::get('/dispensing', [PharmacyReportsController::class, 'dispensing'])->name('dispensing');
         Route::get('/analysis', [PharmacyReportsController::class, 'analysis'])->name('analysis');
+    });
+
+    
+    // --- RCH Report Data ---
+    Route::prefix('rch')->name('rch.')->group(function () {
+        Route::get('/deliveries', [RchReportsController::class, 'deliveries'])->name('deliveries');
+        Route::get('/immunizations', [RchReportsController::class, 'immunizations'])->name('immunizations');
+        Route::get('/anc', [RchReportsController::class, 'anc'])->name('anc');
+        
+        // ADD THIS LINE FOR RCH STOCK
+        Route::get('/stock-on-hand', [RchReportsController::class, 'stockOnHand'])->name('stock_on_hand');
     });
 
 });
