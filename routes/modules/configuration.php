@@ -31,6 +31,8 @@ use App\Http\Controllers\Facility\LOCStreetController;
 // Facility Controllers
 use App\Http\Controllers\Facility\FacilityOptionController;
 
+use App\Http\Controllers\System\FacilityController;
+
 // Diagnosis Controllers
 use App\Http\Controllers\Diagnosis\DxtDiagnosesGroupController;
 use App\Http\Controllers\Diagnosis\DxtDiagnosesIcdController;
@@ -90,13 +92,12 @@ use App\Http\Controllers\HumanResource\Setup\HrmLeaveTypeController;
 
 // Models
 use App\Models\Facility\FacilityOption;
+use App\Models\System\Facility;
 use App\Models\Patient\PatientBillingGroup;
 use App\Models\Patient\PatientBillingSubgroup;
 use App\Models\Opd\OpdTreatmentPoint;
 use App\Models\Opd\Config\DoctorSpecialization;
 use App\Models\Ipd\IpdDischargeStatus;
-
-
 
 use App\Models\Inventory\SIV_Store; 
 use App\Models\Inventory\SIV_ProductCategory;
@@ -388,6 +389,7 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
     Route::get('/', function () { 
             return Inertia::render('SystemConfiguration/FacilitySetup/Index', [
             'facilityOptionCount' => FacilityOption::count(),
+            'facilityCount' => Facility::count(),
             'billingGroupCount'   => PatientBillingGroup::count(),
             'billingSubGroupCount'=> PatientBillingSubgroup::count(),
             'treatmentPointCount' => OpdTreatmentPoint::count(),
@@ -407,6 +409,16 @@ Route::prefix('systemconfiguration5')->name('systemconfiguration5.')->group(func
         Route::delete('/{facilityoption}', [FacilityOptionController::class, 'destroy'])->name('destroy');
         Route::get('/search', [FacilityOptionController::class, 'search'])->name('search');
     }); 
+
+    // 2. Facilites 
+    Route::prefix('facilities')->name('facilities.')->group(function () {
+        Route::get('/', [FacilityController::class, 'index'])->name('index');
+        Route::get('/create', [FacilityController::class, 'create'])->name('create');
+        Route::post('/', [FacilityController::class, 'store'])->name('store');
+        Route::get('/{facility}/edit', [FacilityController::class, 'edit'])->name('edit');
+        Route::put('/{facility}', [FacilityController::class, 'update'])->name('update');
+        Route::delete('/{facility}', [FacilityController ::class, 'destroy'])->name('destroy');      
+    });
  
     // 2. Billing Groups
     Route::prefix('billinggroups')->name('billinggroups.')->group(function () {

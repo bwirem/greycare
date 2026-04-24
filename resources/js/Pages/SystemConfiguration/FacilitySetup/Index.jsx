@@ -5,25 +5,37 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faLayerGroup, faUsers, faSitemap, faClinicMedical, 
     faBed, faProcedures, faStethoscope, faTags, faArrowRight, faFileMedical,
-    faUserMd, faDoorOpen // <--- Added Icon
+    faUserMd, faDoorOpen, 
+    faHospital // <--- Added Icon for Facilities
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function FacilitySetupIndex({ 
     auth, 
     facilityOptionCount, 
+    facilityCount, // <--- Added Prop for Facilities
     billingGroupCount, 
     billingSubGroupCount, 
     treatmentPointCount, 
     wardCount, 
     diagnosisCount,
-    specializationCount,     // <--- Added Prop
-    dischargeStatusCount // <--- 2. Add Prop
+    specializationCount,     
+    dischargeStatusCount 
 }) {
     const dashboardItems = [
         { 
             title: "Facility Options", count: facilityOptionCount, icon: faLayerGroup, 
             routeName: 'systemconfiguration5.facilityoptions.index', color: 'purple', description: "General facility settings." 
         },
+        // --- NEW FACILITIES CARD ---
+        { 
+            title: "Facilities", 
+            count: facilityCount, 
+            icon: faHospital, 
+            routeName: 'systemconfiguration5.facilities.index', 
+            color: 'cyan', 
+            description: "Manage multiple branches or facilities." 
+        },
+        // ---------------------------
         { 
             title: "Billing Groups", count: billingGroupCount, icon: faUsers, 
             routeName: 'systemconfiguration5.billinggroups.index', color: 'blue', description: "Manage Payment Modes." 

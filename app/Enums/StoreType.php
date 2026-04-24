@@ -8,6 +8,7 @@ enum StoreType: int
     case Customer = 2;
     case Supplier = 3;   
     case AdjustmentReason = 4;    
+    case Facility = 5; 
 
 
 
@@ -18,6 +19,7 @@ enum StoreType: int
             self::Customer->value => 'Customer',
             self::Supplier->value => 'Supplier',  
             self::AdjustmentReason->value => 'Adjustment Reason',
+            self::Facility->value => 'Facility',
             default => 'Unknown',
         };
     }

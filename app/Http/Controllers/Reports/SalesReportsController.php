@@ -82,7 +82,12 @@ class SalesReportsController extends Controller
             ->select(
                 'bls_items.id as item_id',
                 'bls_items.name as item_name',
-                DB::raw("COALESCE(bls_itemgroups.name, 'Uncategorized') as item_group"),
+                DB::raw("
+                    CASE bls_itemgroups.name
+                        WHEN 'Inventory' THEN 'Pharmacy'
+                        ELSE COALESCE(bls_itemgroups.name, 'Uncategorized')
+                    END as item_group
+                "),
                 DB::raw('SUM(bil_saleitems.quantity) as total_quantity'),
                 DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_amount')
             )
@@ -175,7 +180,12 @@ class SalesReportsController extends Controller
             })
             ->select(
                 'bls_items.id as item_id', 'bls_items.name as item_name',
-                DB::raw("COALESCE(bls_itemgroups.name, 'Uncategorized') as item_group"),
+                DB::raw("
+                    CASE bls_itemgroups.name
+                        WHEN 'Inventory' THEN 'Pharmacy'
+                        ELSE COALESCE(bls_itemgroups.name, 'Uncategorized')
+                    END as item_group
+                "),
                 DB::raw('SUM(bil_saleitems.quantity) as total_quantity'),
                 DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_amount')
             )->groupBy('bls_items.id', 'bls_items.name', 'item_group')->orderBy('item_name')->get();

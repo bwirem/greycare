@@ -7,6 +7,7 @@ use App\Http\Controllers\Inventory\IVIssueController;
 use App\Http\Controllers\Inventory\IVReceiveController;
 use App\Http\Controllers\Inventory\IVNormalAdjustmentController;
 use App\Http\Controllers\Inventory\IVPhysicalInventoryController;
+use App\Http\Controllers\Inventory\IVInterFacilityTransferController;
 
 use App\Models\Inventory\IVNormalAdjustment;
 use App\Models\Inventory\IVPhysicalInventory;
@@ -79,5 +80,16 @@ Route::prefix('inventory3')->name('inventory3.')->group(function () {
         Route::get('/{physicalinventory}/edit', [IVPhysicalInventoryController::class, 'edit'])->name('edit');
         Route::put('/{physicalinventory}', [IVPhysicalInventoryController::class, 'update'])->name('update');
         Route::put('/{physicalinventory}/commit', [IVPhysicalInventoryController::class, 'commit'])->name('commit');
-    });
+    });    
+    
+});
+
+// inventory4: Inter-Facility Transfer routes
+Route::prefix('inventory4')->name('inventory4.')->group(function () {
+    Route::get('/', [IVInterFacilityTransferController::class, 'index'])->name('index');
+    Route::get('/create', [IVInterFacilityTransferController::class, 'create'])->name('create');
+    Route::post('/', [IVInterFacilityTransferController::class, 'store'])->name('store');
+    Route::get('/{inter_facility_transfer}/edit', [IVInterFacilityTransferController::class, 'edit'])->name('edit');
+    Route::put('/{inter_facility_transfer}', [IVInterFacilityTransferController::class, 'update'])->name('update');
+    Route::delete('/{inter_facility_transfer}', [IVInterFacilityTransferController::class, 'destroy'])->name('destroy');
 });
