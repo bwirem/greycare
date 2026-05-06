@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'GreyCare') }}</title>
 
         <!-- Favicon -->
         <link rel="icon" href="/img/favicon.ico?v=1.1" type="image/x-icon">
