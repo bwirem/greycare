@@ -416,7 +416,10 @@ class UserPermissionController extends Controller
 
                 // Specialized Reports
                 ['key' => 'reporting18', 'text' => 'RCH', 'icon' => 'baby_carriage'],
+                ['key' => 'reporting19', 'text' => 'HIVART', 'icon' => 'ribbon'],
+                ['key' => 'reporting20', 'text' => 'Mortuary', 'icon' => 'cross'],            
             ],
+            
             'systemConfig' => [
                 ['key' => 'systemconfiguration0', 'text' => 'Billing Setup', 'icon' => 'billing_setup'],
                 ['key' => 'systemconfiguration1', 'text' => 'Expenses Setup', 'icon' => 'expenses_setup'],
@@ -438,6 +441,10 @@ class UserPermissionController extends Controller
                 ['key' => 'systemconfiguration13', 'text' => 'Leave Configuration', 'icon' => 'calendar_day'],
                 // RCH Setup
                 ['key' => 'systemconfiguration14', 'text' => 'RCH Configuration', 'icon' => 'baby_carriage'],
+                // HIVART Setup
+                ['key' => 'systemconfiguration15', 'text' => 'HIVART Configuration', 'icon' => 'ribbon'],
+                // Mortuary Setup
+                ['key' => 'systemconfiguration16', 'text' => 'Mortuary Configuration', 'icon' => 'cross'],
                 
             ],
             'usermanagement' => [

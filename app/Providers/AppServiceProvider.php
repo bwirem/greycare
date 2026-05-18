@@ -37,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
             database_path('migrations/theatre'),  
             database_path('migrations/pharmacy'),
             database_path('migrations/bloodbank'),
+            database_path('migrations/mortuary'),
             // Administrative modules
             database_path('migrations/billing'),
             database_path('migrations/expenses'),

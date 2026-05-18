@@ -13,7 +13,7 @@ import {
     faVenusMars, faBaby, faHandHoldingMedical, faChild, faSyringe, // RCH
     faIdCard, faTablets, // HIV
     faHandsHelping, faNotesMedical, // Physio
-    faChartBar, faStethoscope, faBoxOpen, // Consumables
+    faChartBar, faStethoscope, faBoxOpen,faBoxes, // Consumables
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -26,9 +26,21 @@ const navLinkClasses = 'flex items-center p-2 text-gray-300 hover:bg-gray-700 ho
 const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`;
 
 // 1. DEFINING SPECIALIZED KEYS
-const mortuaryModuleKeys = [   
+const specializedModuleKeys = [   
     'mortuary', 
+    'reporting',   // Parent for Reports
+    'systemConfig', // Parent for System Configurations
 ];
+
+// 2. DEFINING SPECIALIZED CHILD ITEM KEYS
+const allowedSpecializedItemKeys = [
+    'mortuary0',
+    'mortuary1',
+    'mortuary2',  
+
+    'reporting20', // Specialized Reports
+    'systemconfiguration16', // Mortuary Configuration    
+]
 
 // Icon Map (Tailored for Specialized Clinics)
 const iconMap = {
@@ -133,9 +145,9 @@ export default function SpecializedLayout({ header, children }) {
 
     useEffect(() => {
         const initialState = {};
-        // Only initialize state for mortuary modules
+        // Only initialize state for specialized modules
         modules.forEach(module => {
-            if(mortuaryModuleKeys.includes(module.modulekey)) {
+            if(specializedModuleKeys.includes(module.modulekey)) {
                 initialState[module.modulekey] = false;
             }
         });
@@ -149,21 +161,33 @@ export default function SpecializedLayout({ header, children }) {
         }));
     };
 
-    // 2. Filter Modules to show only Specialized Clinics
-    const mortuarySidebarItems = modules
-        .filter(module => mortuaryModuleKeys.includes(module.modulekey))
-        .map(module => ({
-            label: module.moduletext,
-            key: module.modulekey,
-            icon: iconMap[module.modulekey] || iconMap[module.icon] || faStethoscope, 
-            isOpen: sidebarState[module.modulekey],
-            toggleOpen: () => toggleSidebarSection(module.modulekey),
-            children: moduleItems[module.modulekey]?.map(item => ({
-                label: item.text,
-                icon: iconMap[item.icon] || null,
-                href: `/${item.key}`, 
-            })) || [],
-        }));
+    // Filter specialized modules and their items
+    const specializedSidebarItems = modules
+        .filter(module => specializedModuleKeys.includes(module.modulekey))
+        .map(module => {
+            // Filter children based on the whitelist (allowedSpecializedItemKeys)
+            const relevantChildren = moduleItems[module.modulekey]?.filter(item =>
+                allowedSpecializedItemKeys.includes(item.key)
+            ) || [];
+
+            // If module has no relevant children, hide it
+            if (relevantChildren.length === 0) return null;
+
+            return {
+                label: module.moduletext,
+                key: module.modulekey,
+                icon: iconMap[module.modulekey] || iconMap[module.icon] || faBoxes,
+                isOpen: sidebarState[module.modulekey],
+                toggleOpen: () => toggleSidebarSection(module.modulekey),
+                children: relevantChildren.map(item => ({
+                    label: item.text,
+                    icon: iconMap[item.icon] || null,
+                    href: `/${item.key}`,
+                })),
+            };
+        })
+        .filter(Boolean); // Filter out nulls
+
 
     return (
         // Root container with no window scrollbars
@@ -210,7 +234,7 @@ export default function SpecializedLayout({ header, children }) {
                             <div className="my-2 border-t border-gray-700"></div>
 
                             {/* Dynamic Specialized Modules */}
-                            {mortuarySidebarItems.map((item) => (
+                            {specializedSidebarItems.map((item) => (
                                 <SidebarItem
                                     key={item.key}
                                     icon={item.icon}
@@ -226,7 +250,7 @@ export default function SpecializedLayout({ header, children }) {
                                 </SidebarItem>
                             ))}
 
-                            {mortuarySidebarItems.length === 0 && (
+                            {specializedSidebarItems.length === 0 && (
                                 <div className="text-gray-500 text-sm p-4 text-center">
                                     No mortuary modules assigned.
                                 </div>

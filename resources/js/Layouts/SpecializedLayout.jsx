@@ -57,6 +57,7 @@ const allowedSpecializedItemKeys = [
     'reporting18', // Specialized Reports
 
     'systemconfiguration14', // System Configurations
+    'systemconfiguration15', // System Configurations
 
 ];
 
