@@ -318,6 +318,12 @@ Route::prefix('laboratory2')->name('laboratory2.')->group(function () {
     Route::get('/', [LabHistoryController::class, 'index'])->name('index');
 });
 
+Route::prefix('laboratory3')->name('laboratory3.')->group(function () {
+// The Dashboard page 
+    Route::get('/', [ConsumablesDashboardController::class, 'index'])->name('consumables.index');
+});    
+
+
 
 
 
@@ -359,6 +365,11 @@ Route::prefix('radiology2')->name('radiology2.')->group(function () {
     //List of completed/finalized studies with filters
     Route::get('/', [RadHistoryController::class, 'index'])->name('index');
 });
+
+Route::prefix('radiology3')->name('radiology3.')->group(function () {
+// The Dashboard page 
+    Route::get('/', [ConsumablesDashboardController::class, 'index'])->name('consumables.index');
+}); 
 
 
 
@@ -491,6 +502,11 @@ Route::prefix('radiology2')->name('radiology2.')->group(function () {
         Route::get('/{booking}/care', [TheatrePostOpController::class, 'create'])->name('create'); // Vitals/Notes form
         Route::post('/{booking}', [TheatrePostOpController::class, 'store'])->name('store'); // Save Post-op data
         Route::post('/{booking}/discharge', [TheatrePostOpController::class, 'discharge'])->name('discharge'); // Send to Ward
+    });
+
+    Route::prefix('theatre4')->name('theatre4.')->group(function () {
+    // The Dashboard page 
+        Route::get('/', [ConsumablesDashboardController::class, 'index'])->name('consumables.index');
     });
 
 
