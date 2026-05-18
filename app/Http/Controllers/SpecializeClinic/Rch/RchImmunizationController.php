@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Rch;
+namespace App\Http\Controllers\SpecializeClinic\Rch;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rch\RchImmunization;
@@ -34,7 +34,7 @@ class RchImmunizationController extends Controller
             });
         }
 
-        return Inertia::render('Hospital/Rch/Immunization/Index', [
+        return Inertia::render('SpecializeClinic/Rch/Immunization/Index', [
             'records' => $query->latest('administered_date')->paginate(10)->withQueryString(),
             'filters' => $request->only(['search'])
         ]);
@@ -51,7 +51,7 @@ class RchImmunizationController extends Controller
             ->orderBy('name', 'asc')
             ->get();
 
-        return Inertia::render('Hospital/Rch/Immunization/Create', [
+        return Inertia::render('SpecializeClinic/Rch/Immunization/Create', [
             'vaccines' => $vaccines
         ]);
     }
@@ -94,7 +94,7 @@ class RchImmunizationController extends Controller
             ->orderBy('target_age_weeks', 'asc')
             ->get();
 
-        return Inertia::render('Hospital/Rch/Immunization/Edit', [
+        return Inertia::render('SpecializeClinic/Rch/Immunization/Edit', [
             'record' => $record,
             'vaccines' => $vaccines
         ]);

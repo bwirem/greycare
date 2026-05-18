@@ -4,11 +4,12 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // Controllers
-use App\Http\Controllers\Rch\RchFamilyPlanningController;
-use App\Http\Controllers\Rch\RchAntenatalController;
-use App\Http\Controllers\Rch\RchPostnatalController;
-use App\Http\Controllers\Rch\RchChildHealthController;
-use App\Http\Controllers\Rch\RchImmunizationController;
+use App\Http\Controllers\SpecializeClinic\Rch\RchFamilyPlanningController;
+use App\Http\Controllers\SpecializeClinic\Rch\RchAntenatalController;
+use App\Http\Controllers\SpecializeClinic\Rch\RchPostnatalController;
+use App\Http\Controllers\SpecializeClinic\Rch\RchChildHealthController;
+use App\Http\Controllers\SpecializeClinic\Rch\RchImmunizationController;
+use App\Http\Controllers\SpecializeClinic\Consumables\ConsumablesDashboardController;
 
 // Main Hub
 Route::prefix('rch')->name('rch.')->group(function () {
@@ -100,4 +101,9 @@ Route::prefix('rch4')->name('rch4.')->group(function () {
     
     // Bulk Entry (Optional helper)
     Route::post('/bulk', [RchImmunizationController::class, 'storeBulk'])->name('bulk.store');
+});
+
+Route::prefix('rch5')->name('rch5.')->group(function () {
+    // The Dashboard page 
+    Route::get('/', [ConsumablesDashboardController::class, 'index'])->name('consumables.index');
 });

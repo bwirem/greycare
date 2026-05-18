@@ -286,7 +286,7 @@ class UserPermissionController extends Controller
                 ['key' => 'theatre1', 'text' => 'Surgery Scheduling', 'icon' => 'calendar_check'],
                 ['key' => 'theatre2', 'text' => 'Surgery Records', 'icon' => 'file_medical_alt'],   
                 ['key' => 'theatre3', 'text' => 'Post-Operative Care', 'icon' => 'procedures'], 
-                 ['key' =>'theatre4', 'text' => 'Consumables', 'icon' => 'box_open'],                            
+                ['key' =>'theatre4', 'text' => 'Consumables', 'icon' => 'box_open'],                            
             ],
             'physiotherapy' => [
                 ['key' => 'physiotherapy0', 'text' => 'Therapy Sessions', 'icon' => 'hands_helping'],
@@ -325,11 +325,13 @@ class UserPermissionController extends Controller
             ],
             'hivart' => [
                 ['key' => 'hivart0', 'text' => 'Patient Enrollment', 'icon' => 'id_card'],
-                ['key' => 'hivart1', 'text' => 'ART Management', 'icon' => 'tablets'],                
+                ['key' => 'hivart1', 'text' => 'ART Management', 'icon' => 'tablets'], 
+                ['key' => 'hivart2', 'text' => 'Consumables', 'icon' => 'box_open'],                            
             ],
             'mortuary' => [
                 ['key' => 'mortuary0', 'text' => 'Deceased Records', 'icon' => 'book_dead'],
-                ['key' => 'mortuary1', 'text' => 'Release Management', 'icon' => 'handshake'],                
+                ['key' => 'mortuary1', 'text' => 'Release Management', 'icon' => 'handshake'], 
+                ['key' => 'mortuary2', 'text' => 'Consumables', 'icon' => 'box_open'],                             
             ],
 
             // Administrative/Support Modules

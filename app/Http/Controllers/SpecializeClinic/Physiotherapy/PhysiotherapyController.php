@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Physiotherapy;
+namespace App\Http\Controllers\SpecializeClinic\Physiotherapy;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -31,7 +31,7 @@ class PhysiotherapyController extends Controller
             });
         }
 
-        return Inertia::render('Hospital/Physiotherapy/Sessions/Index', [
+        return Inertia::render('SpecializeClinic/Physiotherapy/Sessions/Index', [
             'sessions' => $query->latest('session_start')->paginate(10)->withQueryString(),
             'filters' => $request->only(['search'])
         ]);
@@ -39,7 +39,7 @@ class PhysiotherapyController extends Controller
 
     public function create()
     {
-        return Inertia::render('Hospital/Physiotherapy/Sessions/Create', [
+        return Inertia::render('SpecializeClinic/Physiotherapy/Sessions/Create', [
             'treatmentTypes' => PhyTreatmentType::where('is_active', true)->get()
         ]);
     }
@@ -85,7 +85,7 @@ class PhysiotherapyController extends Controller
     {
         $session = PhySession::with(['patient', 'treatments'])->findOrFail($id);
         
-        return Inertia::render('Hospital/Physiotherapy/Sessions/Edit', [
+        return Inertia::render('SpecializeClinic/Physiotherapy/Sessions/Edit', [
             'session' => $session,
             'treatmentTypes' => PhyTreatmentType::where('is_active', true)->get()
         ]);

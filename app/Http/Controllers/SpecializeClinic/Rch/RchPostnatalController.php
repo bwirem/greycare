@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Rch;
+namespace App\Http\Controllers\SpecializeClinic\Rch;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rch\RchDelivery;
@@ -46,7 +46,7 @@ class RchPostnatalController extends Controller
             });
         }
 
-        return Inertia::render('Hospital/Rch/Postnatal/Index', [
+        return Inertia::render('SpecializeClinic/Rch/Postnatal/Index', [
             'deliveries' => $deliveriesQuery->paginate(10, ['*'], 'del_page')->withQueryString(),
             'pncVisits' => $pncQuery->paginate(10, ['*'], 'pnc_page')->withQueryString(),
             'filters' => $request->only(['search'])
@@ -67,7 +67,7 @@ class RchPostnatalController extends Controller
                 ->first();
         }
 
-        return Inertia::render('Hospital/Rch/Postnatal/CreateDelivery', [
+        return Inertia::render('SpecializeClinic/Rch/Postnatal/CreateDelivery', [
             'preselected' => $preselected
         ]);
     }
@@ -116,7 +116,7 @@ class RchPostnatalController extends Controller
      */
     public function createVisit()
     {
-        return Inertia::render('Hospital/Rch/Postnatal/CreateVisit');
+        return Inertia::render('SpecializeClinic/Rch/Postnatal/CreateVisit');
     }
 
     /**

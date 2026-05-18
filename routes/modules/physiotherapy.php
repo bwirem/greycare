@@ -2,12 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\Physiotherapy\PhysiotherapyController;
+use App\Http\Controllers\SpecializeClinic\Physiotherapy\PhysiotherapyController;
+use App\Http\Controllers\SpecializeClinic\Consumables\ConsumablesDashboardController;
 
 Route::prefix('physiotherapy')->name('physiotherapy.')->group(function () {
     // Dashboard
     Route::get('/', function () { 
-        return Inertia::render('Hospital/Physiotherapy/Index'); 
+        return Inertia::render('SpecializeClinic/Physiotherapy/Index'); 
     })->name('index');
 });
 
@@ -22,4 +23,9 @@ Route::prefix('physiotherapy0')->name('physiotherapy0.')->group(function () {
     
     // Patient Search Helper
     Route::get('/search', [PhysiotherapyController::class, 'searchPatient'])->name('search');
+});
+
+Route::prefix('physiotherapy2')->name('physiotherapy2.')->group(function () {
+    // The Dashboard page 
+    Route::get('/', [ConsumablesDashboardController::class, 'index'])->name('consumables.index');
 });

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Rch;
+namespace App\Http\Controllers\SpecializeClinic\Rch;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rch\RchChildAssessment;
@@ -38,7 +38,7 @@ class RchChildHealthController extends Controller
             });
         }
 
-        return Inertia::render('Hospital/Rch/ChildHealth/Index', [
+        return Inertia::render('SpecializeClinic/Rch/ChildHealth/Index', [
             'assessments' => $query->paginate(10)->withQueryString(),
             'filters' => $request->only(['search'])
         ]);
@@ -49,7 +49,7 @@ class RchChildHealthController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Hospital/Rch/ChildHealth/Create');
+        return Inertia::render('SpecializeClinic/Rch/ChildHealth/Create');
     }
 
     /**
@@ -215,7 +215,7 @@ class RchChildHealthController extends Controller
     {
         $assessment = RchChildAssessment::with(['patient', 'vitals'])->findOrFail($id);
 
-        return Inertia::render('Hospital/Rch/ChildHealth/Edit', [
+        return Inertia::render('SpecializeClinic/Rch/ChildHealth/Edit', [
             'assessment' => $assessment
         ]);
     }
@@ -285,7 +285,7 @@ class RchChildHealthController extends Controller
                 ];
             });
 
-        return Inertia::render('Hospital/Rch/ChildHealth/Chart', [
+        return Inertia::render('SpecializeClinic/Rch/ChildHealth/Chart', [
             'patient' => $patient,
             'history' => $history
         ]);

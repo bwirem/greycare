@@ -13,7 +13,7 @@ import {
     faVenusMars, faBaby, faHandHoldingMedical, faChild, faSyringe, // RCH
     faIdCard, faTablets, // HIV
     faHandsHelping, faNotesMedical, // Physio
-    faChartBar, faStethoscope
+    faChartBar, faStethoscope, faBoxOpen, // Consumables
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -40,6 +40,8 @@ const iconMap = {
     hivart: faRibbon,
     mortuary: faBookDead, // or faCross
     physiotherapy: faWalking,
+
+    box_open: faBoxOpen, // Consumables (Generic icon for supplies)
 
     // RCH Items
     venus_mars: faVenusMars, // Family Planning

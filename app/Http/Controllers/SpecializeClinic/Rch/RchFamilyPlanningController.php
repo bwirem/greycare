@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Rch;
+namespace App\Http\Controllers\SpecializeClinic\Rch;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rch\RchFpVisit;
@@ -33,8 +33,8 @@ class RchFamilyPlanningController extends Controller
 
         $visits = $query->latest('visit_date')->paginate(10)->withQueryString();
 
-        // UPDATED PATH: Hospital/Rch/FamilyPlanning/Index
-        return Inertia::render('Hospital/Rch/FamilyPlanning/Index', [
+        // UPDATED PATH: SpecializeClinic/Rch/FamilyPlanning/Index
+        return Inertia::render('SpecializeClinic/Rch/FamilyPlanning/Index', [
             'visits' => $visits,
             'filters' => $request->only(['search'])
         ]);
@@ -45,8 +45,8 @@ class RchFamilyPlanningController extends Controller
      */
     public function create()
     {
-        // UPDATED PATH: Hospital/Rch/FamilyPlanning/Create
-        return Inertia::render('Hospital/Rch/FamilyPlanning/Create', [
+        // UPDATED PATH: SpecializeClinic/Rch/FamilyPlanning/Create
+        return Inertia::render('SpecializeClinic/Rch/FamilyPlanning/Create', [
             'methods' => RchFpMethod::where('is_active', true)->get()
         ]);
     }
@@ -89,8 +89,8 @@ class RchFamilyPlanningController extends Controller
     {
         $visit = RchFpVisit::with('patient')->findOrFail($id);
 
-        // UPDATED PATH: Hospital/Rch/FamilyPlanning/Edit
-        return Inertia::render('Hospital/Rch/FamilyPlanning/Edit', [
+        // UPDATED PATH: SpecializeClinic/Rch/FamilyPlanning/Edit
+        return Inertia::render('SpecializeClinic/Rch/FamilyPlanning/Edit', [
             'visit' => $visit,
             'methods' => RchFpMethod::where('is_active', true)->get()
         ]);

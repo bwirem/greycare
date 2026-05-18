@@ -13,7 +13,7 @@ import {
     faVenusMars, faBaby, faHandHoldingMedical, faChild, faSyringe, // RCH
     faIdCard, faTablets, // HIV
     faHandsHelping, faNotesMedical, // Physio
-    faChartBar, faStethoscope
+    faChartBar, faStethoscope, faBoxOpen
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -41,15 +41,18 @@ const allowedSpecializedItemKeys = [
     'rch1', // Antenatal
     'rch2', // Postnatal
     'rch3', // Child Health
-    'rch4', // Immunizations   
+    'rch4', // Immunizations 
+    'rch5', // Consumables  
 
     // HIV Items
     'hivart0', // Enrollment
     'hivart1', // ART Mgmt
+    'hivart2', // Consumables
     
     // Physio Items
     'physiotherapy0', // Sessions
     'physiotherapy1',  // Progress Notes
+    'physiotherapy2', // Consumables
 
     'reporting18', // Specialized Reports
 
@@ -76,6 +79,8 @@ const iconMap = {
     child: faChild, // Child Health
     syringe: faSyringe, // Immunizations
     baby_carriage: faBabyCarriage, // Maternity Records
+
+    box_open: faBoxOpen, // Consumables (Generic icon for supplies)
 
     // HIV Items
     id_card: faIdCard, // Enrollment

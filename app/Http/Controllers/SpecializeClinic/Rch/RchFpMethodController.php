@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Rch;
+namespace App\Http\Controllers\SpecializeClinic\Rch;
 
 use App\Http\Controllers\Controller;
 use App\Models\Rch\RchFpMethod;

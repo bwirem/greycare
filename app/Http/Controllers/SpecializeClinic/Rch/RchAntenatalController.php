@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Rch;
+namespace App\Http\Controllers\SpecializeClinic\Rch;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -59,7 +59,7 @@ class RchAntenatalController extends Controller
 
         $pregnancies = $query->latest('created_at')->paginate(10)->withQueryString();
 
-        return Inertia::render('Hospital/Rch/Antenatal/Index', [
+        return Inertia::render('SpecializeClinic/Rch/Antenatal/Index', [
             'pregnancies' => $pregnancies,
             'filters' => $request->only(['search'])
         ]);
@@ -70,7 +70,7 @@ class RchAntenatalController extends Controller
      */
     public function createPregnancy()
     {
-        return Inertia::render('Hospital/Rch/Antenatal/CreatePregnancy');
+        return Inertia::render('SpecializeClinic/Rch/Antenatal/CreatePregnancy');
     }
 
     /**
@@ -213,7 +213,7 @@ class RchAntenatalController extends Controller
             'surgery' => TheatreProcedure::select('id', 'name as label', 'id as value')->orderBy('name')->get(),
         ];
 
-        return Inertia::render('Hospital/Rch/Antenatal/CreateVisit', [
+        return Inertia::render('SpecializeClinic/Rch/Antenatal/CreateVisit', [
             'preselectedPregnancy' => $preselected,
             'options' => $options,
             'history' => $history 
@@ -446,7 +446,7 @@ class RchAntenatalController extends Controller
         ];
         
         // 5. Return to React
-        return Inertia::render('Hospital/Rch/Antenatal/EditVisit', [
+        return Inertia::render('SpecializeClinic/Rch/Antenatal/EditVisit', [
             'visit' => $visit,
             'options' => $options,
             'existing_orders' => $history
@@ -622,7 +622,7 @@ class RchAntenatalController extends Controller
             ->latest('created_at')
             ->get();
 
-        return Inertia::render('Hospital/Rch/Antenatal/History', [
+        return Inertia::render('SpecializeClinic/Rch/Antenatal/History', [
             'pregnancy' => $pregnancy,
             'visits' => $visits
         ]);

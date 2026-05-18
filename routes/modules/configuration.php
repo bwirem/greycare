@@ -879,8 +879,8 @@ Route::prefix('systemconfiguration13')->name('systemconfiguration13.')->group(fu
 
 
 use App\Http\Controllers\Rch\RchSetupController;
-use App\Http\Controllers\Rch\RchVaccineController;
-use App\Http\Controllers\Rch\RchFpMethodController;
+use App\Http\Controllers\SpecializeClinic\Rch\RchVaccineController;
+use App\Http\Controllers\SpecializeClinic\Rch\RchFpMethodController;
 use App\Models\Rch\RchVaccine;
 use App\Models\Rch\RchFpMethod;
 
