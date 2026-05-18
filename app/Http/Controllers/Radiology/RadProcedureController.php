@@ -28,7 +28,7 @@ class RadProcedureController extends Controller
         $priceCategorySettings = BLSPriceCategory::first();
 
         if ($priceCategorySettings) {
-            for ($i = 1; $i <= 10; $i++) {
+            for ($i = 1; $i <= 15; $i++) {
                 if ($priceCategorySettings->{'useprice' . $i}) {
                     $activePriceCategories[] = [
                         'key' => 'price' . $i,
@@ -100,6 +100,11 @@ class RadProcedureController extends Controller
             'price8' => 'nullable|numeric|min:0',
             'price9' => 'nullable|numeric|min:0',
             'price10' => 'nullable|numeric|min:0',
+            'price11' => 'nullable|numeric|min:0',
+            'price12' => 'nullable|numeric|min:0',
+            'price13' => 'nullable|numeric|min:0',
+            'price14' => 'nullable|numeric|min:0',
+            'price15' => 'nullable|numeric|min:0',
         ]);
 
         $validated['contrast_required'] = $request->boolean('contrast_required');
@@ -109,7 +114,7 @@ class RadProcedureController extends Controller
             
             // A. Separate Data
             // We must remove price fields from the array used to create the RadProcedure
-            $procedureData = Arr::except($validated, ['price1', 'price2', 'price3', 'price4', 'price5', 'price6', 'price7', 'price8', 'price9', 'price10']);
+            $procedureData = Arr::except($validated, ['price1', 'price2', 'price3', 'price4', 'price5', 'price6', 'price7', 'price8', 'price9', 'price10', 'price11', 'price12', 'price13', 'price14', 'price15']);
 
             // Create Procedure
             $procedure = RadProcedure::create($procedureData);
@@ -134,6 +139,11 @@ class RadProcedureController extends Controller
                 'price8' => $request->input('price8', 0),
                 'price9' => $request->input('price9', 0),
                 'price10' => $request->input('price10', 0),
+                'price11' => $request->input('price11', 0),
+                'price12' => $request->input('price12', 0),
+                'price13' => $request->input('price13', 0),
+                'price14' => $request->input('price14', 0),
+                'price15' => $request->input('price15', 0),
                 
                 'addtocart' => true, // Default to true as procedures are sellable services
                 'defaultqty' => 1,
@@ -184,7 +194,13 @@ class RadProcedureController extends Controller
             'price7' => 'nullable|numeric|min:0',
             'price8' => 'nullable|numeric|min:0',
             'price9' => 'nullable|numeric|min:0',
-            'price10' => 'nullable|numeric|min:0',  
+            'price10' => 'nullable|numeric|min:0',
+            'price11' => 'nullable|numeric|min:0',
+            'price12' => 'nullable|numeric|min:0',
+            'price13' => 'nullable|numeric|min:0',
+            'price14' => 'nullable|numeric|min:0',
+            'price15' => 'nullable|numeric|min:0',
+            
         ]);
 
         $validated['contrast_required'] = $request->boolean('contrast_required');
@@ -192,7 +208,7 @@ class RadProcedureController extends Controller
         DB::transaction(function () use ($procedure, $validated, $request) {
             
             // A. Separate Data (Remove prices)
-            $procedureData = Arr::except($validated, ['price1', 'price2', 'price3', 'price4', 'price5', 'price6', 'price7', 'price8', 'price9', 'price10']);
+            $procedureData = Arr::except($validated, ['price1', 'price2', 'price3', 'price4', 'price5', 'price6', 'price7', 'price8', 'price9', 'price10', 'price11', 'price12', 'price13', 'price14', 'price15']);
             
             // Update Procedure
             $procedure->update($procedureData);
@@ -215,6 +231,11 @@ class RadProcedureController extends Controller
                 if ($request->has('price8')) $blsData['price8'] = $request->input('price8');
                 if ($request->has('price9')) $blsData['price9'] = $request->input('price9');
                 if ($request->has('price10')) $blsData['price10'] = $request->input('price10');
+                if ($request->has('price11')) $blsData['price11'] = $request->input('price11');
+                if ($request->has('price12')) $blsData['price12'] = $request->input('price12');
+                if ($request->has('price13')) $blsData['price13'] = $request->input('price13');
+                if ($request->has('price14')) $blsData['price14'] = $request->input('price14');
+                if ($request->has('price15')) $blsData['price15'] = $request->input('price15');
 
                 $procedure->blsItem->update($blsData);
             } else {
@@ -233,7 +254,12 @@ class RadProcedureController extends Controller
                     'price7' => $request->input('price7', 0),   
                     'price8' => $request->input('price8', 0),
                     'price9' => $request->input('price9', 0),   
-                    'price10' => $request->input('price10', 0),                    
+                    'price10' => $request->input('price10', 0), 
+                    'price11' => $request->input('price11', 0),
+                    'price12' => $request->input('price12', 0),
+                    'price13' => $request->input('price13', 0),
+                    'price14' => $request->input('price14', 0),
+                    'price15' => $request->input('price15', 0),
                     'addtocart' => true,
                     'defaultqty' => 1,
                 ]);

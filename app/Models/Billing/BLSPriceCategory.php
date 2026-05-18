@@ -24,7 +24,13 @@ class BLSPriceCategory extends Model
         'useprice7',            
         'useprice8',            
         'useprice9',            
-        'useprice10',            
+        'useprice10',  
+        'useprice11',
+        'useprice12',
+        'useprice13',
+        'useprice14',
+        'useprice15',
+          
         'price1',            
         'price2',          
         'price3',               
@@ -35,5 +41,10 @@ class BLSPriceCategory extends Model
         'price8',            
         'price9',            
         'price10',            
+        'price11',
+        'price12',
+        'price13',
+        'price14',
+        'price15',
     ];
 }

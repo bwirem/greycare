@@ -52,6 +52,11 @@ class BLSPriceCategoryController extends Controller
             'price8' => 'nullable|string|max:255',
             'price9' => 'nullable|string|max:255',
             'price10' => 'nullable|string|max:255',
+            'price11' => 'nullable|string|max:255',
+            'price12' => 'nullable|string|max:255', 
+            'price13' => 'nullable|string|max:255',
+            'price14' => 'nullable|string|max:255',
+            'price15' => 'nullable|string|max:255',
 
             'useprice1' => 'boolean',
             'useprice2' => 'boolean',
@@ -63,11 +68,15 @@ class BLSPriceCategoryController extends Controller
             'useprice8' => 'boolean',
             'useprice9' => 'boolean',
             'useprice10' => 'boolean',
-            
+            'useprice11' => 'boolean',
+            'useprice12' => 'boolean',
+            'useprice13' => 'boolean',
+            'useprice14' => 'boolean',
+            'useprice15' => 'boolean',
         ]);
 
         // Ensure checkbox boolean values are cast properly
-        foreach (['useprice1', 'useprice2', 'useprice3', 'useprice4', 'useprice5', 'useprice6', 'useprice7', 'useprice8', 'useprice9', 'useprice10'] as $field) {
+        foreach (['useprice1', 'useprice2', 'useprice3', 'useprice4', 'useprice5', 'useprice6', 'useprice7', 'useprice8', 'useprice9', 'useprice10', 'useprice11', 'useprice12', 'useprice13', 'useprice14', 'useprice15'] as $field) {
             $validated[$field] = $request->boolean($field);
         }
 
@@ -103,6 +112,11 @@ class BLSPriceCategoryController extends Controller
             'price8' => 'nullable|string|max:255',  
             'price9' => 'nullable|string|max:255',
             'price10' => 'nullable|string|max:255',
+            'price11' => 'nullable|string|max:255',
+            'price12' => 'nullable|string|max:255',
+            'price13' => 'nullable|string|max:255',
+            'price14' => 'nullable|string|max:255',
+            'price15' => 'nullable|string|max:255',
 
             'useprice1' => 'boolean',
             'useprice2' => 'boolean',
@@ -114,9 +128,14 @@ class BLSPriceCategoryController extends Controller
             'useprice8' => 'boolean',
             'useprice9' => 'boolean',   
             'useprice10' => 'boolean',
+            'useprice11' => 'boolean',
+            'useprice12' => 'boolean',
+            'useprice13' => 'boolean',
+            'useprice14' => 'boolean',
+            'useprice15' => 'boolean',
         ]);
 
-        foreach (['useprice1', 'useprice2', 'useprice3', 'useprice4', 'useprice5', 'useprice6', 'useprice7', 'useprice8', 'useprice9', 'useprice10'] as $field) {
+        foreach (['useprice1', 'useprice2', 'useprice3', 'useprice4', 'useprice5', 'useprice6', 'useprice7', 'useprice8', 'useprice9', 'useprice10', 'useprice11', 'useprice12', 'useprice13', 'useprice14', 'useprice15'] as $field) {
             $validated[$field] = $request->boolean($field);
         }
 
@@ -135,7 +154,7 @@ class BLSPriceCategoryController extends Controller
         $priceCategories = [];
     
         if ($rows) {
-            for ($i = 1; $i <= 13; $i++) {
+            for ($i = 1; $i <= 15; $i++) {
                 if (!empty($rows->{'useprice' . $i}) && $rows->{'useprice' . $i} == 1) {
                     $priceCategories[] = [
                         'pricename' => 'price' . $i,

@@ -58,7 +58,7 @@ class BLSItemController extends Controller
         $priceCategorySettings = BLSPriceCategory::first();
 
         if ($priceCategorySettings) {
-            for ($i = 1; $i <= 10; $i++) {
+            for ($i = 1; $i <= 15; $i++) {
                 if ($priceCategorySettings->{'useprice' . $i}) {
                     $activePriceCategories[] = [
                         'key' => 'price' . $i,
@@ -123,6 +123,11 @@ class BLSItemController extends Controller
             'price8' => 'nullable|numeric|min:0',
             'price9' => 'nullable|numeric|min:0',
             'price10' => 'nullable|numeric|min:0',
+            'price11' => 'nullable|numeric|min:0',
+            'price12' => 'nullable|numeric|min:0',
+            'price13' => 'nullable|numeric|min:0',
+            'price14' => 'nullable|numeric|min:0',
+            'price15' => 'nullable|numeric|min:0',
         ]);
          
         $validated['addtocart'] = $request->boolean('addtocart');
@@ -136,6 +141,11 @@ class BLSItemController extends Controller
         $validated['price8'] = $validated['price8'] ?? 0;
         $validated['price9'] = $validated['price9'] ?? 0;
         $validated['price10'] = $validated['price10'] ?? 0;
+        $validated['price11'] = $validated['price11'] ?? 0;
+        $validated['price12'] = $validated['price12'] ?? 0;
+        $validated['price13'] = $validated['price13'] ?? 0;
+        $validated['price14'] = $validated['price14'] ?? 0;
+        $validated['price15'] = $validated['price15'] ?? 0;
 
         BLSItem::create($validated);
 
@@ -178,6 +188,11 @@ class BLSItemController extends Controller
             'price8' => 'nullable|numeric|min:0',
             'price9' => 'nullable|numeric|min:0',
             'price10' => 'nullable|numeric|min:0',
+            'price11' => 'nullable|numeric|min:0',
+            'price12' => 'nullable|numeric|min:0',
+            'price13' => 'nullable|numeric|min:0',
+            'price14' => 'nullable|numeric|min:0',
+            'price15' => 'nullable|numeric|min:0',
         ]);
     
         $validated['addtocart'] = $request->boolean('addtocart');
@@ -300,7 +315,7 @@ class BLSItemController extends Controller
         $priceCategoryId = $request->input('pricecategory_id', 'price1'); 
         $storeId = $request->input('store_id', null); 
 
-        if (!in_array($priceCategoryId, ['price1', 'price2', 'price3', 'price4'])) {
+        if (!in_array($priceCategoryId, ['price1', 'price2', 'price3', 'price4', 'price5', 'price6', 'price7', 'price8', 'price9', 'price10', 'price11', 'price12', 'price13', 'price14', 'price15'])) {
             $priceCategoryId = 'price1';
         }
 
@@ -333,7 +348,7 @@ class BLSItemController extends Controller
     public function updatePrices(Request $request, BLSItem $item)
     {
         $rules = [];
-        $priceKeys = ['price1', 'price2', 'price3', 'price4'];
+        $priceKeys = ['price1', 'price2', 'price3', 'price4', 'price5', 'price6', 'price7', 'price8', 'price9', 'price10', 'price11', 'price12', 'price13', 'price14', 'price15'];
         
         foreach ($request->all() as $key => $value) {
             if (in_array($key, $priceKeys)) {

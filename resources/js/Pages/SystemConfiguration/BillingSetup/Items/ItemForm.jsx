@@ -10,7 +10,7 @@ export default function ItemForm({ item = null, itemGroups, pricecategories }) {
     
     // --- NEW: Derive the list of active price categories ---
     const activePriceCategories = [];
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 15; i++) {
         if (priceCategorySettings[`useprice${i}`]) {
             activePriceCategories.push({
                 key: `price${i}`, // e.g., 'price1'
@@ -36,6 +36,11 @@ export default function ItemForm({ item = null, itemGroups, pricecategories }) {
         price8: item?.price8 || '0.00',
         price9: item?.price9 || '0.00',
         price10: item?.price10 || '0.00',
+        price11: item?.price11 || '0.00',
+        price12: item?.price12 || '0.00',
+        price13: item?.price13 || '0.00',
+        price14: item?.price14 || '0.00',
+        price15: item?.price15 || '0.00',
         
         defaultqty: item?.defaultqty || 1,
         addtocart: item ? Boolean(item.addtocart) : false,
