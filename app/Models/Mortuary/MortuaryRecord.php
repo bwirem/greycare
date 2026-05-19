@@ -9,7 +9,8 @@ class MortuaryRecord extends Model
 {
     protected $fillable = [
         'patient_code', 'first_name', 'last_name', 'gender', 'age', 
-        'date_of_death', 'cabinet_number', 'cause_of_death', 'status', 'received_by_user_id'
+        'date_of_death', 'mortuary_id', 'room_id', 'cabinet_id', 
+        'cabinet_number', 'billing_group_id', 'cause_of_death', 'status', 'received_by_user_id'
     ];
 
     protected $casts = [
@@ -24,5 +25,20 @@ class MortuaryRecord extends Model
     public function receiver()
     {
         return $this->belongsTo(User::class, 'received_by_user_id');
+    }
+
+    public function mortuary()
+    {
+        return $this->belongsTo(Mortuary::class);
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(MortuaryRoom::class);
+    }
+
+    public function cabinet()
+    {
+        return $this->belongsTo(MortuaryCabinet::class);
     }
 }

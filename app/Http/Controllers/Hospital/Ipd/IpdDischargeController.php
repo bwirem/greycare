@@ -15,6 +15,7 @@ use App\Models\Ipd\IpdDischargeLog;
 use App\Models\Ipd\IpdDischargeStatus;
 use App\Models\Ipd\IpdBed;
 use App\Models\Ipd\IpdBedCharge; // Import this
+use App\Models\Mortuary\MortuaryRecord; // Import this
 use App\Models\Patient\Patient;
 use App\Models\Facility\FacilityOption; // <--- 1. Add this Import
 use Barryvdh\DomPDF\Facade\Pdf; // Ensure this import exists
@@ -143,6 +144,23 @@ class IpdDischargeController extends Controller
 
             // 5. Update Patient Master
             Patient::where('code', $admission->patientcode)->update(['is_admitted' => false]);
+            
+            // 6. If Discharge Status is "Deceased", create Mortuary Record
+            $facility = FacilityOption::first();
+            
+            if($facility && $facility->default_death_status_id == $request->discharge_status_id) {
+               
+                MortuaryRecord::create([
+                    'patient_code' => $admission->patientcode,
+                    'first_name' => $admission->patient->first_name,
+                    'middle_name' => $admission->patient->middle_name,
+                    'last_name' => $admission->patient->last_name,
+                    'gender' => $admission->patient->gender,
+                    // 'age' => $admission->patient->age,            
+                    'date_of_death' => $request->discharge_date, 
+                ]);            
+            }
+
         });
 
         return redirect()->route('inpatient1.index')

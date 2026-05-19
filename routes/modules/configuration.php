@@ -920,6 +920,7 @@ use App\Models\Mortuary\Mortuary;
 use App\Models\Mortuary\MortuaryRoom;
 use App\Http\Controllers\Mortuary\MortuaryController;
 use App\Http\Controllers\Mortuary\MortuaryRoomController;
+use App\Http\Controllers\Mortuary\MortuaryCabinetController;
 
 // systemconfiguration14: RCH Setup
 Route::prefix('systemconfiguration16')->name('systemconfiguration16.')->group(function () {
@@ -932,26 +933,15 @@ Route::prefix('systemconfiguration16')->name('systemconfiguration16.')->group(fu
         ]); 
     })->name('index');
 
-    // 1. Mortuary
-    Route::prefix('mortuaries')->name('mortuaries.')->group(function () {
-        Route::get('/', [MortuaryController::class, 'index'])->name('index');
-        Route::get('/create', [MortuaryController::class, 'create'])->name('create');
-        Route::post('/', [MortuaryController::class, 'store'])->name('store');
-        Route::get('/{mortuary}/edit', [MortuaryController::class, 'edit'])->name('edit');
-        Route::put('/{mortuary}', [MortuaryController::class, 'update'])->name('update');
-        Route::delete('/{mortuary}', [MortuaryController::class, 'destroy'])->name('destroy');
-    });
+    
+    // 1. Mortuaries (Roots)
+    Route::resource('mortuaries', MortuaryController::class);
 
     // 2. Rooms
-    Route::prefix('rooms')->name('rooms.')->group(function () {
-        Route::get('/', [MortuaryRoomController::class, 'index'])->name('index');
-        Route::get('/create', [MortuaryRoomController::class, 'create'])->name('create');
-        Route::post('/', [MortuaryRoomController::class, 'store'])->name('store');
-        Route::get('/{room}/edit', [MortuaryRoomController::class, 'edit'])->name('edit');
-        Route::put('/{room}', [MortuaryRoomController::class, 'update'])->name('update');
-        Route::delete('/{room}', [MortuaryRoomController::class, 'destroy'])->name('destroy');
+    Route::resource('rooms', MortuaryRoomController::class);
 
-        Route::post('rooms/{room}/cabinets', [MortuaryRoomController::class, 'storeCabinet'])->name('rooms.cabinets.store');
-        Route::delete('cabinets/{cabinet}', [MortuaryRoomController::class, 'destroyCabinet'])->name('rooms.cabinets.destroy');
-    });
+    // 3. Cabinets (Using the new dedicated controller)
+    Route::post('rooms/{room}/cabinets', [MortuaryCabinetController::class, 'store'])->name('rooms.cabinets.store');
+    Route::delete('cabinets/{cabinet}', [MortuaryCabinetController::class, 'destroy'])->name('rooms.cabinets.destroy');
+
 });

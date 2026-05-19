@@ -28,7 +28,7 @@ class MortuaryRoomController extends Controller
         $priceCategorySettings = BLSPriceCategory::first();
 
         if ($priceCategorySettings) {
-            for ($i = 1; $i <= 10; $i++) {
+            for ($i = 1; $i <= 15; $i++) {
                 if ($priceCategorySettings->{'useprice' . $i}) {
                     $activePriceCategories[] = [
                         'key' => 'price' . $i,
@@ -97,12 +97,17 @@ class MortuaryRoomController extends Controller
             'price8' => 'nullable|numeric|min:0',
             'price9' => 'nullable|numeric|min:0',
             'price10' => 'nullable|numeric|min:0',
+            'price11' => 'nullable|numeric|min:0',
+            'price12' => 'nullable|numeric|min:0',
+            'price13' => 'nullable|numeric|min:0',
+            'price14' => 'nullable|numeric|min:0',
+            'price15' => 'nullable|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($validated, $request) {
             
             // A. Separate Room Data from Prices
-            $roomData = Arr::except($validated, ['price1', 'price2', 'price3', 'price4','price5','price6','price7','price8','price9','price10']);
+            $roomData = Arr::except($validated, ['price1', 'price2', 'price3', 'price4','price5','price6','price7','price8','price9','price10','price11','price12','price13','price14','price15']);
             
             // Create Room
             $room = MortuaryRoom::create($roomData);
@@ -126,7 +131,12 @@ class MortuaryRoomController extends Controller
                 'price8' => $request->input('price8', 0),
                 'price9' => $request->input('price9', 0),
                 'price10' => $request->input('price10', 0),
-                
+                'price11' => $request->input('price11', 0),
+                'price12' => $request->input('price12', 0),
+                'price13' => $request->input('price13', 0),
+                'price14' => $request->input('price14', 0),
+                'price15' => $request->input('price15', 0),
+
                 'addtocart' => true, 
                 'defaultqty' => 1,
             ]);
@@ -167,12 +177,17 @@ class MortuaryRoomController extends Controller
             'price8' => 'nullable|numeric|min:0',
             'price9' => 'nullable|numeric|min:0',
             'price10' => 'nullable|numeric|min:0',
+            'price11' => 'nullable|numeric|min:0',
+            'price12' => 'nullable|numeric|min:0',
+            'price13' => 'nullable|numeric|min:0',
+            'price14' => 'nullable|numeric|min:0',
+            'price15' => 'nullable|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($room, $validated, $request) {
             
             // A. Update Room
-            $roomData = Arr::except($validated, ['price1', 'price2', 'price3', 'price4','price5','price6','price7','price8','price9','price10']);
+            $roomData = Arr::except($validated, ['price1', 'price2', 'price3', 'price4','price5','price6','price7','price8','price9','price10','price11','price12','price13','price14','price15']);
             $room->update($roomData);
 
             // B. Update Linked Billing Item
@@ -181,7 +196,7 @@ class MortuaryRoomController extends Controller
                     'name' => $room->name . ' (Daily Storage Charge)',
                 ];
 
-                for ($i = 1; $i <= 10; $i++) {
+                for ($i = 1; $i <= 15; $i++) {
                     if ($request->has("price{$i}")) {
                         $blsData["price{$i}"] = $request->input("price{$i}");
                     }
@@ -204,7 +219,12 @@ class MortuaryRoomController extends Controller
                     'price7' => $request->input('price7', 0),
                     'price8' => $request->input('price8', 0),
                     'price9' => $request->input('price9', 0),
-                    'price10' => $request->input('price10',0),  
+                    'price10' => $request->input('price10',0), 
+                    'price11' => $request->input('price11', 0),
+                    'price12' => $request->input('price12', 0),
+                    'price13' => $request->input('price13', 0),
+                    'price14' => $request->input('price14', 0), 
+                    'price15' => $request->input('price15', 0),
                     'addtocart' => true,
                     'defaultqty' => 1,
                 ]);

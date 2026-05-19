@@ -16,13 +16,20 @@ export default function CabinetManager({ room }) {
             name: newCabinetName
         }, {
             preserveScroll: true,
-            onSuccess: () => { setNewCabinetName(''); setLoading(false); },
-            onError: () => setLoading(false)
+            onSuccess: () => { 
+                setNewCabinetName(''); 
+                setLoading(false); 
+            },
+            onError: (errors) => {
+                console.error("Cabinet Add Error:", errors); // <--- Helps debug if it fails
+                setLoading(false);
+            }
         });
     };
 
     const handleDeleteCabinet = (cabinetId) => {
         if(!confirm('Remove this cabinet/tray?')) return;
+        
         router.delete(route('systemconfiguration16.rooms.cabinets.destroy', cabinetId), {
             preserveScroll: true
         });
@@ -43,10 +50,12 @@ export default function CabinetManager({ room }) {
                     onChange={(e) => setNewCabinetName(e.target.value)}
                     placeholder="Cabinet/Tray Number (e.g. Tray-01)"
                     className="flex-1 rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddCabinet(e); }} // Allows pressing Enter to add
                 />
                 <button 
                     onClick={handleAddCabinet}
                     disabled={loading || !newCabinetName}
+                    type="button"
                     className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                 >
                     {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPlus} />} Add
@@ -65,6 +74,7 @@ export default function CabinetManager({ room }) {
                         </div>
                         <button 
                             onClick={() => handleDeleteCabinet(cabinet.id)}
+                            type="button"
                             className="text-red-500 hover:text-red-700 p-1"
                             title="Remove Cabinet"
                         >

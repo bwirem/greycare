@@ -24,6 +24,11 @@ export default function RoomForm({ room = null, mortuaries = [], activePriceCate
         price8: initialPrices.price8 || '0.00',
         price9: initialPrices.price9 || '0.00',
         price10: initialPrices.price10 || '0.00',
+        price11: initialPrices.price11 || '0.00',
+        price12: initialPrices.price12 || '0.00',
+        price13: initialPrices.price13 || '0.00',
+        price14: initialPrices.price14 || '0.00',
+        price15: initialPrices.price15 || '0.00',
     });
 
     const submit = (e) => {

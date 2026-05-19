@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Head, Link, router, useForm } from "@inertiajs/react";
-import AuthenticatedLayout from "@/Layouts/SystemAndUserLayout";
+import AuthenticatedLayout from "@/Layouts/MortuaryLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faPlus, faEdit, faTrash, faHome, faBuilding } from "@fortawesome/free-solid-svg-icons";
 import Modal from '@/Components/CustomModal';
@@ -46,7 +46,7 @@ export default function MortuaryIndex({ auth, mortuaries, success, filters, erro
                                 <Link href={route("systemconfiguration16.mortuaries.create")} className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center shadow">
                                     <FontAwesomeIcon icon={faPlus} className="mr-2" /> Add Mortuary
                                 </Link>
-                                <Link href={route("systemconfiguration5.index")} className="bg-slate-600 text-white px-4 py-2 rounded-md hover:bg-slate-700 flex items-center shadow">
+                                <Link href={route("systemconfiguration16.index")} className="bg-slate-600 text-white px-4 py-2 rounded-md hover:bg-slate-700 flex items-center shadow">
                                     <FontAwesomeIcon icon={faHome} className="mr-2" /> Home
                                 </Link>
                             </div>

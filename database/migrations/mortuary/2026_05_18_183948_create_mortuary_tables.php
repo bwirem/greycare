@@ -13,14 +13,26 @@ return new class extends Migration
             $table->id();
             $table->string('patient_code')->nullable()->comment('If known from hospital system');
             $table->string('first_name');
+            $table->string('middle_name')->nullable();
             $table->string('last_name');
             $table->string('gender', 20);
             $table->integer('age')->nullable();
             $table->dateTime('date_of_death');
+
+            // Made nullable: Location and billing aren't assigned until the body is actually stored
+            $table->foreignId('mortuary_id')->nullable();
+            $table->foreignId('room_id')->nullable();
+            $table->foreignId('cabinet_id')->nullable(); 
             $table->string('cabinet_number')->nullable();
+            $table->foreignId('billing_group_id')->nullable();
+            
             $table->string('cause_of_death')->nullable();
-            $table->enum('status', ['Stored', 'Released'])->default('Stored');
-            $table->foreignId('received_by_user_id')->constrained('users');
+            
+            $table->enum('status', ['Pending', 'Stored', 'Released'])->default('Pending');
+            
+            // Made nullable: Mortuary staff hasn't received it yet when status is 'Pending'
+            $table->foreignId('received_by_user_id')->nullable()->constrained('users');
+            
             $table->timestamps();
         });
 

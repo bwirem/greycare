@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Facility\FacilityOption;
 use App\Models\Accounting\ChartOfAccount;
 use App\Models\Patient\PatientBillingGroup;
+use App\Models\Ipd\IpdDischargeStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage; // Import Storage
 
@@ -43,10 +44,12 @@ class FacilityOptionController extends Controller
 
         $chartOfAccounts = ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
         $billinggroups = PatientBillingGroup::where('isinsurance', false)->orderBy('name')->get();
+        $deathstatuses = IpdDischargeStatus::orderBy('name')->get();
 
         return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Create',[
             'chartOfAccounts' => $chartOfAccounts,
             'billinggroups' => $billinggroups,
+            'deathstatuses' => $deathstatuses,
         ]);
     }
 
@@ -78,6 +81,7 @@ class FacilityOptionController extends Controller
             'registration_url' => 'nullable|url|max:255',
             'check_payment_url' => 'nullable|url|max:255',
             'crdb_payment_type' => 'nullable|string|max:50',
+            'default_death_status_id' => 'nullable|integer|exists:ipd_discharge_statuses,id',
         ]);
 
         // Handle Logo Upload
@@ -99,11 +103,13 @@ class FacilityOptionController extends Controller
     {
         $chartOfAccounts = ChartOfAccount::where('is_active', true)->orderBy('account_name')->get();
         $billinggroups = PatientBillingGroup::where('isinsurance', false)->orderBy('name')->get();
+        $deathstatuses = IpdDischargeStatus::orderBy('name')->get();
 
         return inertia('SystemConfiguration/FacilitySetup/FacilityOptions/Edit',[
             'facilityoption' => $facilityoption,
             'chartOfAccounts' => $chartOfAccounts,
             'billinggroups' => $billinggroups,
+            'deathstatuses' => $deathstatuses,
         ]);
     }
 
@@ -135,6 +141,7 @@ class FacilityOptionController extends Controller
             'registration_url' => 'nullable|url|max:255',
             'check_payment_url' => 'nullable|url|max:255',
             'crdb_payment_type' => 'nullable|string|max:50',
+            'default_death_status_id' => 'nullable|integer|exists:ipd_discharge_statuses,id',
         ]);
 
         // Handle Logo Upload

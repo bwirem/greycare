@@ -18,7 +18,7 @@ const CheckboxInput = ({ id, label, checked, onChange }) => (
     </div>
 );
 
-export default function FacilityOptionForm({ option = null, chartOfAccounts, billinggroups }) {
+export default function FacilityOptionForm({ option = null, chartOfAccounts, billinggroups, deathstatuses }) {
     // Initialize form data with new Control Number API fields
     const { data, setData, post, processing, errors, reset } = useForm({
         name: option?.name || '',
@@ -32,6 +32,7 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
         
         chart_of_account_id: option?.chart_of_account_id || '',
         default_cash_billing_group_id: option?.default_cash_billing_group_id || '',
+        default_death_status_id: option?.default_death_status_id || '',
         
         // Booleans
         affectstockatcashier: option ? Boolean(option.affectstockatcashier) : false,
@@ -321,6 +322,24 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
                     <CheckboxInput id="show_register_button" label="Show Register Button" checked={data.show_register_button} onChange={e => setData('show_register_button', e.target.checked)} />
                 </div>
                 {errors.affectstockatcashier && <p className="text-red-500 text-xs mt-2">{errors.affectstockatcashier}</p>}
+            </div>
+
+            <div>
+                <label htmlFor="default_death_status_id" className="block text-sm font-medium text-gray-700">Default Death Status*</label>
+                <select
+                    id="default_death_status_id"
+                    value={data.default_death_status_id}
+                    onChange={e => setData('default_death_status_id', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                    <option value="">Select a Death Status</option>
+                    {deathstatuses?.map(deathstatus => (
+                        <option key={deathstatus.id} value={deathstatus.id}>
+                            {deathstatus.name}
+                        </option>
+                    ))}
+                </select>
+                {errors.default_death_status_id && <p className="text-red-500 text-xs mt-1">{errors.default_death_status_id}</p>}
             </div>
 
             {/* Footer Actions */}

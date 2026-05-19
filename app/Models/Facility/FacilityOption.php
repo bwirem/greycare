@@ -36,7 +36,8 @@ class FacilityOption extends Model
         'access_token',
         'registration_url',
         'check_payment_url',
-        'crdb_payment_type'
+        'crdb_payment_type',
+        'default_death_status_id',
     ];
 
 
@@ -45,5 +46,10 @@ class FacilityOption extends Model
     public function chartOfAccount()
     {
         return $this->belongsTo(ChartOfAccount::class);
+    }
+
+    public function deathStatus()
+    {
+        return $this->belongsTo(IpdDischargeStatus::class);
     }
 }

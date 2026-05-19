@@ -1,5 +1,5 @@
 import React from "react";
-import AuthenticatedLayout from '@/Layouts/SpecializedLayout';
+import AuthenticatedLayout from '@/Layouts/MortuaryLayout';
 import { Head, Link } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
