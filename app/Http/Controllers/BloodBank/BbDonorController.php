@@ -71,7 +71,7 @@ class BbDonorController extends Controller
             'status' => 'Eligible' // Logic to auto-defer based on age/weight can go here
         ]);
 
-        return redirect()->route('bloodbank.donors.show', $donor->id)
+        return redirect()->route('bloodbank0.show', $donor->id)
             ->with('success', 'Donor registered successfully.');
     }
 
@@ -136,5 +136,36 @@ class BbDonorController extends Controller
         });
 
         return redirect()->back()->with('success', 'Donation recorded. Bag created in Quarantine.');
+    }
+
+    /**
+     * Test and Make Blood Bag Available
+     */
+    public function makeAvailable(Request $request, BbDonation $donation)
+    {
+        $request->validate([
+            'blood_group' => 'required|string|max:5',
+        ]);
+
+        DB::transaction(function () use ($request, $donation) {
+            // 1. Update Donation Status
+            $donation->update(['status' => 'Tested']);
+
+            // 2. Update Bag Status & Assure Blood Group
+            if ($donation->bag) {
+                $donation->bag->update([
+                    'status' => 'Available',
+                    'blood_group' => $request->blood_group
+                ]);
+            }
+
+            // 3. Update Donor's blood group if it was previously unknown
+            $donor = $donation->donor;
+            if (in_array($donor->blood_group, [null, 'Unknown', ''])) {
+                $donor->update(['blood_group' => $request->blood_group]);
+            }
+        });
+
+        return redirect()->back()->with('success', 'Blood test successful. Bag is now Available in inventory.');
     }
 }

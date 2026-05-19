@@ -292,5 +292,19 @@ class DashboardController extends Controller
             'occupancy' => $mortuaryOccupancy,
             // Add more stats as needed
         ]);
-    }        
+    }  
+    
+    /**
+     * 10. Orphanage Dashboard
+     */
+    public function orphanageStats()
+    {
+        // Fetch Orphanage stats (e.g., current children, admissions)
+        $currentChildren = 0;
+        // try { $currentChildren = DB::table('orphanage_records')->where('status', 'active')->count(); } catch(\Exception $e){}     
+        return Inertia::render('Dashboard/Orphanage', [
+            'currentChildren' => $currentChildren,
+            // Add more stats as needed
+        ]);
+    }
 }

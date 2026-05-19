@@ -226,6 +226,7 @@ class UserPermissionController extends Controller
             ['modulekey' => 'rch', 'moduletext' => 'Reproductive & Child Health', 'icon' => 'baby_carriage'],
             ['modulekey' => 'hivart', 'moduletext' => 'HIV-ART', 'icon' => 'ribbon'],
             ['modulekey' => 'mortuary', 'moduletext' => 'Mortuary', 'icon' => 'cross'], 
+            ['modulekey' => 'orphanage', 'moduletext' => 'Orphanage Centre', 'icon' => 'child'], 
 
             // Administrative/Support Modules
             ['modulekey' => 'billing', 'moduletext' => 'Sales and Billing', 'icon' => 'add_shopping_cart'],           
@@ -332,6 +333,13 @@ class UserPermissionController extends Controller
                 ['key' => 'mortuary0', 'text' => 'Deceased Records', 'icon' => 'book_dead'],
                 ['key' => 'mortuary1', 'text' => 'Release Management', 'icon' => 'handshake'], 
                 ['key' => 'mortuary2', 'text' => 'Consumables', 'icon' => 'box_open'],                             
+            ],
+
+            'orphanage' => [
+                ['key' => 'orphanage0', 'text' => 'Child Records', 'icon' => 'child'],
+                ['key' => 'orphanage1', 'text' => 'Adoption Requests', 'icon' => 'handshake'], 
+                ['key' => 'orphanage2', 'text' => 'Discharge', 'icon' => 'donation'], 
+                ['key' => 'orphanage3', 'text' => 'Orphanage History', 'icon' => 'chart_line'],                
             ],
 
             // Administrative/Support Modules

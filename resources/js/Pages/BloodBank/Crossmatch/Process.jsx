@@ -22,7 +22,7 @@ export default function ProcessRequest({ issue_request, available_bags }) {
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('bloodbank.requests.store', issue_request.id));
+        post(route('bloodbank2.store', issue_request.id));
     };
 
     return (

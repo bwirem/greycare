@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react'; // Import router
 import HospitalLayout from '@/Layouts/HospitalLayout';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
@@ -21,6 +21,27 @@ export default function ShowDonor({ donor, component_types, history }) {
         post(route('bloodbank0.donate', donor.id), {
             onSuccess: () => reset()
         });
+    };
+
+    // Action to make blood available after test
+    const handleMakeAvailable = (donation) => {
+        let bloodGroup = donor.blood_group && donor.blood_group !== 'Unknown' 
+            ? donor.blood_group 
+            : null;
+
+        // If blood group is unknown, prompt the lab tech to enter it
+        if (!bloodGroup) {
+            bloodGroup = window.prompt("Donor blood group is Unknown. Please enter the tested Blood Group (e.g., A+, O-):");
+            if (!bloodGroup) return; // Cancelled
+        } else {
+            if (!window.confirm(`Mark this bag as Available? (Confirmed Blood Group: ${bloodGroup})`)) {
+                return;
+            }
+        }
+
+        router.post(route('bloodbank0.makeAvailable', donation.id), {
+            blood_group: bloodGroup
+        }, { preserveScroll: true });
     };
 
     return (
@@ -89,7 +110,7 @@ export default function ShowDonor({ donor, component_types, history }) {
                                     <th className="px-4 py-2 text-left text-xs uppercase">Bag Serial</th>
                                     <th className="px-4 py-2 text-left text-xs uppercase">Volume</th>
                                     <th className="px-4 py-2 text-left text-xs uppercase">Hb</th>
-                                    <th className="px-4 py-2 text-right text-xs uppercase">Status</th>
+                                    <th className="px-4 py-2 text-right text-xs uppercase">Status / Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -100,7 +121,23 @@ export default function ShowDonor({ donor, component_types, history }) {
                                         <td className="px-4 py-3 text-sm font-mono">{d.bag_serial_number}</td>
                                         <td className="px-4 py-3 text-sm">{d.volume_collected} ml</td>
                                         <td className="px-4 py-3 text-sm">{d.hb_level}</td>
-                                        <td className="px-4 py-3 text-right text-sm">{d.status}</td>
+                                        <td className="px-4 py-3 text-right text-sm">
+                                            {/* Show Test Button if Bag is in Quarantine */}
+                                            {d.bag?.status === 'Quarantine' ? (
+                                                <button
+                                                    onClick={() => handleMakeAvailable(d)}
+                                                    className="bg-green-100 text-green-700 px-3 py-1 rounded text-xs font-bold hover:bg-green-200 transition"
+                                                >
+                                                    Test & Make Available
+                                                </button>
+                                            ) : (
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                                    d.bag?.status === 'Available' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                                }`}>
+                                                    {d.bag?.status || d.status}
+                                                </span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

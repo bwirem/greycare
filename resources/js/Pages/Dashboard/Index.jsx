@@ -11,7 +11,8 @@ import {
     faCogs,
     faChartPie,
     faHandsHelping,
-    faBed // Added for Mortuary
+    faBed, // Added for Mortuary
+    faChildReaching // Added for Orphanage Centre
 } from '@fortawesome/free-solid-svg-icons';
 import usePermissionsStore from '@/stores/usePermissionsStore';
 
@@ -84,6 +85,15 @@ export default function Index({ auth }) {
             textColor: "text-purple-600",
             route: "dashboard.hr",
             access: hasAccess(['humanresurces'])
+        },
+        {
+            title: "Orphanage Centre",
+            description: "Child care management, sponsorships, donations, welfare tracking & guardian services.",
+            icon: faChildReaching,
+            color: "bg-pink-600",
+            textColor: "text-pink-600",
+            route: "dashboard.orphanage",
+            access: hasAccess(['orphanage'])
         },
         {
             title: "Reporting & Analytics",

@@ -535,6 +535,9 @@ Route::prefix('bloodbank0')->name('bloodbank0.')->group(function () {
     
     // Add Donation Record (Bleeding)
     Route::post('/{donor}/donate', [BbDonorController::class, 'donate'])->name('donate');
+
+    Route::post('/bloodbank/donations/{donation}/make-available', [BbDonorController::class, 'makeAvailable'])
+    ->name('makeAvailable');
 });
 
 // --- bloodbank1: Blood Inventory ---
@@ -559,7 +562,7 @@ Route::prefix('bloodbank2')->name('bloodbank2.')->group(function () {
     Route::get('/{request}/process', [BbCrossmatchController::class, 'create'])->name('create');
     
     // Save the Crossmatch Result & Issue Bag
-    Route::post('/{request}', [BbCrossmatchController::class, 'store'])->name('store');
+    Route::post('/{bbIssueRequest}', [BbCrossmatchController::class, 'store'])->name('store');
 });
 
 

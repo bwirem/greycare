@@ -40,7 +40,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
      // Add this new route
     Route::get('/dashboard/mortuary', [DashboardController::class, 'mortuaryStats'])
-        ->name('dashboard.mortuary');          
+        ->name('dashboard.mortuary');  
+        
+    Route::get('/dashboard/orphanage', [DashboardController::class, 'orphanageStats'])
+        ->name('dashboard.orphanage');
 
     // 3. RESOURCE & ASSET MANAGEMENT (Procurement & Inventory Stats)
     Route::get('/dashboard/resources', [DashboardController::class, 'resourceStats'])
