@@ -52,6 +52,8 @@ use App\Models\Facility\FacilityOption;
 // Services
 use App\Services\BillingService; // <--- NEW IMPORT
 
+use App\Services\IcdMappingService;
+
 
 class DoctorOpdController extends Controller
 {
@@ -259,7 +261,7 @@ class DoctorOpdController extends Controller
     /**
      * 3. The Save (Updated Diagnosis Logic)
      */
-    public function store(Request $request, OpdBooking $booking, BillingService $billingService)
+    public function store(Request $request, OpdBooking $booking, BillingService $billingService, IcdMappingService $icdMappingService)
     {
         $request->validate([
             'history_presenting_illness' => 'required|string',
@@ -324,7 +326,7 @@ class DoctorOpdController extends Controller
                     // Use 'icd_id' passed from frontend mapping, or 'id' if type was direct ICD selection
                     $icdId = $diag['icd_id'] ?? ($type === 'icd' ? $diag['id'] : null);
                     $icdLabel = $diag['icd_label'] ?? ($type === 'icd' ? $diag['label'] : null);
-
+                    $mtuha = null;
                     if ($icdId) {
                         $modelClassIcd = match ($status) {
                             'confirmed'    => MrPatientDiagnosisIcdConfirmed::class,
@@ -340,24 +342,20 @@ class DoctorOpdController extends Controller
                             'diagnosis_id'         => $icdId, 
                             'diagnosisdescription' => $icdLabel,
                         ]);
+
+                        $parts = explode(' - ', $icdLabel);
+                        $code = trim($parts[0]); 
+                        $mtuha = $icdMappingService->findMtuha($code, 'OPD');                        
                     }
 
                     // --- SCENARIO 2: Save Local Tables (Polymorphic) ---
                     // Save if user selected Local, OR if they selected ICD but it maps to a Local ID
-                    $mtuhaId = null;
-                    $sourceModel = null;
+                    // $mtuhaId = null;
+                    // $sourceModel = null;
 
-                    if ($type !== 'icd') {
-                        // Direct selection of local diagnosis
-                        $mtuhaId = $diag['id'];
-                        $sourceModel = DxtDiagnosesOpd::class; // Map to OPD Master
-                    } elseif (!empty($diag['linked_mtuha_id'])) {
-                        // Indirect selection via ICD mapping
-                        $mtuhaId = $diag['linked_mtuha_id'];
-                        $sourceModel = DxtDiagnosesOpd::class; // Map to OPD Master
-                    }
+                    $sourceModel = DxtDiagnosesOpd::class; // Map to OPD Master
 
-                    if ($mtuhaId) {
+                    if ($mtuha) {
                         $modelClassMtuha = match ($status) {
                             'confirmed'    => MrPatientDiagnosisConfirmed::class,
                             'differential' => MrPatientDiagnosisDifferential::class,
@@ -369,9 +367,9 @@ class DoctorOpdController extends Controller
                             'patientcode'          => $booking->patientcode,
                             'user_id'              => Auth::id(),
                             'transdate'            => now(),
-                            'diagnosis_id'         => $mtuhaId,
-                            'diagnosis_type'       => $sourceModel,
-                            'diagnosisdescription' => $diag['linked_mtuha'] ?? $diag['label'],
+                            'diagnosis_id'         => $mtuha->mtuha_code, 
+                            'diagnosisdescription' => $mtuha->description,
+                            'diagnosis_type'       => $sourceModel,                            
                         ]);
                     }
                 }

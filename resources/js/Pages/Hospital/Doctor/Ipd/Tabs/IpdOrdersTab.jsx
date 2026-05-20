@@ -16,10 +16,11 @@ export default function IpdOrdersTab({
     ordered_blood = [], 
     opd_labs = [], opd_rads = [], opd_surgeries = [],
     onViewResult,
-    onDeleteOrder // <--- NEW PROP
+    onDeleteOrder 
 }) {
     
-    const [bloodReq, setBloodReq] = useState({ id: null, label: '', units: 1 });
+    // 1. ADDED: blood_group to the local state
+    const [bloodReq, setBloodReq] = useState({ id: null, label: '', units: 1, blood_group: '' });
 
     const addOrder = (field, item) => {
         setData(field, [...data[field], item]);
@@ -34,8 +35,16 @@ export default function IpdOrdersTab({
         if(!bloodReq.id) return toast.error("Select blood component");
         if(bloodReq.units < 1) return toast.error("Units must be at least 1");
         
-        addOrder('blood_requests', { component_id: bloodReq.id, name: bloodReq.label, units: bloodReq.units });
-        setBloodReq({ id: null, label: '', units: 1 });
+        // 2. UPDATED: Send blood_group alongside the component details
+        addOrder('blood_requests', { 
+            component_id: bloodReq.id, 
+            name: bloodReq.label, 
+            units: bloodReq.units,
+            blood_group: bloodReq.blood_group 
+        });
+        
+        // Reset component and units, but keep blood group selected for convenience
+        setBloodReq({ id: null, label: '', units: 1, blood_group: bloodReq.blood_group });
     };
 
     // Helper for Surgery Status Colors
@@ -60,7 +69,6 @@ export default function IpdOrdersTab({
                     </h3>
                     <table className="w-full text-sm text-left">
                         <tbody>
-                            {/* Labs */}
                             {opd_labs.map(l => (
                                 <tr key={'opd-l'+l.id} className="border-b border-blue-100 last:border-0">
                                     <td className="p-2 w-16"><span className="bg-white text-purple-700 border border-purple-200 text-[10px] px-1 rounded font-bold">LAB</span></td>
@@ -72,7 +80,6 @@ export default function IpdOrdersTab({
                                     </td>
                                 </tr>
                             ))}
-                            {/* Rads */}
                             {opd_rads.map(r => (
                                 <tr key={'opd-r'+r.id} className="border-b border-blue-100 last:border-0">
                                     <td className="p-2 w-16"><span className="bg-white text-orange-700 border border-orange-200 text-[10px] px-1 rounded font-bold">RAD</span></td>
@@ -110,7 +117,6 @@ export default function IpdOrdersTab({
                                     <td className="p-3"><span className="bg-purple-100 text-purple-800 text-[10px] px-2 py-1 rounded font-bold border border-purple-200">LAB</span></td>
                                     <td className="p-3">
                                         <div className="font-medium text-gray-800">{l.panel?.name}</div>
-                                        {/* Rejection Reason */}
                                         {(l.status === 'rejected' || l.status === 'sample_rejected') && (
                                             <div className="text-xs text-red-600 mt-1 bg-red-50 p-1 rounded border border-red-100 inline-block">
                                                 <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
@@ -183,7 +189,6 @@ export default function IpdOrdersTab({
                                                 <FontAwesomeIcon icon={faEye}/> Report
                                             </button>
                                         )}
-                                        {/* Check for both casing just in case */}
                                         {(r.status === 'ordered' || r.status === 'Ordered') && (
                                             <button type="button" onClick={() => onDeleteOrder(r.id, 'rad')} className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center justify-end gap-1 w-full" title="Delete Order">
                                                 <FontAwesomeIcon icon={faTrashAlt} /> Del
@@ -255,7 +260,7 @@ export default function IpdOrdersTab({
                 </div>
             )}
 
-            {/* --- 3. NEW ORDERS FORMS (Unchanged) --- */}
+            {/* --- 3. NEW ORDERS FORMS --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Lab */}
@@ -314,11 +319,28 @@ export default function IpdOrdersTab({
                 </div>
             </div>
 
-            {/* Blood Bank Form */}
+            {/* 3. UPDATED: Blood Bank Form */}
             <div className="border border-red-200 bg-red-50 p-4 rounded-lg shadow-sm">
                 <h5 className="font-bold mb-3 text-red-800 flex items-center gap-2"><FontAwesomeIcon icon={faTint} /> Blood Request</h5>
-                <div className="flex gap-3 items-end">
-                    <div className="w-2/3">
+                <div className="flex flex-wrap gap-3 items-end">
+                    
+                    {/* Changed from global `data.blood_group` to local `bloodReq.blood_group` and merged into the flex grid */}
+                    <div className="w-full md:w-32">
+                        <InputLabel value="Blood Group" className="mb-1 text-xs" />
+                        <select 
+                            className="w-full border-gray-300 rounded text-sm h-[38px] px-2 focus:ring-red-500 focus:border-red-500" 
+                            value={bloodReq.blood_group} 
+                            onChange={e => setBloodReq({ ...bloodReq, blood_group: e.target.value })}
+                        >
+                            <option value="">Unknown</option>
+                            <option>A+</option><option>A-</option>
+                            <option>B+</option><option>B-</option>
+                            <option>AB+</option><option>AB-</option>
+                            <option>O+</option><option>O-</option>
+                        </select>
+                    </div>                
+
+                    <div className="flex-1 min-w-[200px]">
                         <InputLabel value="Component" className="mb-1 text-xs" />
                         <ReactSelect 
                             options={options.blood} 
@@ -329,7 +351,8 @@ export default function IpdOrdersTab({
                             menuPortalTarget={document.body}
                         />
                     </div>
-                    <div className="w-24">
+
+                    <div className="w-20">
                         <InputLabel value="Units" className="mb-1 text-xs" />
                         <input 
                             type="number" 
@@ -339,14 +362,24 @@ export default function IpdOrdersTab({
                             onChange={e => setBloodReq({ ...bloodReq, units: e.target.value })}
                         />
                     </div>
+
                     <button type="button" className="bg-red-600 text-white px-5 h-[38px] rounded text-sm hover:bg-red-700 font-bold shadow transition" onClick={handleAddBlood}>
                         Add
                     </button>
                 </div>
+
                 <div className="mt-3 flex flex-wrap gap-2">
                     {data.blood_requests.map((x,i) => (
                         <div key={i} className="text-xs flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-red-200 shadow-sm">
                             <span className="font-medium text-gray-800">{x.name}</span>
+                            
+                            {/* Added visual representation for the blood group */}
+                            {x.blood_group && (
+                                <span className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded font-bold border border-red-100">
+                                    {x.blood_group}
+                                </span>
+                            )}
+
                             <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold">{x.units} U</span>
                             <button type="button" onClick={()=>removeOrder('blood_requests',i)} className="text-red-400 hover:text-red-600 font-bold ml-1 transition">✕</button>
                         </div>

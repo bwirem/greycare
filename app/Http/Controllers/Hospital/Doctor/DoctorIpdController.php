@@ -58,6 +58,7 @@ use App\Models\Billing\BILOrder;
 
 // --- NEW IMPORT: Billing Service ---
 use App\Services\BillingService; 
+use App\Services\IcdMappingService;
 
 class DoctorIpdController extends Controller
 {
@@ -208,7 +209,7 @@ class DoctorIpdController extends Controller
     /**
      * 3. Save Round - UPDATED WITH BILLING
      */
-    public function store(Request $request, IpdAdmission $admission, BillingService $billingService)
+    public function store(Request $request, IpdAdmission $admission, BillingService $billingService, IcdMappingService $icdMappingService)
     {
         $request->validate([
             'clinical_notes' => 'required|string',
@@ -345,7 +346,7 @@ class DoctorIpdController extends Controller
                         'requested_by' => Auth::id(),
                         'bb_component_type_id' => $bb['component_id'],
                         'units_required' => $bb['units'],
-                        'blood_group_required' => $admission->patient->blood_group ?? 'Unknown',
+                        'blood_group_required' => $admission->patient->blood_group ?? $bb['blood_group'],
                         'urgency' => 'Routine',
                         'status' => 'Requested'
                     ]);
@@ -377,6 +378,7 @@ class DoctorIpdController extends Controller
                     $status = $diag['status']; 
                     $type = $diag['type'] ?? 'icd';
 
+                    $mtuha = null;
                     if ($type === 'icd') {
                         $modelClassIcd = match ($status) {
                             'confirmed'    => MrPatientDiagnosisIcdConfirmed::class,
@@ -392,20 +394,16 @@ class DoctorIpdController extends Controller
                             'diagnosis_id'         => $diag['id'],
                             'diagnosisdescription' => $diag['label'],
                         ]);
+
+                        $parts = explode(' - ', $diag['label']);
+                        $code = trim($parts[0]); 
+                        $mtuha = $icdMappingService->findMtuha($code, 'IPD');   
                     }
 
-                    $mtuhaId = null;
-                    $sourceModel = null;
+                   
+                    $sourceModel = DxtDiagnosesIpd::class;
 
-                    if ($type !== 'icd') {
-                        $mtuhaId = $diag['id'];
-                        $sourceModel = DxtDiagnosesIpd::class; 
-                    } elseif (!empty($diag['linked_mtuha_id'])) {
-                        $mtuhaId = $diag['linked_mtuha_id'];
-                        $sourceModel = DxtDiagnosesIpd::class; 
-                    }
-
-                    if ($mtuhaId) {
+                    if ($mtuha) {
                         $modelClassMtuha = match ($status) {
                             'confirmed'    => MrPatientDiagnosisConfirmed::class,
                             'differential' => MrPatientDiagnosisDifferential::class,
@@ -417,9 +415,9 @@ class DoctorIpdController extends Controller
                             'patientcode'          => $admission->patientcode,
                             'user_id'              => Auth::id(),
                             'transdate'            => now(),
-                            'diagnosis_id'         => $mtuhaId, 
+                            'diagnosis_id'         => $mtuha->mtuha_code,                           
+                            'diagnosisdescription' => $mtuha->description,
                             'diagnosis_type'       => $sourceModel,
-                            'diagnosisdescription' => $diag['linked_mtuha'] ?? $diag['label'],
                         ]);
                     }
                 }
