@@ -11,6 +11,7 @@ use Inertia\Inertia;
 // Models
 use App\Models\BloodBank\BbBloodBag;
 use App\Models\BloodBank\BbDiscard;
+use App\Models\BloodBank\BbComponentType; // Make sure to import this
 
 class BbInventoryController extends Controller
 {
@@ -27,9 +28,39 @@ class BbInventoryController extends Controller
             ->groupBy('bb_component_type_id', 'blood_group')
             ->get();
 
+        $component_types = BbComponentType::select('id', 'name')->get();
+
         return Inertia::render('BloodBank/Inventory/Index', [
-            'stock' => $stock
+            'stock' => $stock,
+            'component_types' => $component_types
         ]);
+    }
+
+    /**
+     * Receive Bag from National Blood Bank (External)
+     */
+    public function receiveExternal(Request $request)
+    {
+        $request->validate([
+            'bag_serial_number' => 'required|string|unique:bb_blood_bags,bag_serial_number',
+            'blood_group' => 'required|string|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+            'bb_component_type_id' => 'required|exists:bb_component_types,id',
+            'collected_at' => 'required|date|before_or_equal:today',
+            'expires_at' => 'required|date|after:today',
+        ]);
+
+        BbBloodBag::create([
+            'bb_donation_id' => 1,//null, // Null because it didn't come from a local donor
+            'bb_component_type_id' => $request->bb_component_type_id,
+            'bag_serial_number' => $request->bag_serial_number,
+            'blood_group' => $request->blood_group,
+            'collected_at' => $request->collected_at,
+            'expires_at' => $request->expires_at,
+            'status' => 'Available', // National Bank bags are pre-tested
+            'location' => 'Main Bank'
+        ]);
+
+        return redirect()->back()->with('success', 'External bag received successfully and added to stock.');
     }
 
     /**

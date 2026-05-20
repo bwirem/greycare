@@ -550,6 +550,9 @@ Route::prefix('bloodbank1')->name('bloodbank1.')->group(function () {
     
     // Discard / Update Status of a Bag
     Route::post('/{bag}/discard', [BbInventoryController::class, 'discard'])->name('discard');
+
+    Route::post('/bloodbank/inventory/receive-external', [App\Http\Controllers\BloodBank\BbInventoryController::class, 'receiveExternal'])
+    ->name('receiveExternal');
 });
 
 
