@@ -1,12 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/FinanceLayout';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm, Link, router } from '@inertiajs/react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSave, faTimesCircle, faSpinner, faStore, faTag } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import axios from 'axios';
 import Modal from '@/Components/CustomModal.jsx';
-// 1. IMPORT TOAST
 import { toast } from 'react-toastify';
 
 const debounce = (func, delay) => {
@@ -16,6 +15,7 @@ const debounce = (func, delay) => {
         timeout = setTimeout(() => func(...args), delay);
     };
 };
+
 const formatCurrency = (value) => {
     return parseFloat(value || 0).toLocaleString(undefined, {
         minimumFractionDigits: 2,
@@ -26,7 +26,8 @@ const formatCurrency = (value) => {
 const STORAGE_KEY = 'pendingOrderData'; 
 
 export default function SaveOrderConfirmation({ auth, orderData }) {
-    const { data, setData, post, errors, processing, reset } = useForm({
+    // We remove `post`, `processing`, and `errors` from useForm because we will use Axios for submission
+    const { data, setData, reset } = useForm({
         customer_id: null,
         stage: '3', 
         store_id: orderData.store_id || null,
@@ -35,6 +36,10 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
         orderitems: orderData.orderitems || [],
         description: orderData.description || 'Medical Services',
     });
+
+    // Custom state for form submission and errors
+    const [isSaving, setIsSaving] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const [customerSearchQuery, setCustomerSearchQuery] = useState('');
     const [customerSearchResults, setCustomerSearchResults] = useState([]);
@@ -48,7 +53,7 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
     });
     const [newCustomerModalLoading, setNewCustomerModalLoading] = useState(false);
 
-    // --- 2. BADGE LOGIC ---
+    // --- BADGE LOGIC ---
     const showStoreBadge = useMemo(() => {
         if (!data.orderitems || data.orderitems.length === 0) return false;
         const uniqueStores = new Set(data.orderitems.map(item => item.source_store_name).filter(Boolean));
@@ -69,7 +74,7 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
         setIsCustomerSearchLoading(true);
         axios.get(route('systemconfiguration0.customers.search'), { params: { query } })
             .then((response) => setCustomerSearchResults(response.data.customers?.slice(0, 10) || []))
-            .catch(() => toast.error('Failed to fetch customers.')) // UPDATED
+            .catch(() => toast.error('Failed to fetch customers.'))
             .finally(() => setIsCustomerSearchLoading(false));
     }, []);
 
@@ -118,33 +123,94 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
                 selectCustomer(response.data);
                 setTimeout(() => handleNewCustomerModalClose(), 500);
             } else {
-                toast.error(response.data?.message || 'Error creating new customer!'); // UPDATED
+                toast.error(response.data?.message || 'Error creating new customer!');
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to create new customer.'); // UPDATED
+            toast.error(error.response?.data?.message || 'Failed to create new customer.');
         } finally {
             setNewCustomerModalLoading(false);
         }
     };
 
-    const submitOrder = (e) => {
+    // --- PRINTING & PREVIEW HANDLER ---
+    const handlePrintResponse = (responseData) => {
+        toast.success(responseData.message || 'Order saved successfully!');
+
+        // Case 1: Backend Server printed it (Local network setup)
+        if (responseData.backend_printed) {
+            router.visit(route('billing1.index'));
+            return;
+        }
+
+        // Case 2: Frontend Auto Print (Silent iframe)
+        if (responseData.auto_print && responseData.preview_url) {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = responseData.preview_url;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                // Redirect shortly after triggering print dialog
+                setTimeout(() => {
+                    router.visit(route('billing1.index'));
+                }, 1500);
+            };
+            return;
+        }
+
+        // Case 3: Frontend Preview (Opens in new tab)
+        if (responseData.preview_url) {
+            window.open(responseData.preview_url, '_blank');
+            router.visit(route('billing1.index'));
+            return;
+        }
+
+        // Default Fallback
+        router.visit(route('billing1.index'));
+    };
+
+    // --- AXIOS SUBMISSION HANDLER ---
+    const submitOrder = async (e) => {
         e.preventDefault();
+        setErrors({}); // Reset errors
+
         if (!data.customer_id) {
-            toast.error('Please select a customer before saving the order.'); // UPDATED
+            toast.error('Please select a customer before saving the order.');
             return;
         }
         
-        post(route('billing1.store'), {
-            onSuccess: () => {
-                sessionStorage.removeItem(STORAGE_KEY); 
-                reset();
-                toast.success('Order saved successfully!');
-            },
-            onError: (formErrors) => {
-                const errorMessages = Object.values(formErrors).join('\n');
-                toast.error(`Failed to save order: ${errorMessages || 'Please check your input.'}`); // UPDATED
+        setIsSaving(true);
+
+        try {
+            const response = await axios.post(route('billing1.store'), data);
+            
+            // Clean up cached order data
+            sessionStorage.removeItem(STORAGE_KEY); 
+            reset();
+
+            // Trigger the Printing Logic
+            handlePrintResponse(response.data);
+
+        } catch (error) {
+            // Handle Validation Errors from Laravel
+            if (error.response && error.response.status === 422) {
+                setErrors(error.response.data.errors || {});
+                
+                // Specifically look for our Control Number API Error
+                if (error.response.data.errors.api_error) {
+                    toast.error(`Control Number Error: ${error.response.data.errors.api_error[0]}`);
+                } else {
+                    toast.error('Please check your input. Validation failed.');
+                }
+            } else {
+                // General Server Error
+                toast.error(error.response?.data?.message || 'Failed to save order. An unexpected error occurred.');
             }
-        });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -171,7 +237,6 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
                                             {data.orderitems.map((item, index) => (
                                                 <tr key={index}>
                                                     <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
-                                                        {/* --- UPDATED UI FOR BADGES --- */}
                                                         <div className="font-medium">{item.item_name}</div>
                                                         {(showStoreBadge || showPriceBadge) && (
                                                             <div className="flex space-x-2 mt-1">
@@ -206,7 +271,6 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
                                 </div>
                             </section>
 
-                            {/* Save Options Section */}
                             <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Save Options</h3>
                                 <div>
@@ -215,11 +279,10 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
                                         <option value="3">Pending</option>
                                         <option value="4">Proforma</option>
                                     </select>
-                                    {errors.stage && <p className="text-red-500 text-xs mt-1">{errors.stage}</p>}
+                                    {errors.stage && <p className="text-red-500 text-xs mt-1">{errors.stage[0]}</p>}
                                 </div>
                             </section>
 
-                             {/* Customer Section */}
                             <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Customer Details</h3>
                                 <label htmlFor="customer_search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select or Create Customer</label>
@@ -248,13 +311,13 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
                                         <FontAwesomeIcon icon={faPlus} /> <span className="hidden sm:inline">New</span>
                                     </button>
                                 </div>
-                                {errors.customer_id && <p className="text-red-500 text-xs mt-1">{errors.customer_id}</p>}
+                                {errors.customer_id && <p className="text-red-500 text-xs mt-1">{errors.customer_id[0]}</p>}
                             </section>
 
                             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                 <Link href={route('billing1.create')} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Back</Link>
-                                <button type="submit" disabled={processing} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center">
-                                    <FontAwesomeIcon icon={processing ? faSpinner : faSave} spin={processing} className="mr-2" />
+                                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center">
+                                    <FontAwesomeIcon icon={isSaving ? faSpinner : faSave} spin={isSaving} className="mr-2" />
                                     Confirm & Save
                                 </button>
                             </div>

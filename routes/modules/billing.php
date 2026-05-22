@@ -52,6 +52,8 @@ Route::prefix('billing1')->name('billing1.')->group(function () {
     Route::get('/invoice-preview', [BilPostController::class, 'invoicePreview'])->name('invoice_preview');
 
     Route::get('/api/pending-bills', [BilPostController::class, 'getPendingBills'])->name('api.pending');
+
+    Route::get('/control-number-preview', [BilPostController::class, 'controlNumberPreview'])->name('control_number_preview');
 });
 
 // billing2: Pay Bills routes

@@ -152,8 +152,7 @@ class BilPostController extends Controller
      */
     public function store(Request $request)
     {       
-        $this->createOrder($request); // Uses HandlesOrdering trait
-        return redirect()->route('billing1.index')->with('success', 'Order created successfully.');
+         return $this->createOrder($request); 
     }
 
     /**
@@ -232,8 +231,7 @@ class BilPostController extends Controller
      */
     public function update(Request $request, BILOrder $order)
     {       
-        $this->updateOrder($request, $order); // Uses HandlesOrdering trait
-        return redirect()->route('billing1.index')->with('success', 'Order updated successfully.');
+        return $this->updateOrder($request, $order);       
     }
 
     /**
@@ -314,8 +312,7 @@ class BilPostController extends Controller
             if (!isset($controlResponse['status']) || $controlResponse['status'] !== 'success') {
                 
                 $errorMessage = $controlResponse['message'] ?? 'API Error: Failed to generate control number.';
-                Log::error("Payment Creation Aborted: " . $errorMessage);
-                
+               
                 // This natively triggers the `onError: (formErrors) => {}` in Inertia!
                 throw ValidationException::withMessages([
                     'api_error' => $errorMessage
@@ -577,6 +574,43 @@ class BilPostController extends Controller
         return response($pdf->output(), 200)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="invoice_' . ($sale->invoiceno ?? $sale->receiptno) . '.pdf"');
+    }
+
+    /**
+     * Renders the Control Number PDF to the browser for preview or frontend printing.
+     */
+    public function controlNumberPreview()
+    {
+        // 1. Retrieve the data saved in the session during createOrder/updateOrder
+        $orderId = session('latest_order_id');
+        $controlResponse = session('latest_control_response');
+
+        if (!$orderId) {
+            // Adjust the redirect route to match your application's flow
+            return redirect()->back()->with('error', 'No control number to display.');
+        }
+
+        // 2. Fetch the Order and eager load relationships needed for the receipt
+        $order = BILOrder::with(['customer', 'orderitems.item'])->findOrFail($orderId);
+        
+        // 3. Fetch Facility details for the header
+        $facility = FacilityOption::first();
+
+        // 4. Define Custom Paper Size [0, 0, Width, Height] in points
+        // 80mm = 226.77 points. Height is long (1000) to act as a continuous roll.
+        $customPaper = array(0, 0, 226.77, 1000); 
+
+        // 5. Generate the PDF
+        $pdf = Pdf::loadView('pdfs.control_number_receipt', [
+            'order' => $order,
+            'controlResponse' => $controlResponse,
+            'facility' => $facility,
+        ])->setPaper($customPaper, 'portrait');
+
+        // 6. Return as inline PDF so the browser opens it in a preview/print tab
+        return response($pdf->output(), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="control_number_ORD-' . $order->id . '.pdf"');
     }
 
     //--------------------------------------------------------------------------

@@ -1,12 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/FinanceLayout';
-import { Head, useForm, Link } from '@inertiajs/react'; 
+import { Head, useForm, Link, router } from '@inertiajs/react'; 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSave, faTimesCircle, faSpinner, faStore, faTag } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import axios from 'axios';
 import Modal from '@/Components/CustomModal.jsx';
-// 1. IMPORT TOAST
 import { toast } from 'react-toastify';
 
 // Reusable helper functions
@@ -29,11 +28,16 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
 
     const STORAGE_KEY = `pendingOrderChanges_${orderData.id}`;
 
-    const { data, setData, put, errors, processing } = useForm({
+    // Removed `put`, `processing`, and `errors` from useForm (using Axios instead)
+    const { data, setData } = useForm({
         ...orderData,
         customer_id: originalOrder.customer_id,
         stage: originalOrder.stage,
     });
+    
+    // Custom state for form submission and errors
+    const [isSaving, setIsSaving] = useState(false);
+    const [errors, setErrors] = useState({});
     
     // --- Customer Logic ---
     const [customerSearchQuery, setCustomerSearchQuery] = useState(
@@ -50,9 +54,8 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
         customer_type: 'individual', first_name: '', other_names: '', surname: '', company_name: '', email: '', phone: '' 
     });
     const [newCustomerModalLoading, setNewCustomerModalLoading] = useState(false);
-    // Removed alertModal state in favor of Toast
 
-    // --- 2. BADGE LOGIC ---
+    // --- BADGE LOGIC ---
     const showStoreBadge = useMemo(() => {
         if (!data.orderitems || data.orderitems.length === 0) return false;
         const uniqueStores = new Set(data.orderitems.map(item => item.source_store_name).filter(Boolean));
@@ -70,7 +73,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
         setIsCustomerSearchLoading(true);
         axios.get(route('systemconfiguration0.customers.search'), { params: { query } })
             .then((response) => setCustomerSearchResults(response.data.customers?.slice(0, 10) || []))
-            .catch(() => toast.error('Failed to fetch customers.')) // UPDATED
+            .catch(() => toast.error('Failed to fetch customers.'))
             .finally(() => setIsCustomerSearchLoading(false));
     }, []);
 
@@ -97,7 +100,6 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-
     const selectCustomer = (customer) => {
         setData('customer_id', customer.id);
         const customerName = customer.customer_type === 'company' ? customer.company_name : `${customer.first_name || ''} ${customer.surname || ''}`.trim();
@@ -122,28 +124,90 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
             selectCustomer(response.data);
             handleNewCustomerModalClose();
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to create customer.'); // UPDATED
+            toast.error(error.response?.data?.message || 'Failed to create customer.');
             setNewCustomerModalLoading(false);
         }
     };
 
-    const submitUpdate = (e) => {
+    // --- PRINTING & PREVIEW HANDLER ---
+    const handlePrintResponse = (responseData) => {
+        toast.success(responseData.message || 'Order updated successfully!');
+
+        // Case 1: Backend Server printed it (Local network setup)
+        if (responseData.backend_printed) {
+            router.visit(route('billing1.index'));
+            return;
+        }
+
+        // Case 2: Frontend Auto Print (Silent iframe)
+        if (responseData.auto_print && responseData.preview_url) {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = responseData.preview_url;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                // Redirect shortly after triggering print dialog
+                setTimeout(() => {
+                    router.visit(route('billing1.index'));
+                }, 1500);
+            };
+            return;
+        }
+
+        // Case 3: Frontend Preview (Opens in new tab)
+        if (responseData.preview_url) {
+            window.open(responseData.preview_url, '_blank');
+            router.visit(route('billing1.index'));
+            return;
+        }
+
+        // Default Fallback
+        router.visit(route('billing1.index'));
+    };
+
+    // --- AXIOS SUBMISSION HANDLER ---
+    const submitUpdate = async (e) => {
         e.preventDefault();
+        setErrors({});
+
         if (!data.customer_id) {
-            toast.error('A customer must be selected.'); // UPDATED
+            toast.error('A customer must be selected.');
             return;
         }
         
-        put(route('billing1.update', { order: orderData.id }), {
-            onSuccess: () => {
-                sessionStorage.removeItem(STORAGE_KEY); 
-                toast.success('Order updated successfully!');
-            },
-            onError: (formErrors) => {
-                const errorMessages = Object.values(formErrors).join('\n');
-                toast.error(`Update failed: ${errorMessages}`); // UPDATED
+        setIsSaving(true);
+
+        try {
+            // Using PUT method to match Laravel route
+            const response = await axios.put(route('billing1.update', { order: orderData.id }), data);
+            
+            // Clean up cached order data
+            sessionStorage.removeItem(STORAGE_KEY); 
+            
+            // Trigger the Printing Logic
+            handlePrintResponse(response.data);
+
+        } catch (error) {
+            // Handle Validation Errors from Laravel
+            if (error.response && error.response.status === 422) {
+                setErrors(error.response.data.errors || {});
+                
+                // Specifically look for our Control Number API Error
+                if (error.response.data.errors.api_error) {
+                    toast.error(`Control Number Error: ${error.response.data.errors.api_error[0]}`);
+                } else {
+                    toast.error('Please check your input. Validation failed.');
+                }
+            } else {
+                // General Server Error
+                toast.error(error.response?.data?.message || 'Failed to update order.');
             }
-        });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -170,7 +234,6 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                                             {data.orderitems.map((item, index) => (
                                                 <tr key={index}>
                                                     <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
-                                                        {/* --- UPDATED UI FOR BADGES --- */}
                                                         <div className="font-medium">{item.item_name}</div>
                                                         {(showStoreBadge || showPriceBadge) && (
                                                             <div className="flex space-x-2 mt-1">
@@ -205,7 +268,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                                     <option value="3">Pending</option>
                                     <option value="4">Proforma</option>
                                 </select>
-                                {errors.stage && <p className="text-red-500 text-xs mt-1">{errors.stage}</p>}
+                                {errors.stage && <p className="text-red-500 text-xs mt-1">{errors.stage[0]}</p>}
                             </section>
 
                             <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -217,7 +280,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                                             value={customerSearchQuery}
                                             onChange={(e) => setCustomerSearchQuery(e.target.value)}
                                             onFocus={() => setShowCustomerDropdown(true)}
-                                            className="w-full border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                                            className={`w-full border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${errors.customer_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
                                             autoComplete="off"
                                         />
                                         {isCustomerSearchLoading && <FontAwesomeIcon icon={faSpinner} spin className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />}
@@ -235,13 +298,13 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                                         <FontAwesomeIcon icon={faPlus} /> <span className="hidden sm:inline">New</span>
                                     </button>
                                 </div>
-                                {errors.customer_id && <p className="text-red-500 text-xs mt-1">{errors.customer_id}</p>}
+                                {errors.customer_id && <p className="text-red-500 text-xs mt-1">{errors.customer_id[0]}</p>}
                             </section>
 
                             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                 <Link href={route('billing1.edit', { order: orderData.id })} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Back to Edit</Link>
-                                <button type="submit" disabled={processing} className="px-4 py-2 bg-blue-600 text-white rounded flex items-center">
-                                    {processing ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />}
+                                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded flex items-center">
+                                    {isSaving ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />}
                                     Confirm & Save
                                 </button>
                             </div>
