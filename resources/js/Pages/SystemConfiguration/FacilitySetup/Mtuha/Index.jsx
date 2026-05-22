@@ -100,24 +100,34 @@ export default function MtuhaIndex({ auth, diagnoses, type, pageTitle, success, 
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Diagnosis Name</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Group</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ICD Map</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exact Codes</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ranges</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
                                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {diagnoses.data.map((item) => (
                                         <tr key={item.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.name}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500 font-mono">{item.code || '-'}</td>
+                                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.description}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-500 font-mono">{item.mtuha_code || '-'}</td>
                                             <td className="px-6 py-4 text-sm text-gray-500">{item.group?.name || '-'}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{item.maptocode || '-'}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">
+                                                {Array.isArray(item.exact_codes) ? item.exact_codes.join(', ') : (item.exact_codes || '-')}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">
+                                                {Array.isArray(item.ranges) 
+                                                    ? item.ranges.map(range => Array.isArray(range) ? range.join('-') : range).join(', ') 
+                                                    : (item.ranges || '-')}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{item.priority}</td>
                                             <td className="px-6 py-4 text-center space-x-4">
                                                 <Link href={route("systemconfiguration5.mtuha.edit", { type, id: item.id })} className="text-blue-600 hover:text-blue-900">
                                                     <FontAwesomeIcon icon={faEdit} />
                                                 </Link>
-                                                <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900">
+                                                {/* <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900">
                                                     <FontAwesomeIcon icon={faTrash} />
-                                                </button>
+                                                </button> */}
                                             </td>
                                         </tr>
                                     ))}

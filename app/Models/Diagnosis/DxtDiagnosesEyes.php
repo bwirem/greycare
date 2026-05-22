@@ -8,8 +8,12 @@ use App\Models\MedicalRecord\MrPatientDiagnosisProvisional;
 
 class DxtDiagnosesEyes extends Model
 {
-    protected $table = 'dxt_diagnoses_eyes';
+    protected $table = 'mr_mtuha_mappings_eye';
     protected $guarded = [];
+    protected $casts = [
+        'exact_codes' => 'array',
+        'ranges'      => 'array',
+    ];
 
     public function group()
     {

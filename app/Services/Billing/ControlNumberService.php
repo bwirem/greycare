@@ -154,9 +154,22 @@ class ControlNumberService
 
     /**
      * Check if payment has been made for a specific bill
-     */
+     */    
+
     public function checkPayment(BILControlNumber $bill)
     {
+        // 1. Exit early if already paid (saves API calls and DB writes)
+        if ($bill->numberstatus === 'paid') {
+            return [
+                'status' => 'info',
+                'message' => 'Payment already confirmed.',
+                'control_status' => 'paid',
+                'receipt' => $bill->receipt_no,
+            ];
+        }
+
+        Log::info("Checking payment for Bill ID: {$bill->id}, Payment Ref: {$bill->payment_reference}");
+
         $setup = $this->getFacilitySetup();
 
         $payload = [
@@ -165,13 +178,29 @@ class ControlNumberService
         ];
 
         try {
+            // Laravel automatically adds 'Content-Type' => 'application/json' when passing an array
             $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
                 'ACCESS_TOKEN' => $setup->access_token,
             ])->post($setup->check_payment_url, $payload);
 
-            $data = $response->json()['data'] ?? null;
+            Log::info("Check Payment API Response", [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
+            // 2. Safely check if the API request actually succeeded
+            if ($response->failed()) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Payment provider is currently unavailable. Please try again later.',
+                ];
+            }
+
+            // 3. Safely extract JSON to avoid "Trying to access array offset on null" errors
+            $json = $response->json();
+            $data = $json['data'] ?? null;
+
+            // 4. Handle weird API behaviors (Stringified JSON or Array wrapping)
             if (is_string($data)) {
                 $data = json_decode($data, true);
             }
@@ -180,6 +209,7 @@ class ControlNumberService
                 $data = $data[0];
             }
 
+            // 5. Check if payment is actually reflected
             if (!$data || (empty($data['transactionRef']) && empty($data['receipt']))) {
                 return [
                     'status' => 'info',
@@ -188,12 +218,13 @@ class ControlNumberService
                 ];
             }
 
-            // Payment confirmed, update local DB
+            // 6. Payment confirmed, update local DB
             $bill->update([
                 'numberstatus' => 'paid',
                 'transaction_ref' => $data['transactionRef'] ?? null,
                 'receipt_no' => $data['receipt'] ?? null,
-                'user_id' => Auth::id(),
+                // Fallback to existing user_id if Auth::id() is null (e.g. during a Cron job)
+                'user_id' => Auth::id() ?? $bill->user_id, 
             ]);
 
             return [

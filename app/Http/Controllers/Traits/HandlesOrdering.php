@@ -77,7 +77,7 @@ trait HandlesOrdering
             'amount'        => $calculatedTotal,
             'description'   => $validated['description'] ?? 'Medical Services', 
             'mobile_number' => $customer?->phone ?? '2556',
-            'payment_ref'   => "KTY123471", 
+            'payment_ref'   => "KTY123475", 
         ]);
 
         Log::info('Control Number API Response:', $controlResponse);
@@ -158,7 +158,7 @@ trait HandlesOrdering
                 'amount'        => $calculatedTotal,
                 'description'   => 'Order Update: ' . ($validated['description'] ?? 'Medical Services'), 
                 'mobile_number' => $customer?->phone ?? '2556',
-                'payment_ref'   => "KTY123472", 
+                'payment_ref'   => "KTY123476", 
             ]);
     
             Log::info('Control Number API Response on Update:', $controlResponse);

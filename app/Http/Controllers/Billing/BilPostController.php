@@ -19,7 +19,7 @@ use Carbon\Carbon;
 use App\Models\Billing\{
     BILOrder, BILOrderItem, BILSale, BILReceipt, BILInvoice, BILInvoiceLog,
     BILInvoicePayment, BILInvoicePaymentDetail, BILDebtor, BILDebtorLog,
-    BILCollection,BLSPaymentType, BLSPriceCategory, BLSCustomer
+    BILCollection,BLSPaymentType, BLSPriceCategory, BLSCustomer, BILControlNumber
 };
 
 use App\Models\Inventory\{
@@ -52,6 +52,7 @@ use App\Models\Ipd\IpdBedCharge;
 use App\Enums\{
     BillingTransTypes, InvoiceStatus, PaymentSources, InvoiceTransTypes, StoreType
 };
+
 
 class BilPostController extends Controller
 {
@@ -284,6 +285,8 @@ class BilPostController extends Controller
      */
     public function processPayment(Request $request, BILOrder $order = null)
     {
+        
+        
         // 1. Manual ID Check (Same as before)
         if (!$order) {
             $orderId = $request->input('id') ?? $request->input('order');
@@ -291,6 +294,35 @@ class BilPostController extends Controller
                 $order = BILOrder::find($orderId);
             }
         }
+
+        $facilityOption = FacilityOption::first();
+
+        if ($facilityOption?->cash_payment_control_number) {  
+
+            $today = Carbon::today();
+            $customer = BLSCustomer::find($order->customer_id);
+            $patientCode = $customer?->patient_code;
+
+            $controlService = new ControlNumberService();
+            $bill = BILControlNumber::where('patient_code', $patientCode)
+                ->where('numberstatus', 'recorded')
+                ->whereDate('created_at', $today)
+                ->first();
+
+            $controlResponse = $controlService->checkPayment($bill);
+
+            if (!isset($controlResponse['status']) || $controlResponse['status'] !== 'success') {
+                
+                $errorMessage = $controlResponse['message'] ?? 'API Error: Failed to generate control number.';
+                Log::error("Payment Creation Aborted: " . $errorMessage);
+                
+                // This natively triggers the `onError: (formErrors) => {}` in Inertia!
+                throw ValidationException::withMessages([
+                    'api_error' => $errorMessage
+                ]);
+            }
+        }
+
 
         // 2. Validation (Same as before)
         $validated = $request->validate([

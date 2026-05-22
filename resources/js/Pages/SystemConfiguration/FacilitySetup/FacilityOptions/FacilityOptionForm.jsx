@@ -41,6 +41,7 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
         show_register_button: option ? Boolean(option.show_register_button) : true, 
         
         // Payment Gateway API Configuration Fields
+        cash_payment_control_number: option? Boolean(option.cash_payment_control_number) : false, 
         corporate_id: option?.corporate_id || '',
         token_id: option?.token_id || '',
         access_token: option?.access_token || '',
@@ -233,7 +234,9 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
 
             {/* 4. Payment Gateway API Configuration (Control Numbers) */}
             <div>
-                <h3 className="text-base font-medium text-gray-800 border-b pb-2 mb-4">Payment Gateway API (Control Numbers)</h3>
+                <h3 className="text-base font-medium text-gray-800 border-b pb-2 mb-4">Payment Gateway API (Control Numbers)</h3>                
+                <CheckboxInput id="cash_payment_control_number" label="Cash Payment Control Number" checked={data.cash_payment_control_number} onChange={e => setData('cash_payment_control_number', e.target.checked)} />
+                <hr className="my-4 border-gray-300" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label htmlFor="corporate_id" className="block text-sm font-medium text-gray-700">Corporate ID</label>

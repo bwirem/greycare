@@ -49,13 +49,15 @@ class MtuhaDiagnosesController extends Controller
         $query = $model->query()->with('group');
 
         if ($request->search) {
-            $query->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('code', 'like', "%{$request->search}%")
-                  ->orWhere('maptocode', 'like', "%{$request->search}%"); // Enable searching by ICD map
+            // Updated to match your database columns
+            $query->where('description', 'like', "%{$request->search}%")
+                  ->orWhere('mtuha_code', 'like', "%{$request->search}%")
+                  ->orWhere('exact_codes', 'like', "%{$request->search}%"); 
         }
 
         return Inertia::render('SystemConfiguration/FacilitySetup/Mtuha/Index', [
-            'diagnoses' => $query->latest()->paginate(15)->withQueryString(),
+            // Replaced latest() with orderBy('id')
+            'diagnoses' => $query->orderBy('id')->paginate(20)->withQueryString(),
             'type'      => $type,
             'pageTitle' => $this->getTitle($type),
             'filters'   => $request->only(['search']),
@@ -76,15 +78,20 @@ class MtuhaDiagnosesController extends Controller
         $model = $this->getModel($type);
         $table = $model->getTable();
 
+        // Updated validation to match frontend form fields
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => "nullable|string|max:50|unique:$table,code",
+            'description' => 'required|string|max:255',
+            'mtuha_code' => "nullable|string|max:50|unique:$table,mtuha_code",
             'dxt_diagnoses_group_id' => 'nullable|exists:dxt_diagnoses_groups,id',
-            // subgroup removed
-            'maptocode' => 'nullable|string|max:100', // ICD-10 Codes (e.g., "A09, A08")
+            'exact_codes' => 'nullable|string',
+            'ranges' => 'nullable|string',
+            'priority' => 'nullable|integer',
         ]);
 
-        $model->create($validated);
+        // Format the strings into arrays for the database JSON cast
+        $dataToSave = $this->formatMappingData($validated);
+
+        $model->create($dataToSave);
 
         return redirect()->route('systemconfiguration5.mtuha.index', $type)
             ->with('success', 'Diagnosis created successfully.');
@@ -93,9 +100,24 @@ class MtuhaDiagnosesController extends Controller
     public function edit($type, $id)
     {
         $model = $this->getModel($type);
+        $diagnosis = $model->findOrFail($id);
         
+        // Since exact_codes and ranges are arrays in the database, we need to convert them 
+        // back to strings for the React input fields (e.g. ['A09', 'E86'] -> "A09, E86")
+        if (is_array($diagnosis->exact_codes)) {
+            $diagnosis->exact_codes = implode(', ', $diagnosis->exact_codes);
+        }
+        
+        if (is_array($diagnosis->ranges)) {
+            $formattedRanges = [];
+            foreach($diagnosis->ranges as $range) {
+                $formattedRanges[] = implode('-', $range);
+            }
+            $diagnosis->ranges = implode(', ', $formattedRanges);
+        }
+
         return Inertia::render('SystemConfiguration/FacilitySetup/Mtuha/Edit', [
-            'diagnosis' => $model->findOrFail($id),
+            'diagnosis' => $diagnosis,
             'type' => $type,
             'pageTitle' => $this->getTitle($type),
             'groups' => DxtDiagnosesGroup::select('id', 'name')->orderBy('name')->get(),
@@ -107,15 +129,20 @@ class MtuhaDiagnosesController extends Controller
         $model = $this->getModel($type)->findOrFail($id);
         $table = $model->getTable();
 
+        // Updated validation to match frontend form fields
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => "nullable|string|max:50|unique:$table,code,$id",
+            'description' => 'required|string|max:255',
+            'mtuha_code' => "nullable|string|max:50|unique:$table,mtuha_code,$id",
             'dxt_diagnoses_group_id' => 'nullable|exists:dxt_diagnoses_groups,id',
-            // subgroup removed
-            'maptocode' => 'nullable|string|max:100',
+            'exact_codes' => 'nullable|string',
+            'ranges' => 'nullable|string',
+            'priority' => 'nullable|integer',
         ]);
 
-        $model->update($validated);
+        // Format the strings into arrays for the database JSON cast
+        $dataToSave = $this->formatMappingData($validated);
+
+        $model->update($dataToSave);
 
         return redirect()->route('systemconfiguration5.mtuha.index', $type)
             ->with('success', 'Diagnosis updated.');
@@ -127,6 +154,41 @@ class MtuhaDiagnosesController extends Controller
         return redirect()->back()->with('success', 'Deleted successfully.');
     }
 
+    /**
+     * Helper method to convert text inputs from React into Arrays for the Model $casts
+     */
+    private function formatMappingData(array $validated)
+    {
+        // 1. Convert comma-separated string to Array for exact_codes (e.g. "B50, B54" -> ['B50', 'B54'])
+        if (!empty($validated['exact_codes'])) {
+            $validated['exact_codes'] = array_map('trim', explode(',', $validated['exact_codes']));
+        } else {
+            $validated['exact_codes'] = null;
+        }
+
+        // 2. Convert string to Array of Arrays for ranges (e.g. "A15-A19" -> [['A15', 'A19']])
+        if (!empty($validated['ranges'])) {
+            $rangeStrings = array_map('trim', explode(',', $validated['ranges']));
+            $formattedRanges = [];
+            
+            foreach($rangeStrings as $rs) {
+                $parts = array_map('trim', explode('-', $rs));
+                if(count($parts) === 2) {
+                    $formattedRanges[] = [$parts[0], $parts[1]];
+                }
+            }
+            $validated['ranges'] = count($formattedRanges) > 0 ? $formattedRanges : null;
+        } else {
+            $validated['ranges'] = null;
+        }
+
+        // 3. Set default priority if empty
+        $validated['priority'] = $validated['priority'] ?? 1;
+
+        return $validated;
+    }
+
+    // ... (Keep your showImportForm, import, and downloadTemplate methods down here exactly as they were) ...
     /**
      * Show the form for importing diagnoses.
      */

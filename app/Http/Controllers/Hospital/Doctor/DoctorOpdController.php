@@ -124,7 +124,7 @@ class DoctorOpdController extends Controller
             'history.complains',
             'examination',
             // Local Diagnoses (Polymorphic)
-            'diagnosesConfirmed.diagnosis.icdMap', 
+            //'diagnosesConfirmed.diagnosis.icdMap', 
             'diagnosesProvisional.diagnosis.icdMap',
             // Standard ICD Diagnoses
             'icdDiagnosesConfirmed.icdDiagnosis', 
@@ -177,7 +177,7 @@ class DoctorOpdController extends Controller
 
             // Dropdowns
             'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->get(), 
-            'opd_diagnoses_list' => DxtDiagnosesOpd::with('icdMap:id,name,code')->select('id', 'name', 'maptocode')->limit(200)->get(),
+            //'opd_diagnoses_list' => DxtDiagnosesOpd::with('icdMap:id,name,code')->select('id', 'name', 'maptocode')->limit(200)->get(),
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
             'rad_procedures' => RadProcedure::select('id', 'name')->orderBy('name')->get(),
             'surgery_procedures' => TheatreProcedure::select('id', 'name')->orderBy('name')->get(),

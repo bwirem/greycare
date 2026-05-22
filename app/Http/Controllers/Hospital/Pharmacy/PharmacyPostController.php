@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\HandlesOrdering;
 use App\Http\Controllers\Traits\GeneratesUniqueNumbers;
 use App\Services\InventoryService; // Import the service
+use App\Services\Billing\ControlNumberService;
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +19,7 @@ use Carbon\Carbon;
 use App\Models\Billing\{
     BILOrder, BILOrderItem, BILSale, BILReceipt, BILInvoice, BILInvoiceLog,
     BILInvoicePayment, BILInvoicePaymentDetail, BILDebtor, BILDebtorLog,
-    BILCollection,BLSPaymentType, BLSPriceCategory, BLSCustomer
+    BILCollection,BLSPaymentType, BLSPriceCategory, BLSCustomer, BILControlNumber
 };
 
 use App\Models\Inventory\{
@@ -280,6 +281,34 @@ class PharmacyPostController extends Controller
             $orderId = $request->input('id') ?? $request->input('order');
             if ($orderId) {
                 $order = BILOrder::find($orderId);
+            }
+        }
+
+        $facilityOption = FacilityOption::first();
+
+        if ($facilityOption?->cash_payment_control_number) {  
+
+            $today = Carbon::today();
+            $customer = BLSCustomer::find($order->customer_id);
+            $patientCode = $customer?->patient_code;
+
+            $controlService = new ControlNumberService();
+            $bill = BILControlNumber::where('patient_code', $patientCode)
+                ->where('numberstatus', 'recorded')
+                ->whereDate('created_at', $today)
+                ->first();
+
+            $controlResponse = $controlService->checkPayment($bill);
+
+            if (!isset($controlResponse['status']) || $controlResponse['status'] !== 'success') {
+                
+                $errorMessage = $controlResponse['message'] ?? 'API Error: Failed to generate control number.';
+                Log::error("Payment Creation Aborted: " . $errorMessage);
+                
+                // This natively triggers the `onError: (formErrors) => {}` in Inertia!
+                throw ValidationException::withMessages([
+                    'api_error' => $errorMessage
+                ]);
             }
         }
 

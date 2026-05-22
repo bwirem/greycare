@@ -8,8 +8,12 @@ use App\Models\MedicalRecord\MrPatientDiagnosisProvisional;
 
 class DxtDiagnosesIpd extends Model
 {
-    protected $table = 'dxt_diagnoses_ipd';
+    protected $table = 'mr_mtuha_mappings_ipd';
     protected $guarded = [];
+    protected $casts = [
+        'exact_codes' => 'array',
+        'ranges'      => 'array',
+    ];
 
     public function group()
     {

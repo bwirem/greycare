@@ -75,6 +75,7 @@ class FacilityOptionController extends Controller
             'show_register_button' => 'boolean',
             
             // Payment Gateway API Configuration Validation
+            'cash_payment_control_number' => 'boolean', // New field for control number
             'corporate_id' => 'nullable|string|max:255',
             'token_id' => 'nullable|string|max:255',
             'access_token' => 'nullable|string',
@@ -133,6 +134,7 @@ class FacilityOptionController extends Controller
             'doubleentryissuing' => 'boolean',
             'allownegativestock' => 'boolean',
             'show_register_button' => 'boolean',
+            'cash_payment_control_number' => 'boolean', // New field for control number
 
             // Payment Gateway API Configuration Validation
             'corporate_id' => 'nullable|string|max:255',

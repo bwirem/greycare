@@ -5,10 +5,12 @@ import { faSave, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 export default function MtuhaForm({ type, diagnosis = null, groups }) {
     const { data, setData, post, put, processing, errors } = useForm({
-        name: diagnosis?.name || '',
-        code: diagnosis?.code || '',
+        description: diagnosis?.description || '',
+        mtuha_code: diagnosis?.mtuha_code || '',
         dxt_diagnoses_group_id: diagnosis?.dxt_diagnoses_group_id || '',
-        maptocode: diagnosis?.maptocode || '',
+        exact_codes: diagnosis?.exact_codes || '',
+        ranges:diagnosis?.ranges || '',
+        priority:diagnosis?.priority || '',
     });
 
     const submit = (e) => {
@@ -27,24 +29,24 @@ export default function MtuhaForm({ type, diagnosis = null, groups }) {
                     <label className="block text-sm font-medium text-gray-700">MTUHA Disease Name *</label>
                     <input 
                         type="text" 
-                        value={data.name} 
-                        onChange={e => setData('name', e.target.value)} 
+                        value={data.description} 
+                        onChange={e => setData('description', e.target.value)} 
                         className="w-full border rounded p-2" 
                         placeholder="e.g. Malaria, Severe/Complicated"
                         required 
                     />
-                    {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
+                    {errors.description && <p className="text-red-500 text-xs">{errors.description}</p>}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">MTUHA Code</label>
                     <input 
                         type="text" 
-                        value={data.code} 
-                        onChange={e => setData('code', e.target.value)} 
+                        value={data.mtuha_code} 
+                        onChange={e => setData('mtuha_code', e.target.value)} 
                         className="w-full border rounded p-2" 
                         placeholder="e.g. 01"
                     />
-                    {errors.code && <p className="text-red-500 text-xs">{errors.code}</p>}
+                    {errors.mtuha_code && <p className="text-red-500 text-xs">{errors.mtuha_code}</p>}
                 </div>
             </div>
 
@@ -57,15 +59,37 @@ export default function MtuhaForm({ type, diagnosis = null, groups }) {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">ICD-10 Mapping Code(s)</label>
+                    <label className="block text-sm font-medium text-gray-700">Exact ICD-10 Mapping Code(s)</label>
                     <input 
                         type="text" 
-                        value={data.maptocode} 
-                        onChange={e => setData('maptocode', e.target.value)} 
+                        value={data.exact_codes} 
+                        onChange={e => setData('exact_codes', e.target.value)} 
                         className="w-full border rounded p-2" 
                         placeholder="e.g. B50.0, B50.8, B50.9" 
                     />
                     <p className="text-xs text-gray-500 mt-1">Accepts single codes (A41.9), ranges (B77-B83), or lists (A09, A08)</p>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">ICD-10 Mapping Code Renges</label>
+                    <input 
+                        type="text" 
+                        value={data.ranges} 
+                        onChange={e => setData('ranges', e.target.value)} 
+                        className="w-full border rounded p-2" 
+                        placeholder="e.g. B50.0, B50.8, B50.9" 
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Accepts single codes (A41.9), ranges (B77-B83), or lists (A09, A08)</p>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Priority</label>
+                    <input 
+                        type="text" 
+                        value={data.priority} 
+                        onChange={e => setData('priority', e.target.value)} 
+                        className="w-full border rounded p-2" 
+                        placeholder="e.g. 01"
+                    />
+                    {errors.priority && <p className="text-red-500 text-xs">{errors.priority}</p>}
                 </div>
             </div>
 

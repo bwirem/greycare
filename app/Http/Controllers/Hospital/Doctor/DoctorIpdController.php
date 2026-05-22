@@ -191,8 +191,8 @@ class DoctorIpdController extends Controller
 
             // Data for Select Options
             'icd_list' => DxtDiagnosesIcd::select('id', 'name', 'code')->get(),    
-            'ipd_diagnoses_list' => DxtDiagnosesIpd::with('icdMap:id,name,code')
-                ->select('id', 'name', 'maptocode')->limit(100)->get(),                
+            // 'ipd_diagnoses_list' => DxtDiagnosesIpd::with('icdMap:id,name,code')
+            //     ->select('id', 'name', 'maptocode')->limit(100)->get(),                
             'lab_panels' => LabPanel::select('id', 'name')->orderBy('name')->get(),
             'rad_procedures' => RadProcedure::select('id', 'name')->orderBy('name')->get(),
             'surgery_procedures' => TheatreProcedure::select('id', 'name')->orderBy('name')->get(),
