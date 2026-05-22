@@ -213,10 +213,24 @@ export default function ProcessExistingOrderPayment({ auth, orderData, originalO
                 if (error.response && error.response.status === 422) {
                     const serverErrors = error.response.data.errors;
                     
-                    if (serverErrors.orderitems) {
-                        toast.error(serverErrors.orderitems[0]); 
+                    if (serverErrors.api_error) {
+
+                        toast.error(serverErrors.api_error[0]);
+
+                    } else if (serverErrors.orderitems) {
+
+                        toast.error(serverErrors.orderitems[0]);
+
                     } else {
-                        toast.error('Please check the input fields for errors.');
+
+                        // show first validation error dynamically
+                        const firstError = Object.values(serverErrors)[0];
+
+                        if (Array.isArray(firstError)) {
+                            toast.error(firstError[0]);
+                        } else {
+                            toast.error('Please check the input fields for errors.');
+                        }
                     }
 
                     Object.keys(serverErrors).forEach((key) => {
