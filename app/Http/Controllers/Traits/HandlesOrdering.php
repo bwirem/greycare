@@ -77,10 +77,8 @@ trait HandlesOrdering
             'amount'        => $calculatedTotal,
             'description'   => $validated['description'] ?? 'Medical Services', 
             'mobile_number' => $customer?->phone ?? '2556',
-            'payment_ref'   => "KTY123486", 
-        ]);
-
-        Log::info('Control Number API Response:', $controlResponse);
+            'payment_ref'   => "KTY123493", 
+        ]);      
 
         // 5. IF ERROR/DUPLICATE: Throw ValidationException
         if (!isset($controlResponse['status']) || $controlResponse['status'] !== 'success') {
@@ -158,14 +156,14 @@ trait HandlesOrdering
             $msg .= ' Sent to server printer: ' . $printerConfig->printername;
         }
 
-        return response()->json([
+        return [
             'success' => true,
             'preview_url' => $previewUrl,
             'auto_print' => $frontendAutoPrint, 
             'backend_printed' => $backendPrinted, 
             'message' => $msg,
-            'control_number' => $controlResponse['control_number'] ?? null
-        ]);
+            'control_number' => $controlResponse['control_no'] ?? null // Make sure this is control_no !
+        ];
     }
 
 
@@ -207,10 +205,8 @@ trait HandlesOrdering
             'amount'        => $calculatedTotal,
             'description'   => 'Order Update: ' . ($validated['description'] ?? 'Medical Services'), 
             'mobile_number' => $customer?->phone ?? '2556',
-            'payment_ref'   => "KTY123484", 
-        ]);
-
-        Log::info('Control Number API Response on Update:', $controlResponse);
+            'payment_ref'   => "KTY123489", 
+        ]);      
 
         // 5. IF ERROR/DUPLICATE: Throw ValidationException
          if (!isset($controlResponse['status']) || !in_array($controlResponse['status'], ['success', 'duplicate'])) {
@@ -284,6 +280,7 @@ trait HandlesOrdering
         $backendPrinted = false;
         $frontendAutoPrint = false;           
         $previewUrl = route('billing1.control_number_preview');
+        //$previewUrl = route('outpatient0.control_number_preview');
 
         if ($printerConfig) {
             if (!$printerConfig->printtoscreen) {
@@ -304,14 +301,17 @@ trait HandlesOrdering
             $msg .= ' Sent to server printer: ' . $printerConfig->printername;
         }
 
-        return response()->json([
+        // REMOVE return response()->json([ ... ]);
+        // REPLACE WITH:
+
+        return [
             'success' => true,
             'preview_url' => $previewUrl,
             'auto_print' => $frontendAutoPrint, 
             'backend_printed' => $backendPrinted, 
             'message' => $msg,
-            'control_number' => $controlResponse['control_number'] ?? null
-        ]);
+            'control_number' => $controlResponse['control_no'] ?? null // Make sure this is control_no !
+        ];
     }
 
     // ============================================================

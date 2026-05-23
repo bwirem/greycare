@@ -21,8 +21,10 @@ use App\Models\User;
 use App\Models\UserGroupFunction;
 use App\Models\UserGroupModuleItem;
 use App\Models\Billing\BLSCustomer;
-use App\Models\Facility\FacilityOption; 
+use App\Models\Billing\BILOrder;
 
+use App\Models\Facility\FacilityOption; 
+use Barryvdh\DomPDF\Facade\Pdf;
 
 // Services
 use App\Services\ConsultationPricingService;
@@ -520,6 +522,43 @@ class OpdRegistrationController extends Controller
     {
         $booking = OpdBooking::with(['patient', 'treatmentPoint'])->findOrFail($id);
         return view('prints.opd_slip', compact('booking'));
+    }
+
+     /**
+     * Renders the Control Number PDF to the browser for preview or frontend printing.
+     */
+    public function controlNumberPreview()
+    {
+        // 1. Retrieve the data saved in the session during createOrder/updateOrder
+        $orderId = session('latest_order_id');
+        $controlResponse = session('latest_control_response');
+
+        if (!$orderId) {
+            // Adjust the redirect route to match your application's flow
+            return redirect()->back()->with('error', 'No control number to display.');
+        }
+
+        // 2. Fetch the Order and eager load relationships needed for the receipt
+        $order = BILOrder::with(['customer', 'orderitems.item'])->findOrFail($orderId);
+        
+        // 3. Fetch Facility details for the header
+        $facility = FacilityOption::first();
+
+        // 4. Define Custom Paper Size [0, 0, Width, Height] in points
+        // 80mm = 226.77 points. Height is long (1000) to act as a continuous roll.
+        $customPaper = array(0, 0, 226.77, 1000); 
+
+        // 5. Generate the PDF
+        $pdf = Pdf::loadView('pdfs.control_number_receipt', [
+            'order' => $order,
+            'controlResponse' => $controlResponse,
+            'facility' => $facility,
+        ])->setPaper($customPaper, 'portrait');
+
+        // 6. Return as inline PDF so the browser opens it in a preview/print tab
+        return response($pdf->output(), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="control_number_ORD-' . $order->id . '.pdf"');
     }
 }
 

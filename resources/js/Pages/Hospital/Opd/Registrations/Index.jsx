@@ -11,12 +11,21 @@ import {
     faUserInjured,
     faClinicMedical,
     faCalendarAlt,
-    faFileInvoiceDollar // <--- 1. Import Billing Icon
+    faFileInvoiceDollar 
 } from "@fortawesome/free-solid-svg-icons";
+
+// 1. IMPORT TOAST
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function OpdRegistrationsIndex({ auth, registrations, treatmentPoints, filters, userPermissions }) {
 
-    auth  = usePage().props; 
+    // 2. EXTRACT FLASH DATA FROM PROPS
+    const { flash } = usePage().props; 
+
+    // Add this to check if it's arriving!
+    console.log("Inertia Flash Data:", flash);
+    
     const canPostBills = userPermissions.includes('outpatient4.charge_patient');
     
     // --- STATE ---
@@ -28,6 +37,46 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
         }
         return '';
     });
+
+    // --- 3. PRINTING LOGIC ---
+    const triggerPrint = (responseData) => {
+        if (!responseData) return;
+
+        // Case 1: Auto Print via hidden iframe
+        if (responseData.auto_print && responseData.preview_url) {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = responseData.preview_url;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            };
+            return;
+        }
+
+        // Case 2: Open in new tab (Preview)
+        if (responseData.preview_url) {
+            window.open(responseData.preview_url, '_blank');
+        }
+    };
+
+    // Catch the flash message containing print instructions when the page loads
+    useEffect(() => {
+        if (flash && flash.print_response) {
+            // Show Success Toast
+            if (flash.print_response.message) {
+                toast.success(flash.print_response.message);
+            }
+            
+            // Trigger the print popup/iframe
+            triggerPrint(flash.print_response);
+            
+            // Clear flash to prevent it from firing again if the user navigates back
+            flash.print_response = null; 
+        }
+    }, [flash]);
 
     // --- EFFECTS ---
     useEffect(() => {
@@ -72,6 +121,7 @@ export default function OpdRegistrationsIndex({ auth, registrations, treatmentPo
 
     return (
         <HospitalLayout
+            user={auth.user} // Passed cleanly for layout
             header={
                 <h2 className="font-semibold text-xl text-gray-800 leading-tight">
                     <FontAwesomeIcon icon={faUserInjured} className="mr-2 text-gray-500" />

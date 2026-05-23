@@ -152,9 +152,12 @@ class BilPostController extends Controller
      */
     public function store(Request $request)
     {       
-         return $this->createOrder($request); 
+        // 1. Get the array of print instructions from the Trait
+        $printData = $this->createOrder($request); 
+        
+        // 2. Redirect to the index page and flash the print instructions to the session
+        return redirect()->route('billing1.index')->with('print_response', $printData);
     }
-
     /**
      * Show the form for editing the specified order.
      */
@@ -231,7 +234,11 @@ class BilPostController extends Controller
      */
     public function update(Request $request, BILOrder $order)
     {       
-        return $this->updateOrder($request, $order);       
+        // 1. Get the array of print instructions from the Trait
+        $printData = $this->updateOrder($request, $order); 
+
+        // 2. Redirect to the index page and flash the print instructions to the session
+        return redirect()->route('billing1.index')->with('print_response', $printData);      
     }
 
     /**

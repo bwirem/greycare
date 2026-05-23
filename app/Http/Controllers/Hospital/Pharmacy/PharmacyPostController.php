@@ -223,8 +223,11 @@ class PharmacyPostController extends Controller
      */
     public function update(Request $request, BILOrder $order)
     {
-        $this->updateOrder($request, $order); // Uses HandlesOrdering trait
-        return redirect()->route('pharmacy0.index')->with('success', 'Order updated successfully.');
+        // 1. Get the array of print instructions from the Trait
+        $printData = $this->updateOrder($request, $order); 
+
+        // 2. Redirect to the index page and flash the print instructions to the session
+        return redirect()->route('pharmacy0.index')->with('print_response', $printData);
     }
 
     /**

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Head, Link, useForm, router } from "@inertiajs/react";
+import { Head, Link, useForm, router, usePage} from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/FinanceLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -10,8 +10,12 @@ import {
     faEye,
 } from "@fortawesome/free-solid-svg-icons";
 import "@fortawesome/fontawesome-svg-core/styles.css";
-
 import Modal from '@/Components/CustomModal.jsx';
+
+// 1. IMPORT TOAST
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 const ORDER_STAGE_LABELS = {
     3: 'Pending',
@@ -34,7 +38,11 @@ const formatQueueTime = (dateString) => {
 };
 
 // 🔥 Added `error` to the props destructuring
-export default function Index({ auth, orders, filters, success, error }) {
+export default function Index({ auth, orders, filters, success, error }) {    
+    
+    // 2. EXTRACT FLASH DATA FROM PROPS
+    const { flash } = usePage().props;
+    
     const { data, setData, errors, processing } = useForm({
         search: filters.search || "",
         stage: filters.stage || "",
@@ -52,6 +60,46 @@ export default function Index({ auth, orders, filters, success, error }) {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false); // 🔥 Added error modal state
     const searchTimeoutRef = useRef(null);
+
+    // --- 3. PRINTING LOGIC ---
+    const triggerPrint = (responseData) => {
+        if (!responseData) return;
+
+        // Case 1: Auto Print via hidden iframe
+        if (responseData.auto_print && responseData.preview_url) {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = responseData.preview_url;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            };
+            return;
+        }
+
+        // Case 2: Open in new tab (Preview)
+        if (responseData.preview_url) {
+            window.open(responseData.preview_url, '_blank');
+        }
+    };
+    
+    // Catch the flash message containing print instructions when the page loads
+    useEffect(() => {
+        if (flash && flash.print_response) {
+            // Show Success Toast
+            if (flash.print_response.message) {
+                toast.success(flash.print_response.message);
+            }
+            
+            // Trigger the print popup/iframe
+            triggerPrint(flash.print_response);
+            
+            // Clear flash to prevent it from firing again if the user navigates back
+            flash.print_response = null; 
+        }
+    }, [flash]);
 
     // 🔥 Effect handles both success and error flashes
     useEffect(() => {

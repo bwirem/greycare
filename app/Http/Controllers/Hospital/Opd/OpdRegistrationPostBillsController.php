@@ -226,8 +226,11 @@ class OpdRegistrationPostBillsController extends Controller
      */
     public function update(Request $request, BILOrder $order)
     {
-        $this->updateOrder($request, $order); // Uses HandlesOrdering trait
-        return redirect()->route('outpatient0.index')->with('success', 'Order updated successfully.');
+        // 1. Get the array of print instructions from the Trait
+        $printData = $this->updateOrder($request, $order); 
+
+        // 2. Redirect to the index page and flash the print instructions to the session
+        return redirect()->route('outpatient0.index')->with('print_response', $printData);
     }
 
     /**
@@ -286,33 +289,29 @@ class OpdRegistrationPostBillsController extends Controller
                 $order = BILOrder::find($orderId);
             }
         }
+        
 
-        $facilityOption = FacilityOption::first();
+        $today = Carbon::today();
+        $customer = BLSCustomer::find($order->customer_id);
+        $patientCode = $customer?->patient_code;
 
-        if ($facilityOption?->cash_payment_control_number) {  
+        $controlService = new ControlNumberService();
+        $bill = BILControlNumber::where('patient_code', $patientCode)
+            ->where('numberstatus', 'recorded')
+            ->whereDate('created_at', $today)
+            ->first();
 
-            $today = Carbon::today();
-            $customer = BLSCustomer::find($order->customer_id);
-            $patientCode = $customer?->patient_code;
+        $controlResponse = $controlService->checkPayment($bill);
 
-            $controlService = new ControlNumberService();
-            $bill = BILControlNumber::where('patient_code', $patientCode)
-                ->where('numberstatus', 'recorded')
-                ->whereDate('created_at', $today)
-                ->first();
-
-            $controlResponse = $controlService->checkPayment($bill);
-
-            if (!isset($controlResponse['status']) || $controlResponse['status'] !== 'success') {
-                
-                $errorMessage = $controlResponse['message'] ?? 'API Error: Failed to generate control number.';
-                Log::error("Payment Creation Aborted: " . $errorMessage);
-                
-                // This natively triggers the `onError: (formErrors) => {}` in Inertia!
-                throw ValidationException::withMessages([
-                    'api_error' => $errorMessage
-                ]);
-            }
+        if (!isset($controlResponse['status']) || $controlResponse['status'] !== 'success') {
+            
+            $errorMessage = $controlResponse['message'] ?? 'API Error: Failed to generate control number.';
+            Log::error("Payment Creation Aborted: " . $errorMessage);
+            
+            // This natively triggers the `onError: (formErrors) => {}` in Inertia!
+            throw ValidationException::withMessages([
+                'api_error' => $errorMessage
+            ]);
         }
 
 

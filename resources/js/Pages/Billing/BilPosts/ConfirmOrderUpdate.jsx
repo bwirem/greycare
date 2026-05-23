@@ -1,8 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/FinanceLayout';
-import { Head, useForm, Link, router } from '@inertiajs/react'; 
+import { Head, useForm, Link } from '@inertiajs/react'; 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSave, faTimesCircle, faSpinner, faStore, faTag } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSave, faSpinner, faStore, faTag } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import axios from 'axios';
 import Modal from '@/Components/CustomModal.jsx';
@@ -28,16 +28,12 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
 
     const STORAGE_KEY = `pendingOrderChanges_${orderData.id}`;
 
-    // Removed `put`, `processing`, and `errors` from useForm (using Axios instead)
-    const { data, setData } = useForm({
+    // 1. BRING BACK INERTIA'S `put`, `processing`, and `errors`
+    const { data, setData, put, processing, errors } = useForm({
         ...orderData,
         customer_id: originalOrder.customer_id,
         stage: originalOrder.stage,
     });
-    
-    // Custom state for form submission and errors
-    const [isSaving, setIsSaving] = useState(false);
-    const [errors, setErrors] = useState({});
     
     // --- Customer Logic ---
     const [customerSearchQuery, setCustomerSearchQuery] = useState(
@@ -129,85 +125,31 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
         }
     };
 
-    // --- PRINTING & PREVIEW HANDLER ---
-    const handlePrintResponse = (responseData) => {
-        toast.success(responseData.message || 'Order updated successfully!');
-
-        // Case 1: Backend Server printed it (Local network setup)
-        if (responseData.backend_printed) {
-            router.visit(route('billing1.index'));
-            return;
-        }
-
-        // Case 2: Frontend Auto Print (Silent iframe)
-        if (responseData.auto_print && responseData.preview_url) {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = responseData.preview_url;
-            document.body.appendChild(iframe);
-
-            iframe.onload = () => {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-                // Redirect shortly after triggering print dialog
-                setTimeout(() => {
-                    router.visit(route('billing1.index'));
-                }, 1500);
-            };
-            return;
-        }
-
-        // Case 3: Frontend Preview (Opens in new tab)
-        if (responseData.preview_url) {
-            window.open(responseData.preview_url, '_blank');
-            router.visit(route('billing1.index'));
-            return;
-        }
-
-        // Default Fallback
-        router.visit(route('billing1.index'));
-    };
-
-    // --- AXIOS SUBMISSION HANDLER ---
-    const submitUpdate = async (e) => {
+    // --- 2. INERTIA SUBMISSION HANDLER ---
+    const submitUpdate = (e) => {
         e.preventDefault();
-        setErrors({});
 
         if (!data.customer_id) {
             toast.error('A customer must be selected.');
             return;
         }
         
-        setIsSaving(true);
-
-        try {
-            // Using PUT method to match Laravel route
-            const response = await axios.put(route('billing1.update', { order: orderData.id }), data);
-            
-            // Clean up cached order data
-            sessionStorage.removeItem(STORAGE_KEY); 
-            
-            // Trigger the Printing Logic
-            handlePrintResponse(response.data);
-
-        } catch (error) {
-            // Handle Validation Errors from Laravel
-            if (error.response && error.response.status === 422) {
-                setErrors(error.response.data.errors || {});
-                
-                // Specifically look for our Control Number API Error
-                if (error.response.data.errors.api_error) {
-                    toast.error(`Control Number Error: ${error.response.data.errors.api_error[0]}`);
+        // Use Inertia's native `put`. 
+        // This will automatically follow the Controller's redirect to the Index page.
+        put(route('billing1.update', { order: orderData.id }), {
+            onSuccess: () => {
+                // Clear cache on success. The flash data will be handled by the Index page.
+                sessionStorage.removeItem(STORAGE_KEY); 
+            },
+            onError: (errs) => {
+                // Catch any validation or API errors thrown by the Controller
+                if (errs.api_error) {
+                    toast.error(`Control Number Error: ${errs.api_error}`);
                 } else {
                     toast.error('Please check your input. Validation failed.');
                 }
-            } else {
-                // General Server Error
-                toast.error(error.response?.data?.message || 'Failed to update order.');
             }
-        } finally {
-            setIsSaving(false);
-        }
+        });
     };
 
     return (
@@ -215,6 +157,15 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
             <Head title="Confirm Order Update" />
             <div className="py-12">
                 <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
+                    
+                    {/* Error Banner for Control Number API Issues */}
+                    {errors.api_error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                            <strong className="font-bold">Error! </strong>
+                            <span className="block sm:inline">{errors.api_error}</span>
+                        </div>
+                    )}
+
                     <div className="overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-sm sm:rounded-lg">
                         <form onSubmit={submitUpdate} className="space-y-6">                           
 
@@ -268,7 +219,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                                     <option value="3">Pending</option>
                                     <option value="4">Proforma</option>
                                 </select>
-                                {errors.stage && <p className="text-red-500 text-xs mt-1">{errors.stage[0]}</p>}
+                                {errors.stage && <p className="text-red-500 text-xs mt-1">{errors.stage}</p>}
                             </section>
 
                             <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -298,13 +249,15 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                                         <FontAwesomeIcon icon={faPlus} /> <span className="hidden sm:inline">New</span>
                                     </button>
                                 </div>
-                                {errors.customer_id && <p className="text-red-500 text-xs mt-1">{errors.customer_id[0]}</p>}
+                                {errors.customer_id && <p className="text-red-500 text-xs mt-1">{errors.customer_id}</p>}
                             </section>
 
                             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                 <Link href={route('billing1.edit', { order: orderData.id })} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Back to Edit</Link>
-                                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded flex items-center">
-                                    {isSaving ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />}
+                                
+                                {/* 3. USE PROCESSING FOR THE BUTTON STATE */}
+                                <button type="submit" disabled={processing} className="px-4 py-2 bg-blue-600 text-white rounded flex items-center">
+                                    {processing ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />}
                                     Confirm & Save
                                 </button>
                             </div>
@@ -313,6 +266,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                 </div>
             </div>
             
+            {/* Modal remains the same */}
             <Modal isOpen={newCustomerModalOpen} onClose={handleNewCustomerModalClose} onConfirm={handleNewCustomerModalConfirm} title="Create New Customer" confirmButtonText={newCustomerModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin /> Saving...</> : 'Confirm'} confirmButtonDisabled={newCustomerModalLoading}>
                 <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                     <div><label htmlFor="customer_type" className="block text-sm font-medium dark:text-gray-300">Customer Type</label><select value={newCustomer.customer_type} onChange={(e) => setNewCustomer(prev => ({ ...prev, customer_type: e.target.value }))} className="w-full border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" disabled={newCustomerModalLoading}><option value="individual">Individual</option><option value="company">Company</option></select></div>

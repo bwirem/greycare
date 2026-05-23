@@ -54,6 +54,8 @@ use App\Http\Controllers\Hospital\Clinical\NursingMedicationController;
 
 use App\Http\Controllers\Hospital\Consumables\ConsumablesDashboardController;
 
+use App\Http\Controllers\Billing\BilPostController;
+
 /*
 |--------------------------------------------------------------------------
 | Hospital / Clinical Routes
@@ -85,7 +87,10 @@ Route::prefix('outpatient0')->name('outpatient0.')->group(function () {
     // Authorization Routes
     Route::get('/authorization/verify-card', [OpdAuthorizationController::class, 'verifyCard'])->name('auth.verify');
     Route::post('/authorization/request', [OpdAuthorizationController::class, 'requestAuthorization'])->name('auth.request');
+    
+    Route::put('/{order}', [OpdPostController::class, 'update'])->name('update');
 
+    Route::get('/control-number-preview', [OpdRegistrationController::class, 'controlNumberPreview'])->name('control_number_preview');
     // ==========================================
     // 2. BILLING ROUTES (Use a sub-prefix)
     // ==========================================
