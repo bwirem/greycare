@@ -280,8 +280,10 @@ class OpdRegistrationPostBillsController extends Controller
     /**
      * Processes the payment and handles Printing logic (Silent vs Preview).
      */
-    public function processPayment(Request $request, BILOrder $order = null)
+     public function processPayment(Request $request, BILOrder $order = null)
     {
+        
+        
         // 1. Manual ID Check (Same as before)
         if (!$order) {
             $orderId = $request->input('id') ?? $request->input('order');
@@ -290,28 +292,30 @@ class OpdRegistrationPostBillsController extends Controller
             }
         }
         
+        //
+        $facilityOption = FacilityOption::first();
 
-        $today = Carbon::today();
-        $customer = BLSCustomer::find($order->customer_id);
-        $patientCode = $customer?->patient_code;
+        if ($facilityOption?->cash_payment_control_number) {  
 
-        $controlService = new ControlNumberService();
-        $bill = BILControlNumber::where('patient_code', $patientCode)
-            ->where('numberstatus', 'recorded')
-            ->whereDate('created_at', $today)
-            ->first();
+            $controlService = new ControlNumberService();
 
-        $controlResponse = $controlService->checkPayment($bill);
+            $controlResponse = $controlService->validatePaymentForOrder($order);            
 
-        if (!isset($controlResponse['status']) || $controlResponse['status'] !== 'success') {
-            
-            $errorMessage = $controlResponse['message'] ?? 'API Error: Failed to generate control number.';
-            Log::error("Payment Creation Aborted: " . $errorMessage);
-            
-            // This natively triggers the `onError: (formErrors) => {}` in Inertia!
-            throw ValidationException::withMessages([
-                'api_error' => $errorMessage
-            ]);
+            if (
+                    !isset($controlResponse['status']) ||
+                    $controlResponse['status'] !== 'success'
+                ) {
+
+                    $errorMessage = $controlResponse['message']
+                        ?? 'API Error: Failed to validate payment.';
+                    
+                    log::error("Control Number API validation failed for Order ID {$order?->id}: " . $errorMessage);
+
+                    throw ValidationException::withMessages([
+                        'api_error' => $errorMessage,
+                        'customer'  => $errorMessage,
+                    ]);
+                }
         }
 
 
@@ -436,7 +440,6 @@ class OpdRegistrationPostBillsController extends Controller
             return response()->json(['message' => 'An unexpected error occurred: ' . $e->getMessage()], 500);
         }
     }
-
     /**
      * Helper to update the payment_status in clinical tables
      */

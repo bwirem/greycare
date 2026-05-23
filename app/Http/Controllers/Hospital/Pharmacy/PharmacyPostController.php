@@ -287,32 +287,28 @@ class PharmacyPostController extends Controller
             }
         }
 
+        // 2. Control Number Validation (New Logic)
         $facilityOption = FacilityOption::first();
 
         if ($facilityOption?->cash_payment_control_number) {  
 
-            $today = Carbon::today();
-            $customer = BLSCustomer::find($order->customer_id);
-            $patientCode = $customer?->patient_code;
-
             $controlService = new ControlNumberService();
-            $bill = BILControlNumber::where('patient_code', $patientCode)
-                ->where('numberstatus', 'recorded')
-                ->whereDate('created_at', $today)
-                ->first();
 
-            $controlResponse = $controlService->checkPayment($bill);
+            $controlResponse = $controlService->validatePaymentForOrder($order);            
 
-            if (!isset($controlResponse['status']) || $controlResponse['status'] !== 'success') {
-                
-                $errorMessage = $controlResponse['message'] ?? 'API Error: Failed to generate control number.';
-                Log::error("Payment Creation Aborted: " . $errorMessage);
-                
-                // This natively triggers the `onError: (formErrors) => {}` in Inertia!
-                throw ValidationException::withMessages([
-                    'api_error' => $errorMessage
-                ]);
-            }
+            if (
+                    !isset($controlResponse['status']) ||
+                    $controlResponse['status'] !== 'success'
+                ) {
+
+                    $errorMessage = $controlResponse['message']
+                        ?? 'API Error: Failed to validate payment.';
+
+                    throw ValidationException::withMessages([
+                        'api_error' => $errorMessage,
+                        'customer'  => $errorMessage,
+                    ]);
+                }
         }
 
         // 2. Validation (Same as before)

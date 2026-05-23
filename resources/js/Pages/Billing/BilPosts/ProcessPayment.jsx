@@ -210,6 +210,8 @@ export default function ProcessPayment({ auth, orderData, facilityoption, paymen
                     
                     if (serverErrors.orderitems) {
                         toast.error(serverErrors.orderitems[0]); 
+                    } else if (serverErrors.customer) {
+                        toast.error(serverErrors.customer[0]);
                     } else {
                         toast.error('Please check the input fields for errors.');
                     }

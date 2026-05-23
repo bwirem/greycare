@@ -3,6 +3,7 @@
 namespace App\Services\Billing;
 
 use App\Models\Billing\BILControlNumber;
+use App\Models\Billing\BLSCustomer;
 use App\Models\Facility\FacilityOption;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
@@ -156,8 +157,15 @@ class ControlNumberService
      * Check if payment has been made for a specific bill
      */    
 
-    public function checkPayment(BILControlNumber $bill)
+    public function checkPayment(?BILControlNumber $bill)
     {
+        if (!$bill) {
+            return [
+                'status' => 'error',
+                'message' => 'No recorded control number found for this patient today.'
+            ];
+        }
+    
         // 1. Exit early if already paid (saves API calls and DB writes)
         if ($bill->numberstatus === 'paid') {
             return [
@@ -241,5 +249,41 @@ class ControlNumberService
                 'message' => 'System Error: ' . $e->getMessage(),
             ];
         }
+    }
+    
+
+    public function validatePaymentForOrder($order)
+    {
+        $today = Carbon::today();
+
+        // Safe access to customer_id
+        $customerId = $order?->customer_id;
+
+        if (!$customerId) {
+
+            return [
+                'status' => 'error',
+                'message' => 'No recorded control number found for this patient today.'
+            ];
+        }
+
+        $customer = BLSCustomer::find($customerId);
+
+        if (!$customer) {
+
+            return [
+                'status' => 'error',
+                'message' => 'No recorded control number found for this patient today.'
+            ];
+        }
+
+        $patientCode = $customer?->patient_code;
+
+        $bill = BILControlNumber::where('patient_code', $patientCode)
+            ->where('numberstatus', 'recorded')
+            ->whereDate('created_at', $today)
+            ->first();
+
+        return $this->checkPayment($bill);
     }
 }

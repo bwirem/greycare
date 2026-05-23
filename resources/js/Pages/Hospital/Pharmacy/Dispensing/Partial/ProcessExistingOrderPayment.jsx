@@ -219,7 +219,11 @@ export default function ProcessExistingOrderPayment({ auth, orderData, originalO
 
                     } else if (serverErrors.orderitems) {
 
-                        toast.error(serverErrors.orderitems[0]);
+                        toast.error(serverErrors.orderitems[0]);                        
+
+                    } else if (serverErrors.customer) {
+
+                        toast.error(serverErrors.customer[0]);
 
                     } else {
 

@@ -2,11 +2,10 @@ import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head, useForm, Link } from '@inertiajs/react'; 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSave, faTimesCircle, faSpinner, faStore, faTag } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSave, faSpinner, faStore, faTag } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import axios from 'axios';
 import Modal from '@/Components/CustomModal.jsx';
-// 1. IMPORT TOAST
 import { toast } from 'react-toastify';
 
 // Reusable helper functions
@@ -29,7 +28,8 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
 
     const STORAGE_KEY = `pendingOrderChanges_${orderData.id}`;
 
-    const { data, setData, put, errors, processing } = useForm({
+    // 1. BRING BACK INERTIA'S `put`, `processing`, and `errors`
+    const { data, setData, put, processing, errors } = useForm({
         ...orderData,
         customer_id: originalOrder.customer_id,
         stage: originalOrder.stage,
@@ -50,9 +50,8 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
         customer_type: 'individual', first_name: '', other_names: '', surname: '', company_name: '', email: '', phone: '' 
     });
     const [newCustomerModalLoading, setNewCustomerModalLoading] = useState(false);
-    // Removed alertModal state in favor of Toast
 
-    // --- 2. BADGE LOGIC ---
+    // --- BADGE LOGIC ---
     const showStoreBadge = useMemo(() => {
         if (!data.orderitems || data.orderitems.length === 0) return false;
         const uniqueStores = new Set(data.orderitems.map(item => item.source_store_name).filter(Boolean));
@@ -70,7 +69,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
         setIsCustomerSearchLoading(true);
         axios.get(route('systemconfiguration0.customers.search'), { params: { query } })
             .then((response) => setCustomerSearchResults(response.data.customers?.slice(0, 10) || []))
-            .catch(() => toast.error('Failed to fetch customers.')) // UPDATED
+            .catch(() => toast.error('Failed to fetch customers.'))
             .finally(() => setIsCustomerSearchLoading(false));
     }, []);
 
@@ -97,7 +96,6 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-
     const selectCustomer = (customer) => {
         setData('customer_id', customer.id);
         const customerName = customer.customer_type === 'company' ? customer.company_name : `${customer.first_name || ''} ${customer.surname || ''}`.trim();
@@ -122,26 +120,34 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
             selectCustomer(response.data);
             handleNewCustomerModalClose();
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to create customer.'); // UPDATED
+            toast.error(error.response?.data?.message || 'Failed to create customer.');
             setNewCustomerModalLoading(false);
         }
     };
 
+    // --- 2. INERTIA SUBMISSION HANDLER ---
     const submitUpdate = (e) => {
         e.preventDefault();
+
         if (!data.customer_id) {
-            toast.error('A customer must be selected.'); // UPDATED
+            toast.error('A customer must be selected.');
             return;
         }
         
+        // Use Inertia's native `put`. 
+        // This will automatically follow the Controller's redirect to the Index page.
         put(route('outpatient0.billing.update', { order: orderData.id }), {
             onSuccess: () => {
+                // Clear cache on success. The flash data will be handled by the Index page.
                 sessionStorage.removeItem(STORAGE_KEY); 
-                toast.success('Order updated successfully!');
             },
-            onError: (formErrors) => {
-                const errorMessages = Object.values(formErrors).join('\n');
-                toast.error(`Update failed: ${errorMessages}`); // UPDATED
+            onError: (errs) => {
+                // Catch any validation or API errors thrown by the Controller
+                if (errs.api_error) {
+                    toast.error(`Control Number Error: ${errs.api_error}`);
+                } else {
+                    toast.error('Please check your input. Validation failed.');
+                }
             }
         });
     };
@@ -151,6 +157,15 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
             <Head title="Confirm Order Update" />
             <div className="py-12">
                 <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
+                    
+                    {/* Error Banner for Control Number API Issues */}
+                    {errors.api_error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                            <strong className="font-bold">Error! </strong>
+                            <span className="block sm:inline">{errors.api_error}</span>
+                        </div>
+                    )}
+
                     <div className="overflow-hidden bg-white dark:bg-gray-800 p-6 shadow-sm sm:rounded-lg">
                         <form onSubmit={submitUpdate} className="space-y-6">                           
 
@@ -170,7 +185,6 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                                             {data.orderitems.map((item, index) => (
                                                 <tr key={index}>
                                                     <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
-                                                        {/* --- UPDATED UI FOR BADGES --- */}
                                                         <div className="font-medium">{item.item_name}</div>
                                                         {(showStoreBadge || showPriceBadge) && (
                                                             <div className="flex space-x-2 mt-1">
@@ -217,7 +231,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                                             value={customerSearchQuery}
                                             onChange={(e) => setCustomerSearchQuery(e.target.value)}
                                             onFocus={() => setShowCustomerDropdown(true)}
-                                            className="w-full border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                                            className={`w-full border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${errors.customer_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
                                             autoComplete="off"
                                         />
                                         {isCustomerSearchLoading && <FontAwesomeIcon icon={faSpinner} spin className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />}
@@ -240,6 +254,8 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
 
                             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                                 <Link href={route('outpatient0.billing.edit', { order: orderData.id })} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Back to Edit</Link>
+                                
+                                {/* 3. USE PROCESSING FOR THE BUTTON STATE */}
                                 <button type="submit" disabled={processing} className="px-4 py-2 bg-blue-600 text-white rounded flex items-center">
                                     {processing ? <FontAwesomeIcon icon={faSpinner} spin className="mr-2" /> : <FontAwesomeIcon icon={faSave} className="mr-2" />}
                                     Confirm & Save
@@ -250,6 +266,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                 </div>
             </div>
             
+            {/* Modal remains the same */}
             <Modal isOpen={newCustomerModalOpen} onClose={handleNewCustomerModalClose} onConfirm={handleNewCustomerModalConfirm} title="Create New Customer" confirmButtonText={newCustomerModalLoading ? <><FontAwesomeIcon icon={faSpinner} spin /> Saving...</> : 'Confirm'} confirmButtonDisabled={newCustomerModalLoading}>
                 <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                     <div><label htmlFor="customer_type" className="block text-sm font-medium dark:text-gray-300">Customer Type</label><select value={newCustomer.customer_type} onChange={(e) => setNewCustomer(prev => ({ ...prev, customer_type: e.target.value }))} className="w-full border p-2 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" disabled={newCustomerModalLoading}><option value="individual">Individual</option><option value="company">Company</option></select></div>
