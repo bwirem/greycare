@@ -16,7 +16,8 @@ return new class extends Migration
              $table->integer('cash_payment_control_number')
                     ->nullable()
                     ->after('default_death_status_id')
-                    ->default(0);           
+                    ->default(0);  
+              $table->string('control_number_prefix')->nullable()->after('cash_payment_control_number');        
         });
     }
 
@@ -27,7 +28,8 @@ return new class extends Migration
     {
         Schema::table('facilityoptions', function (Blueprint $table) {
             // This safely drops the foreign key constraint AND the column in one go
-            $table->dropColumn('cash_payment_control_number');           
+            $table->dropColumn('cash_payment_control_number'); 
+            $table->dropColumn('control_number_prefix');          
             
         });
     }

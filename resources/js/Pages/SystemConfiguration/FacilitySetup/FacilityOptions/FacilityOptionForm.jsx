@@ -42,6 +42,7 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
         
         // Payment Gateway API Configuration Fields
         cash_payment_control_number: option? Boolean(option.cash_payment_control_number) : false, 
+        control_number_prefix: option?.control_number_prefix || '',
         corporate_id: option?.corporate_id || '',
         token_id: option?.token_id || '',
         access_token: option?.access_token || '',
@@ -233,86 +234,248 @@ export default function FacilityOptionForm({ option = null, chartOfAccounts, bil
             </div>
 
             {/* 4. Payment Gateway API Configuration (Control Numbers) */}
-            <div>
-                <h3 className="text-base font-medium text-gray-800 border-b pb-2 mb-4">Payment Gateway API (Control Numbers)</h3>                
-                <CheckboxInput id="cash_payment_control_number" label="Cash Payment Control Number" checked={data.cash_payment_control_number} onChange={e => setData('cash_payment_control_number', e.target.checked)} />
-                <hr className="my-4 border-gray-300" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label htmlFor="corporate_id" className="block text-sm font-medium text-gray-700">Corporate ID</label>
-                        <input
-                            id="corporate_id"
-                            type="text"
-                            value={data.corporate_id}
-                            onChange={e => setData('corporate_id', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        {errors.corporate_id && <p className="text-red-500 text-xs mt-1">{errors.corporate_id}</p>}
-                    </div>
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-6">
 
-                    <div>
-                        <label htmlFor="token_id" className="block text-sm font-medium text-gray-700">Token ID</label>
-                        <input
-                            id="token_id"
-                            type="text"
-                            value={data.token_id}
-                            onChange={e => setData('token_id', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        {errors.token_id && <p className="text-red-500 text-xs mt-1">{errors.token_id}</p>}
-                    </div>
+                {/* Header */}
+                <div className="border-b border-gray-200 pb-3">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                        Payment Gateway API Configuration
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Configure control number generation and payment verification settings.
+                    </p>
+                </div>
 
-                    <div className="md:col-span-2">
-                        <label htmlFor="access_token" className="block text-sm font-medium text-gray-700">Access Token</label>
-                        <textarea
-                            id="access_token"
-                            rows="2"
-                            value={data.access_token}
-                            onChange={e => setData('access_token', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        {errors.access_token && <p className="text-red-500 text-xs mt-1">{errors.access_token}</p>}
-                    </div>
+                {/* Control Number Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <div className="flex flex-col md:flex-row md:items-end gap-4">
 
-                    <div>
-                        <label htmlFor="registration_url" className="block text-sm font-medium text-gray-700">Registration URL (Generation Endpoint)</label>
-                        <input
-                            id="registration_url"
-                            type="url"
-                            placeholder="http://example.com/api/regctrno"
-                            value={data.registration_url}
-                            onChange={e => setData('registration_url', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        {errors.registration_url && <p className="text-red-500 text-xs mt-1">{errors.registration_url}</p>}
-                    </div>
+                        {/* Checkbox */}
+                        <div className="md:w-auto">
+                            <CheckboxInput
+                                id="cash_payment_control_number"
+                                label="Enable Cash Payment Control Number"
+                                checked={data.cash_payment_control_number}
+                                onChange={e => setData('cash_payment_control_number', e.target.checked)}
+                            />
+                        </div>
 
-                    <div>
-                        <label htmlFor="check_payment_url" className="block text-sm font-medium text-gray-700">Check Payment URL (Validation Endpoint)</label>
-                        <input
-                            id="check_payment_url"
-                            type="url"
-                            placeholder="http://example.com/api/checkctrno"
-                            value={data.check_payment_url}
-                            onChange={e => setData('check_payment_url', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        {errors.check_payment_url && <p className="text-red-500 text-xs mt-1">{errors.check_payment_url}</p>}
-                    </div>
+                        {/* Prefix */}
+                        <div className="flex-1">
+                            <label
+                                htmlFor="control_number_prefix"
+                                className="block text-sm font-medium text-gray-700"
+                            >
+                                Control Number Prefix
+                            </label>
 
-                    <div>
-                        <label htmlFor="crdb_payment_type" className="block text-sm font-medium text-gray-700">CRDB Payment Type</label>
-                        <input
-                            id="crdb_payment_type"
-                            type="text"
-                            placeholder="1088"
-                            value={data.crdb_payment_type}
-                            onChange={e => setData('crdb_payment_type', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        />
-                        {errors.crdb_payment_type && <p className="text-red-500 text-xs mt-1">{errors.crdb_payment_type}</p>}
+                            <input
+                                id="control_number_prefix"
+                                type="text"
+                                placeholder="e.g. HSP"
+                                value={data.control_number_prefix}
+                                onChange={e => setData('control_number_prefix', e.target.value)}
+                                disabled={!data.cash_payment_control_number}
+                                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            />
+
+                            {errors.control_number_prefix && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.control_number_prefix}
+                                </p>
+                            )}
+                        </div>
+
                     </div>
                 </div>
+
+                {/* API Credentials */}
+                <div>
+                    <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
+                        API Credentials
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {/* Corporate ID */}
+                        <div>
+                            <label
+                                htmlFor="corporate_id"
+                                className="block text-sm font-medium text-gray-700"
+                            >
+                                Corporate ID
+                            </label>
+
+                            <input
+                                id="corporate_id"
+                                type="text"
+                                value={data.corporate_id}
+                                onChange={e => setData('corporate_id', e.target.value)}
+                                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+
+                            {errors.corporate_id && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.corporate_id}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Token ID */}
+                        <div>
+                            <label
+                                htmlFor="token_id"
+                                className="block text-sm font-medium text-gray-700"
+                            >
+                                Token ID
+                            </label>
+
+                            <input
+                                id="token_id"
+                                type="text"
+                                value={data.token_id}
+                                onChange={e => setData('token_id', e.target.value)}
+                                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+
+                            {errors.token_id && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.token_id}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Access Token */}
+                        <div className="md:col-span-2">
+                            <label
+                                htmlFor="access_token"
+                                className="block text-sm font-medium text-gray-700"
+                            >
+                                Access Token
+                            </label>
+
+                            <textarea
+                                id="access_token"
+                                rows="3"
+                                value={data.access_token}
+                                onChange={e => setData('access_token', e.target.value)}
+                                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+
+                            {errors.access_token && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.access_token}
+                                </p>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* API Endpoints */}
+                <div>
+                    <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
+                        API Endpoints
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        {/* Registration URL */}
+                        <div>
+                            <label
+                                htmlFor="registration_url"
+                                className="block text-sm font-medium text-gray-700"
+                            >
+                                Registration URL
+                            </label>
+
+                            <input
+                                id="registration_url"
+                                type="url"
+                                placeholder="https://example.com/api/regctrno"
+                                value={data.registration_url}
+                                onChange={e => setData('registration_url', e.target.value)}
+                                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+
+                            <p className="text-xs text-gray-500 mt-1">
+                                Endpoint used for generating control numbers.
+                            </p>
+
+                            {errors.registration_url && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.registration_url}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Check Payment URL */}
+                        <div>
+                            <label
+                                htmlFor="check_payment_url"
+                                className="block text-sm font-medium text-gray-700"
+                            >
+                                Check Payment URL
+                            </label>
+
+                            <input
+                                id="check_payment_url"
+                                type="url"
+                                placeholder="https://example.com/api/checkctrno"
+                                value={data.check_payment_url}
+                                onChange={e => setData('check_payment_url', e.target.value)}
+                                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+
+                            <p className="text-xs text-gray-500 mt-1">
+                                Endpoint used for payment verification.
+                            </p>
+
+                            {errors.check_payment_url && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.check_payment_url}
+                                </p>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* Payment Settings */}
+                <div>
+                    <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
+                        Payment Settings
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <div>
+                            <label
+                                htmlFor="crdb_payment_type"
+                                className="block text-sm font-medium text-gray-700"
+                            >
+                                CRDB Payment Type
+                            </label>
+
+                            <input
+                                id="crdb_payment_type"
+                                type="text"
+                                placeholder="1088"
+                                value={data.crdb_payment_type}
+                                onChange={e => setData('crdb_payment_type', e.target.value)}
+                                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            />
+
+                            {errors.crdb_payment_type && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.crdb_payment_type}
+                                </p>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
 
             {/* 5. System Settings */}

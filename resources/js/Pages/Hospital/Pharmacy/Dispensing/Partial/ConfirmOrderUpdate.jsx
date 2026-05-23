@@ -1,4 +1,4 @@
-import AuthenticatedLayout from '@/Layouts/FinanceLayout';
+import AuthenticatedLayout from '@/Layouts/HospitalLayout';
 import { Head, useForm, Link } from '@inertiajs/react'; 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -253,7 +253,7 @@ export default function ConfirmOrderUpdate({ auth, orderData, originalOrder }) {
                             </section>
 
                             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                                <Link href={route('billing1.edit', { order: orderData.id })} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Back to Edit</Link>
+                                <Link href={route('pharmacy0.billing.edit', { order: orderData.id })} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500">Back to Edit</Link>
                                 
                                 {/* 3. USE PROCESSING FOR THE BUTTON STATE */}
                                 <button type="submit" disabled={processing} className="px-4 py-2 bg-blue-600 text-white rounded flex items-center">

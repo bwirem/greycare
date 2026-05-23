@@ -14,9 +14,25 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Str;
 
 trait HandlesOrdering
 {
+
+    /**
+     * Get Facility API setup
+     */
+    public function getFacilitySetup()
+    {
+        $setup = FacilityOption::first();
+
+        if (!$setup) {
+            throw new \Exception("Facility API setup is missing.");
+        }
+
+        return $setup;
+    }
+
     /**
      * Fetches the active price categories.
      */
@@ -57,6 +73,8 @@ trait HandlesOrdering
             'orderitems.*.price_ref' => 'nullable|string',
         ]);
 
+        $setup = $this->getFacilitySetup();
+
         // 1. Calculate the total manually BEFORE saving to DB
         $calculatedTotal = collect($validated['orderitems'])->sum(function ($item) {
             return $item['quantity'] * $item['price'];
@@ -69,7 +87,9 @@ trait HandlesOrdering
         $customer = BLSCustomer::find($validated['customer_id']);
         $patientId = $customer?->patient_code;
         $patientName = trim("{$customer->first_name} {$customer->other_names} {$customer->surname}");
-
+        
+        $paymentRef = $setup->control_number_prefix . now()->format('YmdHis');// . '-' . strtoupper(Str::random(4));
+        
         // 4. Call the Control Number Service BEFORE touching the Database
         $controlResponse = $controlService->generateControlNumber([
             'patient_id'    => $patientId,
@@ -77,7 +97,7 @@ trait HandlesOrdering
             'amount'        => $calculatedTotal,
             'description'   => $validated['description'] ?? 'Medical Services', 
             'mobile_number' => $customer?->phone ?? '2556',
-            'payment_ref'   => "KTY123493", 
+            'payment_ref'   => $paymentRef, 
         ]);      
 
         // 5. IF ERROR/DUPLICATE: Throw ValidationException
@@ -185,6 +205,8 @@ trait HandlesOrdering
             'orderitems.*.price_ref' => 'nullable|string',
         ]);
 
+        $setup = $this->getFacilitySetup();
+
         // 1. Calculate the total manually BEFORE saving to DB  
         $calculatedTotal = collect($validated['orderitems'])->sum(function ($item) {
             return $item['quantity'] * $item['price'];
@@ -197,7 +219,9 @@ trait HandlesOrdering
         $customer = BLSCustomer::find($validated['customer_id']);
         $patientId = $customer?->patient_code;
         $patientName = trim("{$customer->first_name} {$customer->other_names} {$customer->surname}");
-
+        
+        $paymentRef = $setup->control_number_prefix . now()->format('YmdHis');
+        
         // 4. Call the Control Number Service BEFORE touching the Database
         $controlResponse = $controlService->generateControlNumber([
             'patient_id'    => $patientId,
@@ -205,7 +229,7 @@ trait HandlesOrdering
             'amount'        => $calculatedTotal,
             'description'   => 'Order Update: ' . ($validated['description'] ?? 'Medical Services'), 
             'mobile_number' => $customer?->phone ?? '2556',
-            'payment_ref'   => "KTY123489", 
+            'payment_ref'   => $paymentRef, 
         ]);      
 
         // 5. IF ERROR/DUPLICATE: Throw ValidationException
@@ -349,7 +373,7 @@ trait HandlesOrdering
      */
     private function generateControlNumberTempPdf($order, $controlResponse)
     {
-        $facility = FacilityOption::first();
+        $facility = $this->getFacilitySetup();
         $customPaper = array(0, 0, 226.77, 1000); // 80mm POS paper width
 
         $pdf = Pdf::loadView('pdfs.control_number_receipt', [
@@ -384,7 +408,7 @@ trait HandlesOrdering
         }
 
         $order = BILOrder::findOrFail($orderId);
-        $facility = FacilityOption::first();
+        $facility = $this->getFacilitySetup();
 
         $customPaper = array(0, 0, 226.77, 1000); 
 

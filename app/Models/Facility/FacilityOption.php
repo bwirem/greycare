@@ -38,7 +38,8 @@ class FacilityOption extends Model
         'check_payment_url',
         'crdb_payment_type',
         'default_death_status_id',
-        'cash_payment_control_number'
+        'cash_payment_control_number',
+        'control_number_prefix'
     ];
 
 
