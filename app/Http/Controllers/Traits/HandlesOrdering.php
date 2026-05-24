@@ -86,10 +86,10 @@ trait HandlesOrdering
         // 3. Retrieve customer details for API payload
         $customer = BLSCustomer::find($validated['customer_id']);
         $patientId = $customer?->patient_code;
-        $patientName = trim("{$customer->first_name} {$customer->other_names} {$customer->surname}");
-        
-        $paymentRef = $setup->control_number_prefix . now()->format('YmdHis');// . '-' . strtoupper(Str::random(4));
-        
+        $patientName = trim("{$customer->first_name} {$customer->other_names} {$customer->surname}");        
+        //$paymentRef = $setup->control_number_prefix . now()->format('YmdHis');
+        $paymentRef = $setup->control_number_prefix . rand(100000, 999999);
+
         // 4. Call the Control Number Service BEFORE touching the Database
         $controlResponse = $controlService->generateControlNumber([
             'patient_id'    => $patientId,
@@ -220,7 +220,8 @@ trait HandlesOrdering
         $patientId = $customer?->patient_code;
         $patientName = trim("{$customer->first_name} {$customer->other_names} {$customer->surname}");
         
-        $paymentRef = $setup->control_number_prefix . now()->format('YmdHis');
+        //$paymentRef = $setup->control_number_prefix . now()->format('YmdHis');
+        $paymentRef = $setup->control_number_prefix . rand(100000, 999999);
         
         // 4. Call the Control Number Service BEFORE touching the Database
         $controlResponse = $controlService->generateControlNumber([

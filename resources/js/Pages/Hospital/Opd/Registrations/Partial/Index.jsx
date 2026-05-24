@@ -16,7 +16,7 @@ import Modal from '@/Components/CustomModal.jsx';
 // Define constants outside the component for clarity and performance
 const ORDER_STAGE_LABELS = {
     3: 'Pending',
-    4: 'Profoma', 
+    4: 'Control#', 
 };
 
 const DEBOUNCE_DELAY = 300; // milliseconds for search debounce

@@ -75,20 +75,13 @@ class ControlNumberService
         ];
 
         try {
-            // Log the request payload
-            Log::info("Control Number API Request", ['payload' => $payload]);
-
+            
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'ACCESS_TOKEN' => $setup->access_token,
             ])
             ->post($setup->registration_url, $payload);
-
-            // Log the API response
-            Log::info("Control Number API Response", [
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
+           
 
             // if (!$response->successful()) {
             //     return [
@@ -97,9 +90,7 @@ class ControlNumberService
             //     ];
             // }
 
-            $resData = $response->json();
-
-            Log::info("Control Number API Parsed Response", ['data' => $resData]);
+            $resData = $response->json();           
 
             // Handle duplicate request gracefully
             if (!isset($resData['status']) || !in_array($resData['status'], ['200', '201'])) {
@@ -174,9 +165,7 @@ class ControlNumberService
                 'control_status' => 'paid',
                 'receipt' => $bill->receipt_no,
             ];
-        }
-
-        Log::info("Checking payment for Bill ID: {$bill->id}, Payment Ref: {$bill->payment_reference}");
+        }        
 
         $setup = $this->getFacilitySetup();
 
@@ -189,12 +178,7 @@ class ControlNumberService
             // Laravel automatically adds 'Content-Type' => 'application/json' when passing an array
             $response = Http::withHeaders([
                 'ACCESS_TOKEN' => $setup->access_token,
-            ])->post($setup->check_payment_url, $payload);
-
-            Log::info("Check Payment API Response", [
-                'status' => $response->status(),
-                'body' => $response->body()
-            ]);
+            ])->post($setup->check_payment_url, $payload);            
 
             // 2. Safely check if the API request actually succeeded
             if ($response->failed()) {

@@ -19,7 +19,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const ORDER_STAGE_LABELS = {
     3: 'Pending',
-    4: 'Control No Generated', 
+    4: 'Control#', 
 };
 
 const DEBOUNCE_DELAY = 300; 
