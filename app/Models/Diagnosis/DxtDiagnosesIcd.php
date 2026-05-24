@@ -21,14 +21,14 @@ class DxtDiagnosesIcd extends Model
     // Get OPD diagnoses that map to this ICD code
     public function opdMappings()
     {
-        // Foreign key on Opd table is 'maptocode', Local key here is 'code'
-        return $this->hasMany(DxtDiagnosesOpd::class, 'maptocode', 'code');
+        // Foreign key on Opd table is 'exact_codes', Local key here is 'code'
+        return $this->hasMany(DxtDiagnosesOpd::class, 'exact_codes', 'code');
     }
 
     // Get IPD diagnoses that map to this ICD code
     public function ipdMappings()
     {
-        return $this->hasMany(DxtDiagnosesIpd::class, 'maptocode', 'code');
+        return $this->hasMany(DxtDiagnosesIpd::class, 'exact_codes', 'code');
     }
 
     // Polymorphic Relations
