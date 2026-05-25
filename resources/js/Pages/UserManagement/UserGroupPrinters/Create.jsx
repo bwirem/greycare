@@ -73,6 +73,7 @@ export default function Create({ usergroups }) {
                                         <option value="invoice">Invoice</option>
                                         <option value="receipt">Receipt</option>
                                         <option value="order">Order</option>
+                                        <option value="control_number">Control Number</option>
                                     </select>
                                 </div>
 
