@@ -71,7 +71,8 @@ export default function DiagnosisTab({ data, setData, options, previous_diagnose
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 bg-white">
-                                {previous_diagnoses.map((diag, index) => (
+                                {previous_diagnoses                                   
+                                    .map((diag, index) => (
                                     <tr key={index} className="hover:bg-blue-50 transition-colors">
                                         {/* Date */}
                                         <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
