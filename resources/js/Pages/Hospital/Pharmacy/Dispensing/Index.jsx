@@ -109,7 +109,7 @@ export default function DispensingIndex({ prescriptions, filters, flash, userPer
     // 1. Single Bill (Fallback)
     const openBillNegotiation = (rx) => {
         setSelectedBillRx(rx);
-        setBillQty(rx.quantity_prescribed);
+        setBillQty(rx.quantity_ordered || rx.quantity_prescribed);
         setShowBillModal(true);
     };
 
@@ -143,7 +143,7 @@ export default function DispensingIndex({ prescriptions, filters, flash, userPer
         const initialQtys = {};
         const initialSelection = new Set();
         unbilled.forEach(item => {
-            initialQtys[item.id] = item.quantity_prescribed;
+            initialQtys[item.id] = item.quantity_ordered || item.quantity_prescribed;
             initialSelection.add(item.id);
         });
 
@@ -448,7 +448,7 @@ export default function DispensingIndex({ prescriptions, filters, flash, userPer
                                                     <td className="p-3 w-8"><FontAwesomeIcon icon={faCheckCircle}/></td>
                                                     <td className="p-3">{item.product?.name}</td>
                                                     <td className="p-3 text-right">-</td>
-                                                    <td className="p-3 text-center">{item.quantity_prescribed}</td>
+                                                    <td className="p-3 text-center">{item.quantity_ordered || item.quantity_prescribed}</td>
                                                 </tr>
                                             ))}
                                         </tbody>

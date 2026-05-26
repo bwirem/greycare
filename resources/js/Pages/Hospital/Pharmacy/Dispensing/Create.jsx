@@ -15,7 +15,7 @@ export default function DispenseCreate({ prescription, stores, default_store_id,
     const [loadingStock, setLoadingStock] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
-        quantity_issued: prescription.quantity_prescribed,
+        quantity_issued: prescription.quantity_ordered || prescription.quantity_prescribed,            
         store_id: default_store_id || '',
         batch_no: '',
         expiry_date: '',

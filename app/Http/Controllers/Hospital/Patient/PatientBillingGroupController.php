@@ -41,7 +41,7 @@ class PatientBillingGroupController extends Controller
         $priceCategorySettings = BLSPriceCategory::first();
 
         if ($priceCategorySettings) {
-            for ($i = 1; $i <= 10; $i++) {
+            for ($i = 1; $i <= 15; $i++) {
                 // Check if the 'useprice' field is true (or 1)
                 if ($priceCategorySettings->{'useprice' . $i}) {
                     $activePriceCategories[] = [
