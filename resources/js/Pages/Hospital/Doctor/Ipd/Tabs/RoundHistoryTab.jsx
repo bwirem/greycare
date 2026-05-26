@@ -26,8 +26,7 @@ export default function RoundHistoryTab({ history, opdData, diagnosisHistory = [
                         <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
                             <tr>
                                 <th className="px-4 py-3 w-32">Date</th>
-                                <th className="px-4 py-3 w-1/3">ICD-10</th>
-                                <th className="px-4 py-3 w-1/3">Local / Mtuha</th>
+                                <th className="px-4 py-3 w-1/3">ICD-10</th>                                
                                 <th className="px-4 py-3">Status</th>
                                 <th className="px-4 py-3 text-right">Doctor</th>
                             </tr>
@@ -44,7 +43,7 @@ export default function RoundHistoryTab({ history, opdData, diagnosisHistory = [
                                     
                                     {/* ICD */}
                                     <td className="px-4 py-3">
-                                        {diag.icd_code && diag.icd_code !== '-' ? (
+                                        {diag.icd_code && diag.icd_code !== '-' && (
                                             <div>
                                                 <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
                                                     {diag.icd_code}
@@ -52,25 +51,6 @@ export default function RoundHistoryTab({ history, opdData, diagnosisHistory = [
                                                 <span className="block text-gray-700 text-xs mt-1 leading-tight">
                                                     {diag.icd_name}
                                                 </span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-gray-400 text-xs italic">No ICD Link</span>
-                                        )}
-                                    </td>
-
-                                    {/* Local */}
-                                    <td className="px-4 py-3">
-                                        {diag.local_name ? (
-                                            <div className="flex items-start gap-2">
-                                                <FontAwesomeIcon icon={faLink} className="text-green-500 text-xs mt-0.5"/>
-                                                <span className="text-gray-800 font-medium text-xs">
-                                                    {diag.local_name}
-                                                </span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-2">
-                                                <FontAwesomeIcon icon={faUnlink} className="text-gray-300 text-xs"/>
-                                                <span className="text-gray-400 italic text-xs">Standard ICD</span>
                                             </div>
                                         )}
                                     </td>

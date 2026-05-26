@@ -702,16 +702,12 @@ class BilPostController extends Controller
         $billinggroup_id = null;
 
         // Only query if we actually have a patient code
-        if ($patientCode) {
-            $today = today(); // Helper for Carbon::today()
-
-            $billinggroup_id = \App\Models\Opd\OpdBooking::where('patientcode', $patientCode)
-                ->whereDate('created_at', $today)
+        if ($patientCode) {           
+            $billinggroup_id = \App\Models\Opd\OpdBooking::where('patientcode', $patientCode)              
                 ->latest()
                 ->value('billinggroup_id') 
                 ?? 
-                \App\Models\Ipd\IpdAdmission::where('patientcode', $patientCode)
-                ->whereDate('created_at', $today)
+                \App\Models\Ipd\IpdAdmission::where('patientcode', $patientCode)               
                 ->latest()
                 ->value('billinggroup_id');
         }        

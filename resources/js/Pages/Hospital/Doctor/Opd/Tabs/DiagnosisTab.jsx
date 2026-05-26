@@ -65,8 +65,7 @@ export default function DiagnosisTab({ data, setData, options, previous_diagnose
                             <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
                                 <tr>
                                     <th className="px-4 py-3 w-32">Date</th>
-                                    <th className="px-4 py-3 w-1/3">ICD-10 Standard</th>
-                                    <th className="px-4 py-3 w-1/3">Local / Mtuha</th>
+                                    <th className="px-4 py-3 w-1/3">ICD-10 Standard</th>                                   
                                     <th className="px-4 py-3">Status</th>
                                     <th className="px-4 py-3 text-right">Doctor</th>
                                 </tr>
@@ -84,7 +83,7 @@ export default function DiagnosisTab({ data, setData, options, previous_diagnose
                                         
                                         {/* ICD Column */}
                                         <td className="px-4 py-3">
-                                            {diag.icd_code && diag.icd_code !== '-' ? (
+                                            {diag.icd_code && diag.icd_code !== '-' && (
                                                 <div>
                                                     <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
                                                         {diag.icd_code}
@@ -93,28 +92,9 @@ export default function DiagnosisTab({ data, setData, options, previous_diagnose
                                                         {diag.icd_name}
                                                     </span>
                                                 </div>
-                                            ) : (
-                                                <span className="text-gray-400 text-xs italic">No ICD Link</span>
                                             )}
                                         </td>
-
-                                        {/* Local / Mtuha Column */}
-                                        <td className="px-4 py-3">
-                                            {diag.local_name ? (
-                                                <div className="flex items-start gap-2">
-                                                    <FontAwesomeIcon icon={faLink} className="text-green-500 text-xs mt-0.5"/>
-                                                    <span className="text-gray-800 font-medium text-xs">
-                                                        {diag.local_name}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <FontAwesomeIcon icon={faUnlink} className="text-gray-300 text-xs"/>
-                                                    <span className="text-gray-400 italic text-xs">Standard ICD (Unmapped)</span>
-                                                </div>
-                                            )}
-                                        </td>
-
+                                        
                                         {/* Status */}
                                         <td className="px-4 py-3">
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
@@ -197,50 +177,29 @@ export default function DiagnosisTab({ data, setData, options, previous_diagnose
                                         ICD-10 Standard
                                     </span>
                                     <span className="font-bold text-gray-800 text-base block">{d.label}</span>
-                                </div>
+                                </div> 
 
-                                {/* RIGHT: Mapped Mtuha */}
-                                <div className="w-2/5 pl-2 text-right flex flex-col justify-center h-full">
-                                    <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
-                                        Mapped Mtuha
-                                    </span>
-                                    
-                                    {d.linked_mtuha ? (
-                                        <div className="text-green-700 font-medium flex items-center justify-end gap-1 bg-green-50 px-2 py-1 rounded self-end">
-                                            <FontAwesomeIcon icon={faLink} className="text-xs"/> 
-                                            <span className="truncate max-w-[150px]" title={d.linked_mtuha}>
-                                                {d.linked_mtuha}
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <div className="text-gray-400 italic flex items-center justify-end gap-1">
-                                            <FontAwesomeIcon icon={faUnlink} className="text-xs"/> 
-                                            <span>Not Mapped</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* BOTTOM: Status & Actions */}
-                            <div className="flex justify-end gap-2 items-center pt-1">
-                                <select 
-                                    className="border-gray-300 rounded text-xs py-1 h-8 focus:ring-indigo-500 bg-gray-50 text-gray-700"
-                                    value={d.status}
-                                    onChange={e => updateStatus(i, e.target.value)}
-                                >
-                                    <option value="provisional">Provisional</option>
-                                    <option value="differential">Differential</option>
-                                    <option value="confirmed">Confirmed</option>
-                                </select>
-                                <button 
-                                    type="button" 
-                                    onClick={() => removeDiagnosis(i)} 
-                                    className="text-red-500 hover:text-red-700 bg-red-50 h-8 w-8 rounded flex items-center justify-center transition hover:bg-red-100"
-                                    title="Remove from list"
-                                >
-                                    <FontAwesomeIcon icon={faTrash} />
-                                </button>
-                            </div>
+                                {/* BOTTOM: Status & Actions */}
+                                <div className="flex justify-end gap-2 items-center pt-1">
+                                    <select 
+                                        className="border-gray-300 rounded text-xs py-1 h-8 focus:ring-indigo-500 bg-gray-50 text-gray-700"
+                                        value={d.status}
+                                        onChange={e => updateStatus(i, e.target.value)}
+                                    >
+                                        <option value="provisional">Provisional</option>
+                                        <option value="differential">Differential</option>
+                                        <option value="confirmed">Confirmed</option>
+                                    </select>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => removeDiagnosis(i)} 
+                                        className="text-red-500 hover:text-red-700 bg-red-50 h-8 w-8 rounded flex items-center justify-center transition hover:bg-red-100"
+                                        title="Remove from list"
+                                    >
+                                        <FontAwesomeIcon icon={faTrash} />
+                                    </button>
+                                </div>                                                            
+                            </div>                                
                         </div>
                     ))}
                     

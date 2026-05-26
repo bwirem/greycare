@@ -31,7 +31,19 @@ class BILInvoice extends Model
     {
         return $this->belongsTo(BLSCustomer::class, 'customer_id', 'id');
     }
-    
-    
+
+    public function getBalanceAttribute()
+    {
+        $invoiceTotal = $this->items->sum(function ($item) {
+            return $item->quantity * $item->price;
+        });
+
+        $totalPaid = \App\Models\Billing\BILInvoicePaymentDetail::where(
+            'invoiceno',
+            $this->invoiceno
+        )->sum('totalpaid');
+
+        return $invoiceTotal - $totalPaid;
+    }   
    
 }

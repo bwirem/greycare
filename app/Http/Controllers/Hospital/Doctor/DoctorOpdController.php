@@ -362,12 +362,20 @@ class DoctorOpdController extends Controller
                             default        => MrPatientDiagnosisProvisional::class,
                         };
 
+                        $mtuha_code = match ($mtuha->mtuha_code) {
+                            '014a' => '0141',
+                            '014b' => '0142',
+                            '014c' => '0143',
+                            '014d' => '0144',
+                            default => $mtuha->mtuha_code,
+                        };
+
                         $modelClassMtuha::create([
                             'opd_booking_id'       => $booking->id,
                             'patientcode'          => $booking->patientcode,
                             'user_id'              => Auth::id(),
                             'transdate'            => now(),
-                            'diagnosis_id'         => $mtuha->mtuha_code, 
+                            'diagnosis_id'         => $mtuha_code, 
                             'diagnosisdescription' => $mtuha->description,
                             'diagnosis_type'       => $sourceModel,                            
                         ]);

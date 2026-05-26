@@ -31,6 +31,8 @@ use App\Models\{
     UserGroupPrinter, // Import Printer Config    
 };
 
+use App\Models\Patient\PatientBillingGroup; // <-- Make sure to import your 
+
 use App\Enums\{
     BillingTransTypes,
     InvoiceStatus,
@@ -49,22 +51,47 @@ class BilPayController extends Controller
     {
         $query = BILDebtor::with('customer');
 
+        // 1. Filter by Search (Customer Name)
         if ($request->filled('search')) {
             $query->whereHas('customer', function ($q) use ($request) {
                 $q->where('first_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('surname', 'like', '%' . $request->search . '%')
-                  ->orWhere('other_names', 'like', '%' . $request->search . '%')
-                  ->orWhere('company_name', 'like', '%' . $request->search . '%');
+                ->orWhere('surname', 'like', '%' . $request->search . '%')
+                ->orWhere('other_names', 'like', '%' . $request->search . '%')
+                ->orWhere('company_name', 'like', '%' . $request->search . '%');
             });
         }
 
-        $query->where('balance', '>', 0);
+        // 2. Filter by Billing Group
+        if ($request->filled('group_id')) {
+            $query->where('billinggroup_id', $request->group_id);
+        }
 
+        // 3. Filter by Stage (Balance Status)
+        // Front-end definition: 1 = Partial (Has Balance), 2 = Complete (Paid Off)
+        if ($request->filled('stage')) {
+            if ($request->stage == '1') {
+                $query->where('balance', '>', 0);
+            } elseif ($request->stage == '2') {
+                $query->where('balance', '<=', 0);
+            }
+        } else {
+            // Default behavior when no stage is selected: 
+            // Only show people who actually owe money (Balance > 0). 
+            // If you want "All" to show 0 balances too, just comment out the line below.
+            $query->where('balance', '>', 0);
+        }
+
+        // Paginate results
         $debtors = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+
+        // Fetch Billing Groups for the frontend dropdown 
+        // (Adjust the Model name/select fields if yours are named differently)
+        $billing_groups = PatientBillingGroup::select('id', 'name')->get();
 
         return inertia('Billing/BilPays/Index', [
             'debtors' => $debtors,
-            'filters' => $request->only(['search']),
+            'billing_groups' => $billing_groups,
+            'filters' => $request->only(['search', 'group_id', 'stage']),
         ]);
     }
 
@@ -223,14 +250,18 @@ class BilPayController extends Controller
      */
     private function generateTempPdf($receiptNo)
     {
-        $paymentRecord = BILInvoicePayment::with(['items.invoice.items.item', 'customer'])
-                        ->where('receiptno', $receiptNo)->first();
+        $paymentRecord = BILInvoicePayment::with([
+            'items.invoice.items.item',
+            'customer'
+        ])->where('receiptno', $receiptNo)->first();
+
         $facility = FacilityOption::first();
 
+        $customPaper = array(0, 0, 226.77, 1000); // 80mm width, variable length
         $pdf = Pdf::loadView('pdfs.payment_receipt', [
             'payment' => $paymentRecord,
-            'facility' => $facility,
-        ]);
+            'facility' => $facility,        
+        ])->setPaper($customPaper, 'portrait'); // <--- APPLY HERE
 
         $fileName = 'receipt_' . $receiptNo . '_' . time() . '.pdf';
         $directory = storage_path('app/public/temp_receipts');
@@ -263,11 +294,11 @@ class BilPayController extends Controller
 
         $facility = FacilityOption::first();
 
-        // Ensure you have this view created 'pdfs.payment_receipt'
+        $customPaper = array(0, 0, 226.77, 1000); // 80mm width, variable length
         $pdf = Pdf::loadView('pdfs.payment_receipt', [
             'payment' => $paymentRecord,
-            'facility' => $facility,
-        ]);
+            'facility' => $facility,        
+        ])->setPaper($customPaper, 'portrait'); // <--- APPLY HERE
 
         return response($pdf->output(), 200)
             ->header('Content-Type', 'application/pdf')
@@ -280,6 +311,23 @@ class BilPayController extends Controller
      */
     private function payInvoices(array $data): string
     {
+        // Identify the Customer
+        $customer = BLSCustomer::find($data['customer_id']);
+        $patientCode = $customer?->patient_code;
+
+        $billinggroup_id = null;
+
+        // Only query if we actually have a patient code
+        if ($patientCode) {  
+            
+            $billinggroup_id = \App\Models\Opd\OpdBooking::where('patientcode', $patientCode)
+                ->latest()
+                ->value('billinggroup_id')
+            ?? \App\Models\Ipd\IpdAdmission::where('patientcode', $patientCode)
+                ->latest()
+                ->value('billinggroup_id');
+        }   
+
         $transdate = Carbon::now();
         $customerId = $data['customer_id'];
         $totalPaid = $data['paid_amount'];
@@ -290,6 +338,7 @@ class BilPayController extends Controller
         // --- Step 1: Create Transaction-Level Records (ONCE) ---
         BILInvoicePayment::create([
             'transdate' => $transdate, 'receiptno' => $receiptNo, 'customer_id' => $customerId,
+            'billinggroup_id' => $billinggroup_id,
             'totalpaid' => $totalPaid, 'yearpart' => $transdate->year, 'monthpart' => $transdate->month,
             'user_id' => Auth::id(),
         ]);

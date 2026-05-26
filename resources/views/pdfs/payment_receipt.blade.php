@@ -2,122 +2,292 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt - {{ $payment->receiptno }}</title>
     <style>
-        body { font-family: sans-serif; font-size: 12px; }
-        .container { width: 100%; margin: 0 auto; }
-        .header, .footer { text-align: center; }
-        
-        /* Table Styles */
-        .main-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .main-table th, .main-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
-        .main-table th { background-color: #f2f2f2; }
-        
-        /* Nested Table for Invoice Items */
-        .nested-table { width: 95%; margin: 5px auto; border-collapse: collapse; background-color: #fafafa; }
-        .nested-table th, .nested-table td { border: 1px solid #eee; padding: 4px; font-size: 11px; color: #555; }
-        .nested-table th { background-color: #e9e9e9; }
+        /* 
+           1. PAGE SETUP 
+           Sets the paper size to 80mm width. 
+           Auto height allows the paper to unroll as long as needed.
+        */
+        @page {
+            margin: 0;
+            size: 80mm auto;
+        }
 
-        .text-right { text-align: right; }
-        .text-bold { font-weight: bold; }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.3;
+            color: #000000;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+        }
+
+        /* 
+           2. CONTAINER 
+           72mm is the "Safe Area" for 80mm printers.
+           This prevents text from being cut off at the edges.
+        */
+        .receipt {
+            width: 72mm;
+            max-width: 72mm;
+            margin: 0 auto;
+            padding: 2mm 0; 
+        }
+
+        /* UTILITIES */
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: 700; }
         
-        .totals-table { width: 50%; float: right; margin-top: 20px; border-collapse: collapse; }
-        .totals-table td { padding: 5px; border: 1px solid #ddd; }
-        .clearfix::after { content: ""; clear: both; display: table; }
+        .divider {
+            border-top: 1px dashed #000;
+            margin: 6px 0;
+            width: 100%;
+        }
+
+        .divider-solid {
+            border-top: 1px solid #000;
+            margin: 6px 0;
+            width: 100%;
+        }
+
+        /* HEADER */
+        .logo-img {
+            max-width: 40mm;
+            height: auto;
+            filter: grayscale(100%); 
+        }
+
+        .shop-name {
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        .shop-info {
+            font-size: 10px;
+            margin-bottom: 5px;
+        }
+
+        .receipt-title {
+            font-size: 15px;
+            font-weight: 800;
+            border: 2px solid #000;
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 5px 0;
+        }
+
+        /* META INFO */
+        .meta-info {
+            font-size: 11px;
+        }
+
+        /* TABLE STYLES */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-top: 5px;
+        }
+
+        th {
+            text-align: left;
+            border-bottom: 2px solid #000;
+            padding-bottom: 3px;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 3px 0;
+            vertical-align: top;
+        }
+
+        /* COLUMN WIDTHS (Optimized for 72mm) */
+        .col-item { width: 45%; padding-right: 2px; }
+        .col-qty  { width: 15%; text-align: center; }
+        .col-price{ width: 20%; text-align: right; }
+        .col-total{ width: 20%; text-align: right; }
+
+        .item-name {
+            display: block;
+            font-weight: 600;
+        }
+
+        /* INVOICE SECTION STYLES */
+        .invoice-header {
+            font-weight: bold;
+            font-size: 11px;
+            background-color: #f7f7f7;
+            padding: 4px;
+            margin-top: 5px;
+            text-align: left;
+        }
+        .invoice-summary {
+            text-align: right;
+            font-size: 10px;
+            padding-top: 3px;
+            padding-bottom: 5px;
+        }
+
+        /* TOTALS SECTION */
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+        
+        .grand-total {
+            font-size: 14px;
+            font-weight: 800;
+            border-top: 1px dashed #000;
+            border-bottom: 1px dashed #000;
+            padding: 5px 0;
+            margin-top: 5px;
+        }
+
+        /* QR CODE */
+        .qr-section {
+            text-align: center;
+            margin: 10px 0;
+        }
+        .qr-section img {
+            width: 100px;
+            height: auto;
+        }
+
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            margin-top: 10px;
+        }
+
+        /* FEED PADDING */
+        .feed-padding {
+            height: 15mm; 
+        }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        {{-- HEADER (Facility Info) --}}
-        <div class="header">
-            <h2 style="margin:0;">{{ $facility->name ?? 'Facility Name' }}</h2>
-            <p style="margin:2px;">{{ $facility->address ?? '' }} | {{ $facility->phone ?? '' }}</p>
-            <h3 style="border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:5px; margin-top:10px;">PAYMENT RECEIPT</h3>
+
+<div class="receipt">
+
+    <!-- 1. LOGO & HEADER -->
+    <div class="center">
+        @if(!empty($facility->logo_path) && file_exists(storage_path('app/public/' . $facility->logo_path)))
+            <img class="logo-img" src="data:image/png;base64,{{ base64_encode(file_get_contents(storage_path('app/public/' . $facility->logo_path))) }}" alt="Logo">
+        @endif
+
+        <div class="shop-name">{{ $facility->name ?? 'FACILITY NAME' }}</div>
+
+        <div class="shop-info">
+            {!! !empty($facility->address) ? nl2br(e($facility->address)) : '' !!}<br>
+            @if(!empty($facility->phone)) <strong>Tel:</strong> {{ $facility->phone }}<br>@endif
+            @if(!empty($facility->tin)) TIN: {{ $facility->tin }} | @endif
+            @if(!empty($facility->vrn)) VRN: {{ $facility->vrn }} @endif
         </div>
 
-        {{-- CUSTOMER INFO --}}
-        <table style="width:100%; margin-top: 20px;">
-            <tr>
-                <td style="width:60%">
-                    <strong>Received From:</strong><br>
-                    {{ $payment->customer->first_name ?? '' }} {{ $payment->customer->surname ?? $payment->customer->company_name ?? 'Guest' }}
-                </td>
-                <td style="width:40%; text-align:right;">
-                    <strong>Receipt No:</strong> {{ $payment->receiptno }}<br>
-                    <strong>Date:</strong> {{ \Carbon\Carbon::parse($payment->transdate)->format('d-M-Y') }}
-                </td>
-            </tr>
-        </table>
+        <div class="receipt-title">PAYMENT RECEIPT</div>
+    </div>
 
-        {{-- INVOICE & DETAILS TABLE --}}
-        <table class="main-table">
-            <thead>
-                <tr>
-                    <th style="width: 40%;">Description / Invoice No</th>
-                    <th style="width: 20%;" class="text-right">Total Due</th>
-                    <th style="width: 20%;" class="text-right">Paid Now</th>
-                    <th style="width: 20%;" class="text-right">Balance</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($payment->items as $paymentDetail)
-                    {{-- 1. Main Row: The Invoice Payment Summary --}}
-                    <tr style="background-color: #f9f9f9;">
-                        <td class="text-bold">
-                            Payment for Invoice #{{ $paymentDetail->invoiceno }}
-                        </td>
-                        <td class="text-right">{{ number_format($paymentDetail->totaldue, 2) }}</td>
-                        <td class="text-right text-bold">{{ number_format($paymentDetail->totalpaid, 2) }}</td>
-                        <td class="text-right">
-                            {{-- Calculate remaining balance for this specific invoice --}}
-                            {{ number_format($paymentDetail->totaldue - $paymentDetail->totalpaid, 2) }}
-                        </td>
-                    </tr>
-
-                    {{-- 2. Nested Row: The Invoice Items --}}
-                    @if($paymentDetail->invoice && $paymentDetail->invoice->items->count() > 0)
-                    <tr>
-                        <td colspan="4" style="padding: 0;">
-                            <table class="nested-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 50%;">Item Name</th>
-                                        <th style="width: 15%;" class="text-right">Qty</th>
-                                        <th style="width: 15%;" class="text-right">Price</th>
-                                        <th style="width: 20%;" class="text-right">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($paymentDetail->invoice->items as $lineItem)
-                                    <tr>
-                                        <td>{{ $lineItem->item->name ?? 'Unknown Item' }}</td>
-                                        <td class="text-right">{{ number_format($lineItem->quantity, 0) }}</td>
-                                        <td class="text-right">{{ number_format($lineItem->price, 2) }}</td>
-                                        <td class="text-right">{{ number_format($lineItem->quantity * $lineItem->price, 2) }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    @endif
-                @endforeach
-            </tbody>
-        </table>
-
-        {{-- TOTALS --}}
-        <div class="clearfix">
-            <table class="totals-table">
-                <tr>
-                    <td><strong>Total Amount Received</strong></td>
-                    <td class="text-right"><strong>{{ number_format($payment->totalpaid, 2) }}</strong></td>
-                </tr>
-            </table>
+    <!-- 2. META INFO -->
+    <div class="meta-info">
+        <div style="display:flex; justify-content:space-between;">
+            <span><strong>Ref:</strong> {{ $payment->receiptno }}</span>
+            <span><strong>Date:</strong> {{ \Carbon\Carbon::parse($payment->transdate)->format('d/m/Y') }}</span>
         </div>
-
-        <div class="footer">
-            <p>Thank you for your business.</p>
+        
+        <div class="divider"></div>
+        
+        <div>
+            <strong>Received From:</strong><br>
+            {{ $payment->customer->first_name ?? '' }} {{ $payment->customer->surname ?? $payment->customer->company_name ?? 'Guest' }}
         </div>
     </div>
+
+    <!-- 3. ITEMS TABLE (Flattened for 80mm width) -->
+    <table>
+        <thead>
+            <tr>
+                <th class="col-item">Description</th>
+                <th class="col-qty">Qty</th>
+                <th class="col-price">Price</th>
+                <th class="col-total">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($payment->items as $paymentDetail)
+                
+                <!-- Invoice Sub-header -->
+                <tr>
+                    <td colspan="4" style="padding: 0;">
+                        <div class="invoice-header">Payment for Invoice #{{ $paymentDetail->invoiceno }}</div>
+                    </td>
+                </tr>
+
+                <!-- Nested Invoice Line Items -->
+                @if($paymentDetail->invoice && $paymentDetail->invoice->items->count() > 0)
+                    @foreach($paymentDetail->invoice->items as $lineItem)
+                    <tr>
+                        <td class="col-item">
+                            <span class="item-name">{{ $lineItem->item->name ?? 'Unknown Item' }}</span>
+                        </td>
+                        <td class="col-qty">{{ (float)$lineItem->quantity + 0 }}</td>
+                        <td class="col-price">{{ number_format($lineItem->price, 2) }}</td>
+                        <td class="col-total">{{ number_format($lineItem->quantity * $lineItem->price, 2) }}</td>
+                    </tr>
+                    @endforeach
+                @endif
+
+                <!-- Invoice Payment Summary -->
+                <tr>
+                    <td colspan="4" style="padding: 0; border-bottom: 1px dashed #ccc;">
+                        <div class="invoice-summary">
+                            Due: {{ number_format($paymentDetail->totaldue, 2) }} | 
+                            <strong>Paid Now: {{ number_format($paymentDetail->totalpaid, 2) }}</strong> | 
+                            Bal: {{ number_format($paymentDetail->invoice->balance ?? 0, 2) }}
+                        </div>
+                    </td>
+                </tr>
+
+            @endforeach
+        </tbody>
+    </table>
+
+    <div class="divider-solid" style="margin-top: 10px;"></div>
+
+    <!-- 4. TOTALS CALCULATION -->
+    <div class="totals">
+        <div class="totals-row grand-total">
+            <span>TOTAL AMOUNT RECEIVED</span>
+            <span>{{ number_format($payment->totalpaid, 2) }}</span>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 5. QR CODE -->
+    <div class="qr-section">
+        <img src="data:image/svg+xml;base64, {!! base64_encode(QrCode::format('svg')->size(200)->margin(0)->generate($payment->receiptno)) !!} " alt="QR Code">        
+    </div>
+
+    <!-- 6. FOOTER -->
+    <div class="footer">
+        Thank you for your business!<br>
+        Served by: {{ Auth::user()->name ?? 'System' }}
+    </div>
+
+    <!-- 7. FEED PADDING -->
+    <div class="feed-padding">.</div>
+
+</div>
+
 </body>
 </html>

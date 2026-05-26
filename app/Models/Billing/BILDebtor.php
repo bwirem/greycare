@@ -15,7 +15,7 @@ class BILDebtor extends Model
     protected $table = 'bil_debtors';
   
 
-    protected $fillable = ['transdate','customer_id','debtortype','balance','user_id'];
+    protected $fillable = ['transdate','customer_id','billinggroup_id','debtortype','balance','user_id'];
     
     public function items()
     {        

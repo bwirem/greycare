@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Enums\StaffCategory;
 
 class UserGroup extends Model
 {
@@ -11,7 +12,14 @@ class UserGroup extends Model
 
     protected $table = 'usergroups';
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'staffcategory'];
+
+    protected $appends = ['staff_category_label'];
+
+    public function getStaffCategoryLabelAttribute()
+    {
+        return StaffCategory::getLabel($this->staffcategory);
+    }
 
     /**
      * Get the functions associated with the user group.

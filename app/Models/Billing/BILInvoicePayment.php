@@ -15,7 +15,7 @@ class BILInvoicePayment extends Model
     protected $table = 'bil_invoicepayments';
   
 
-    protected $fillable = ['transdate','receiptno','customer_id',
+    protected $fillable = ['transdate','receiptno','customer_id','billinggroup_id',
                            'voided','voidsysdate','voidtransdate','voidno','voiduser_id',
                            'totaldue','totalpaid','currency_id', 
                            'yearpart','monthpart','transtype', 'user_id'];

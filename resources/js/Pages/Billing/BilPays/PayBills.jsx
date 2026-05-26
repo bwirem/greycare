@@ -5,18 +5,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMoneyBill, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import Modal from '@/Components/CustomModal.jsx';
-import axios from 'axios'; // IMPORT AXIOS
+import axios from 'axios';
 
 export default function PayBills({ auth, debtor, payment_types }) {
     const initialDebtorInvoices = debtor?.customer?.invoices || [];
 
-    // We still use useForm for state management, but we won't use its 'post' method for submission
     const {
         data: formData,
         setData: setFormData,
         errors: formErrors,
         clearErrors,
-        setError, // We need this to manually set errors from Axios
+        setError, 
     } = useForm({
         customer_id: debtor?.customer_id || null,
         total: 0,
@@ -31,12 +30,11 @@ export default function PayBills({ auth, debtor, payment_types }) {
     );
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     
-    // Manual processing state since we aren't using form.post
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const [alertModal, setAlertModal] = useState({ isOpen: false, message: '' });
 
-    // Effect to recalculate total
+    // Effect to recalculate total when invoices are selected/deselected
     useEffect(() => {
         const currentlySelectedInvoices = initialDebtorInvoices.filter(
             (_, index) => selectedInvoicesMask[index]
@@ -56,7 +54,7 @@ export default function PayBills({ auth, debtor, payment_types }) {
             })),
             customer_id: prevData.customer_id || debtor?.customer_id || null,
         }));
-    }, [selectedInvoicesMask, initialDebtorInvoices]); // Removed dependencies that cause loops
+    }, [selectedInvoicesMask, initialDebtorInvoices]);
 
     const showAlert = (message) => setAlertModal({ isOpen: true, message });
     const closeAlertModal = () => setAlertModal({ isOpen: false, message: '' });
@@ -78,9 +76,8 @@ export default function PayBills({ auth, debtor, payment_types }) {
 
     const handlePaymentModalClose = () => setPaymentModalOpen(false);
 
-    // ---- UPDATED SUBMIT LOGIC ----
+    // ---- SUBMIT & PRINT LOGIC ----
     const handlePaymentModalConfirm = () => {
-        // Client-side validation
         let hasError = false;
         if (!formData.payment_method) {
             setError('payment_method', 'Payment method is required.');
@@ -94,62 +91,70 @@ export default function PayBills({ auth, debtor, payment_types }) {
 
         setIsSubmitting(true);
 
-        // Use Axios to handle the JSON response containing the printing logic
         axios.post(route('billing2.pay'), formData)
             .then(response => {
                 if (response.data.success) {
+                    // 1. Immediately close modal so it doesn't block the screen focus
                     setPaymentModalOpen(false);
                     
                     const { invoice_url, auto_print, backend_printed } = response.data;
 
-                    // Scenario 1: Server handled it (SumatraPDF)
                     if (backend_printed) {
-                        console.log("Printed via Server/SumatraPDF");
-                        // Just show the alert, no window opening needed
+                        showAlert(response.data.message || 'Payment processed successfully!');
+                        setTimeout(() => router.visit(route('billing2.index')), 1500);
                     } 
-                    // Scenario 2: Cloud/Browser needs to print
                     else if (invoice_url) {
                         if (auto_print) {
-                            // Scenario 2a: Silent/Auto Print Configured (Iframe)
+                            // SILENT PRINTING VIA IFRAME
                             const iframe = document.createElement('iframe');
                             iframe.style.display = 'none';
                             iframe.src = invoice_url;
-                            document.body.appendChild(iframe);
-
+                            
                             iframe.onload = function() {
                                 try {
+                                    // Trigger print IMMEDIATELY on load to bypass browser blockers
                                     iframe.contentWindow.focus();
                                     iframe.contentWindow.print();
                                 } catch (e) {
-                                    console.error(e);
+                                    console.error("Printing failed:", e);
                                 }
-                                // Cleanup
-                                setTimeout(() => document.body.removeChild(iframe), 60000);
+                                
+                                // Show success message after print dialog opens
+                                showAlert(response.data.message || 'Payment processed successfully!');
+                                
+                                // Redirect after 2 seconds (gives user time to see the print dialog)
+                                setTimeout(() => {
+                                    router.visit(route('billing2.index'));
+                                }, 2000);
+
+                                // Clean up the DOM
+                                setTimeout(() => document.body.removeChild(iframe), 10000);
                             };
+
+                            document.body.appendChild(iframe);
                         } else {
-                            // Scenario 2b: Preview Configured (New Tab)
+                            // OPEN IN NEW TAB
                             window.open(invoice_url, '_blank');
+                            showAlert(response.data.message || 'Payment processed successfully!');
+                            setTimeout(() => router.visit(route('billing2.index')), 1500);
                         }
+                    } else {
+                        showAlert(response.data.message || 'Payment processed successfully!');
+                        setTimeout(() => router.visit(route('billing2.index')), 1500);
                     }
-
-                    showAlert(response.data.message || 'Payment processed successfully!');
-
-                    setTimeout(() => {
-                        router.visit(route('billing2.index'));
-                    }, 1500);
                 }
             })
             .catch(error => {
                 console.error('Payment error:', error);
                 
                 if (error.response && error.response.status === 422) {
-                    // Validation errors from Laravel
                     const serverErrors = error.response.data.errors;
                     Object.keys(serverErrors).forEach(key => {
                         setError(key, serverErrors[key][0]);
                     });
                 } else {
-                    showAlert(error.response?.data?.message || 'An error occurred while processing the payment.');
+                    // This catches 500 errors (like your undefined $facility issue)
+                    showAlert(error.response?.data?.message || 'An error occurred while processing the payment on the server.');
                 }
             })
             .finally(() => {
@@ -264,10 +269,12 @@ export default function PayBills({ auth, debtor, payment_types }) {
                 </div>
             </div>
 
+            {/* ERROR / SUCCESS ALERTS */}
             <Modal isOpen={alertModal.isOpen} onClose={closeAlertModal} title="Alert" isAlert={true}>
                 <p>{alertModal.message}</p>
             </Modal>
 
+            {/* PAYMENT MODAL */}
             <Modal
                 isOpen={paymentModalOpen}
                 onClose={handlePaymentModalClose}

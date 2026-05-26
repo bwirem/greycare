@@ -409,13 +409,20 @@ class DoctorIpdController extends Controller
                             'differential' => MrPatientDiagnosisDifferential::class,
                             default        => MrPatientDiagnosisProvisional::class,
                         };
+
+                        $mtuha_code = match ($mtuha->mtuha_code) {
+                            '0008a' => '81',
+                            '0008b' => '82',                             
+                            default => $mtuha->mtuha_code,
+                        };
+
                         $modelClassMtuha::create([
                             'ipd_admission_id'     => $admission->id,
                             'ipd_ward_round_id'    => $round->id,
                             'patientcode'          => $admission->patientcode,
                             'user_id'              => Auth::id(),
                             'transdate'            => now(),
-                            'diagnosis_id'         => $mtuha->mtuha_code,                           
+                            'diagnosis_id'         => $mtuha_code,                           
                             'diagnosisdescription' => $mtuha->description,
                             'diagnosis_type'       => $sourceModel,
                         ]);
