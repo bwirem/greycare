@@ -46,6 +46,7 @@ export default function UpdateProfileInformation({
                         value={data.name}
                         onChange={(e) => setData('name', e.target.value)}
                         required
+                        readOnly
                         isFocused
                         autoComplete="name"
                     />
@@ -63,6 +64,8 @@ export default function UpdateProfileInformation({
                         value={data.email}
                         onChange={(e) => setData('email', e.target.value)}
                         required
+                        readOnly
+                        isFocused
                         autoComplete="username"
                     />
 
