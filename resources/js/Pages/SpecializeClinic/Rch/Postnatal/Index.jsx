@@ -17,6 +17,30 @@ export default function Index({ auth, deliveries, pncVisits, filters, success })
         router.get(route("rch2.index"), { search }, { preserveState: true });
     };
 
+    // --- Date Formatting Helpers ---
+    const formatDateTime = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        }); // Output: "May 27, 2026, 04:48 AM"
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }); // Output: "May 27, 2026"
+    };
+    // -------------------------------
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -94,7 +118,8 @@ export default function Index({ auth, deliveries, pncVisits, filters, success })
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {deliveries.data.map((del) => (
                                                 <tr key={del.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 text-sm text-gray-900">{del.delivery_datetime}</td>
+                                                    {/* Updated Date Format Here */}
+                                                    <td className="px-6 py-4 text-sm text-gray-900">{formatDateTime(del.delivery_datetime)}</td>
                                                     <td className="px-6 py-4 text-sm text-gray-900 font-medium">
                                                         {del.pregnancy?.patient?.first_name} {del.pregnancy?.patient?.last_name}
                                                     </td>
@@ -135,7 +160,8 @@ export default function Index({ auth, deliveries, pncVisits, filters, success })
                                         <tbody className="bg-white divide-y divide-gray-200">
                                             {pncVisits.data.map((visit) => (
                                                 <tr key={visit.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 text-sm text-gray-900">{visit.created_at.substring(0,10)}</td>
+                                                    {/* Updated Date Format Here */}
+                                                    <td className="px-6 py-4 text-sm text-gray-900">{formatDate(visit.created_at)}</td>
                                                     <td className="px-6 py-4 text-sm text-gray-900 font-medium">
                                                         {visit.patient?.first_name} {visit.patient?.last_name}
                                                     </td>

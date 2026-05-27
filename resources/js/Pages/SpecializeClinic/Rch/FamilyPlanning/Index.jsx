@@ -22,6 +22,17 @@ export default function Index({ auth, visits, filters, success }) {
         }
     };
 
+    // --- Add Date Formatter Helper ---
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }); // e.g., Output: "May 26, 2026"
+    };
+
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -73,7 +84,8 @@ export default function Index({ auth, visits, filters, success }) {
                                     {visits.data.length > 0 ? (
                                         visits.data.map((visit) => (
                                             <tr key={visit.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">{visit.visit_date}</td>
+                                                {/* Formatted Visit Date Here */}
+                                                <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">{formatDate(visit.visit_date)}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-900">
                                                     <div className="font-medium">{visit.patient?.first_name} {visit.patient?.last_name}</div>
                                                     <div className="text-xs text-gray-500">{visit.patient_code}</div>
@@ -89,7 +101,8 @@ export default function Index({ auth, visits, filters, success }) {
                                                     <div>BP: {visit.bp_systolic}/{visit.bp_diastolic}</div>
                                                     <div>Wt: {visit.weight_kg} kg</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-red-600 font-medium">{visit.next_appointment_date || '-'}</td>
+                                                {/* Formatted Next Appointment Date Here */}
+                                                <td className="px-6 py-4 text-sm text-red-600 font-medium">{formatDate(visit.next_appointment_date)}</td>
                                                 <td className="px-6 py-4 text-center space-x-3">
                                                     <Link href={route("rch0.edit", visit.id)} className="text-indigo-600 hover:text-indigo-900">
                                                         <FontAwesomeIcon icon={faEdit} />

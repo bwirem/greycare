@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\ManagesItems;
 use App\Models\Inventory\IVPhysicalInventory;
 use App\Models\Inventory\SIV_Store;
-
 use App\Services\PhysicalInventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -62,6 +61,8 @@ class IVPhysicalInventoryController extends Controller
             'physicalinventoryitems.*.countedqty' => 'required|numeric|min:0',
             'physicalinventoryitems.*.expectedqty' => 'required|numeric',
             'physicalinventoryitems.*.price' => 'required|numeric|min:0',
+            'physicalinventoryitems.*.expirydate' => 'nullable|date',
+            'physicalinventoryitems.*.butchno' => 'nullable|string|max:255',
         ]);
         
         $inventory = null;
@@ -104,6 +105,8 @@ class IVPhysicalInventoryController extends Controller
             'physicalinventoryitems.*.countedqty' => 'required|numeric|min:0',
             'physicalinventoryitems.*.expectedqty' => 'required|numeric',
             'physicalinventoryitems.*.price' => 'required|numeric|min:0',
+            'physicalinventoryitems.*.expirydate' => 'nullable|date',
+            'physicalinventoryitems.*.butchno' => 'nullable|string|max:255',
         ]);
 
         DB::transaction(function () use ($validated, $physicalinventory) {

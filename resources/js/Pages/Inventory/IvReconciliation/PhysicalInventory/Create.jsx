@@ -162,9 +162,11 @@ export default function CreatePhysicalInventory({ auth, stores: initialStores = 
                     _listId: `physitem-${p.id}-${Date.now()}`,
                     item_name: p.name,
                     item_id: p.id,
-                    countedqty: '', // Leave blank so user is forced to input
+                    countedqty: 0, // Leave blank so user is forced to input
                     expectedqty: parseFloat(p.stock_quantity) || 0,
                     price: parseFloat(p.price) || 0,
+                    expirydate: '', // Added
+                    butchno: '',    // Added
                 }));
 
             // Combine existing and new
@@ -404,22 +406,28 @@ export default function CreatePhysicalInventory({ auth, stores: initialStores = 
                                                         <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Counted Qty <span className="text-red-500">*</span></th>
                                                         <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Unit Price</th>
                                                         <th scope="col" className="w-36 px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Counted Value</th>
+                                                        <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Batch No</th>
+                                                        <th scope="col" className="w-36 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Expiry Date</th>
                                                         <th scope="col" className="w-20 relative py-3.5 pl-3 pr-4 sm:pr-3 text-center"><span className="sr-only">Remove</span></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
                                                     {data.physicalinventoryitems.map((item, index) => (
                                                         <tr key={item._listId} className={ errors[`physicalinventoryitems.${index}.countedqty`] ? "bg-red-50" : ""}>
-                                                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-3">{item.item_name || 'N/A'}</td>
+                                                            <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-3 max-w-[180px]">
+                                                                <div className="break-words whitespace-normal line-clamp-2">
+                                                                    {item.item_name || 'N/A'}
+                                                                </div>
+                                                            </td>
                                                             <td className="whitespace-nowrap px-3 py-4 text-sm">
                                                                 <input type="number" value={item.expectedqty}
                                                                     readOnly className="w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm text-right cursor-not-allowed" />
                                                             </td>
                                                             <td className="whitespace-nowrap px-3 py-4 text-sm">
-                                                                <input type="number" value={item.countedqty}
+                                                                <input type="number" value={item.countedqty }
                                                                     onChange={(e) => handlePhysicalInventoryItemChange(index, 'countedqty', e.target.value)}
                                                                     className={`w-full rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-right ${errors[`physicalinventoryitems.${index}.countedqty`] ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
-                                                                    min="0" placeholder="Enter count" required />
+                                                                    min="0" required />
                                                                {errors[`physicalinventoryitems.${index}.countedqty`] && <p className="text-xs text-red-600 mt-1">{errors[`physicalinventoryitems.${index}.countedqty`]}</p>}
                                                             </td>
                                                             <td className="whitespace-nowrap px-3 py-4 text-sm">
@@ -429,10 +437,21 @@ export default function CreatePhysicalInventory({ auth, stores: initialStores = 
                                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-500">
                                                                 {formatCurrency((parseFloat(item.countedqty) || 0) * (parseFloat(item.price) || 0))}
                                                             </td>
+                                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                                <input type="text" value={item.butchno}
+                                                                    onChange={(e) => handlePhysicalInventoryItemChange(index, 'butchno', e.target.value)}
+                                                                    className="w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-center"
+                                                                    placeholder="Batch #" />
+                                                            </td>
+                                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                                <input type="date" value={item.expirydate}
+                                                                    onChange={(e) => handlePhysicalInventoryItemChange(index, 'expirydate', e.target.value)}
+                                                                    className="w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-center" />
+                                                            </td>
                                                             <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-3">
                                                                 <button type="button" onClick={() => confirmRemovePhysicalInventoryItem(index)}
                                                                     className="text-red-500 hover:text-red-700" title="Remove item"><FontAwesomeIcon icon={faTrash} /></button>
-                                                            </td>
+                                                            </td>                                                            
                                                         </tr>
                                                     ))}
                                                 </tbody>

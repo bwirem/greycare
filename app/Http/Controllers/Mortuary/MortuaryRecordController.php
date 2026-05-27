@@ -21,7 +21,7 @@ class MortuaryRecordController extends Controller
     public function index(Request $request)
     {
         $query = MortuaryRecord::with(['mortuary', 'room', 'cabinet'])
-            ->where('status', ['Stored', 'Pending'])
+            ->where('status', 'Pending' )
             ->orderBy('created_at', 'desc');
 
         if ($request->search) {

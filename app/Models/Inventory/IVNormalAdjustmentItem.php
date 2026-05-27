@@ -14,7 +14,7 @@ class IVNormalAdjustmentItem extends Model
      */
     protected $table = 'iv_normaladjustmentitems';
 
-    protected $fillable = ['normaladjustment_id', 'product_id', 'quantity','price'];
+    protected $fillable = ['normaladjustment_id', 'product_id','expirydate', 'quantity','price','butchno'];
 
     public function normaladjustment()
     {

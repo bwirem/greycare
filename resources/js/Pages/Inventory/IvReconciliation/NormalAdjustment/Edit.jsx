@@ -33,6 +33,8 @@ export default function EditNormalAdjustment({ auth, normaladjustment, stores: i
             item_id: item.item_id || item.item?.id || null,
             quantity: item.quantity === null || item.quantity === undefined ? '' : String(item.quantity),
             price: parseFloat(item.price) || 0,
+            expirydate: item.expirydate ? new Date(item.expirydate).toISOString().split('T')[0] : '', 
+            butchno: item.butchno || '',
             // Initialize stock_quantity to null for existing items to skip validation unless fetched
             stock_quantity: null
         })) || [],
@@ -137,6 +139,8 @@ export default function EditNormalAdjustment({ auth, normaladjustment, stores: i
                 item_id: item.item_id || item.item?.id || null,
                 quantity: item.quantity === null || item.quantity === undefined ? '' : String(item.quantity),
                 price: parseFloat(item.price) || 0,
+                expirydate: item.expirydate ? new Date(item.expirydate).toISOString().split('T')[0] : '',
+                butchno: item.butchno || '',     
                 stock_quantity: null
             })) || [],
             _method: 'PUT',
@@ -194,6 +198,8 @@ export default function EditNormalAdjustment({ auth, normaladjustment, stores: i
             item_id: selectedItem.id, 
             quantity: '', 
             price: parseFloat(selectedItem.price) || 0,
+            expirydate: selectedItem.expirydate ? new Date(selectedItem.expirydate).toISOString().split('T')[0] : '',
+            butchno: selectedItem.butchno || '',    
             // Capture stock quantity
             stock_quantity: selectedItem.stock_quantity !== undefined ? parseFloat(selectedItem.stock_quantity) : 0
         };
@@ -396,13 +402,19 @@ export default function EditNormalAdjustment({ auth, normaladjustment, stores: i
                                                         <th scope="col" className="w-40 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Quantity (+/-) {isEditable && <span className="text-red-500">*</span>}</th>
                                                         <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Unit Price</th>
                                                         <th scope="col" className="w-36 px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Adj. Value</th>
+                                                        <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Batch No</th>
+                                                        <th scope="col" className="w-36 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Expiry Date</th>
                                                         {isEditable && <th scope="col" className="w-20 relative py-3.5 pl-3 pr-4 sm:pr-3 text-center"><span className="sr-only">Remove</span></th>}
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
                                                     {data.normaladjustmentitems.map((item, index) => (
                                                         <tr key={item._listId} className={ errors[`normaladjustmentitems.${index}.quantity`] ? "bg-red-50" : ""}>
-                                                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-3">{item.item_name || 'N/A'}</td>
+                                                            <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-3 max-w-[180px]">
+                                                                <div className="break-words whitespace-normal line-clamp-2">
+                                                                    {item.item_name || 'N/A'}
+                                                                </div>
+                                                            </td>
                                                             <td className="whitespace-nowrap px-3 py-4 text-sm">
                                                                 <input type="number" value={item.quantity} disabled={!isEditable}
                                                                     onChange={(e) => handleNormalAdjustmentItemChange(index, 'quantity', e.target.value)}
@@ -416,6 +428,17 @@ export default function EditNormalAdjustment({ auth, normaladjustment, stores: i
                                                             </td>
                                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-500">
                                                                 {formatCurrency((parseFloat(item.quantity) || 0) * (parseFloat(item.price) || 0))}
+                                                            </td>
+                                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                                <input type="text" value={item.butchno}
+                                                                    onChange={(e) => handleNormalAdjustmentItemChange(index, 'butchno', e.target.value)}
+                                                                    className="w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-center"
+                                                                    placeholder="Batch #" />
+                                                            </td>
+                                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                                <input type="date" value={item.expirydate}
+                                                                    onChange={(e) => handleNormalAdjustmentItemChange(index, 'expirydate', e.target.value)}
+                                                                    className="w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-center" />
                                                             </td>
                                                             {isEditable && (
                                                                 <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-3">

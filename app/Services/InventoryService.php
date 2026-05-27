@@ -11,6 +11,7 @@ use App\Models\Inventory\SIV_Store;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class InventoryService
 {
@@ -130,6 +131,10 @@ class InventoryService
 
     private function updateStockLevelsOnIssue(int $storeId, array $item, ?string $expiryDate): void
     {
+        $expiryDate = !empty($item['expirydate'])
+        ? Carbon::parse($item['expirydate'])->toDateString()
+        : null;        
+
         if ($expiryDate) {
             $productExpiry = IVProductExpiryDates::where('store_id', $storeId)
                 ->where('product_id', $item['product_id'])
@@ -150,7 +155,11 @@ class InventoryService
     
     private function updateStockLevelsOnReceive(int $storeId, array $item, ?string $expiryDate): void
     {
-        if ($expiryDate) {
+        $expiryDate = !empty($item['expirydate'])
+            ? Carbon::parse($item['expirydate'])->toDateString()
+            : null;
+                    
+        if ($expiryDate) {            
             IVProductExpiryDates::updateOrCreate(
                 [
                     'store_id' => $storeId,

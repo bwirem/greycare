@@ -7,6 +7,12 @@ import Select from 'react-select';
 
 export default function CreateVisit({ auth }) {
     const { data, setData, post, processing, errors } = useForm({
+        is_new_patient: false,
+        first_name: '',
+        last_name: '',
+        phone_number: '',
+        date_of_birth: '',
+        
         patient_code: '',
         visit_date: new Date().toISOString().split('T')[0],
         timing: '48 Hours',
@@ -24,11 +30,10 @@ export default function CreateVisit({ auth }) {
         fetch(route('rch0.search', { query: inputValue }))
             .then(res => res.json())
             .then(json => {
-                const options = json.map(p => ({
+                setPatientOptions(json.map(p => ({
                     value: p.code,
                     label: `${p.first_name} ${p.last_name} (${p.code})`
-                }));
-                setPatientOptions(options);
+                })));
             });
     };
 
@@ -46,21 +51,65 @@ export default function CreateVisit({ auth }) {
 
             <div className="py-12">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white shadow-sm sm:rounded-lg p-6">
+
+                    {/* Toggle Button */}
+                    <div className="mb-6 flex space-x-4">
+                        <button 
+                            type="button" 
+                            onClick={() => setData('is_new_patient', false)}
+                            className={`px-4 py-2 rounded-md font-medium transition ${!data.is_new_patient ? 'bg-indigo-600 text-white shadow' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                        >
+                            Existing Patient
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => setData('is_new_patient', true)}
+                            className={`px-4 py-2 rounded-md font-medium transition ${data.is_new_patient ? 'bg-indigo-600 text-white shadow' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                        >
+                            New Patient (Walk-In)
+                        </button>
+                    </div>
+
+                    <div className="bg-white shadow-sm sm:rounded-lg p-6 border-t-4 border-indigo-500">
                         <form onSubmit={submit} className="space-y-6">
                             
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Select Mother *</label>
-                                <Select
-                                    options={patientOptions}
-                                    onInputChange={loadPatients}
-                                    onChange={(opt) => setData('patient_code', opt?.value)}
-                                    placeholder="Search..."
-                                />
-                                {errors.patient_code && <p className="text-red-500 text-xs mt-1">{errors.patient_code}</p>}
-                            </div>
+                            {!data.is_new_patient ? (
+                                <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Existing Mother *</label>
+                                    <Select
+                                        options={patientOptions}
+                                        onInputChange={loadPatients}
+                                        onChange={(opt) => setData('patient_code', opt?.value)}
+                                        placeholder="Search..."
+                                    />
+                                    {errors.patient_code && <p className="text-red-500 text-xs mt-1">{errors.patient_code}</p>}
+                                </div>
+                            ) : (
+                                <div className="bg-blue-50 p-4 rounded border border-blue-200">
+                                    <h4 className="font-bold text-blue-800 mb-4 border-b border-blue-200 pb-2">Register Walk-In Mother</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">First Name *</label>
+                                            <input type="text" value={data.first_name} onChange={e => setData('first_name', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required={data.is_new_patient} />
+                                            {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>}
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Last Name *</label>
+                                            <input type="text" value={data.last_name} onChange={e => setData('last_name', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required={data.is_new_patient} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Phone Number *</label>
+                                            <input type="text" value={data.phone_number} onChange={e => setData('phone_number', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required={data.is_new_patient} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Date of Birth *</label>
+                                            <input type="date" value={data.date_of_birth} onChange={e => setData('date_of_birth', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required={data.is_new_patient} />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Visit Date *</label>
                                     <input type="date" value={data.visit_date} onChange={e => setData('visit_date', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required />
@@ -108,9 +157,9 @@ export default function CreateVisit({ auth }) {
                                 <textarea value={data.counseling_given} onChange={e => setData('counseling_given', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" rows="2" placeholder="e.g. Exclusive Breastfeeding, Hygiene..."></textarea>
                             </div>
 
-                            <div className="flex justify-end gap-4 border-t pt-4">
-                                <Link href={route('rch2.index')} className="text-gray-600 px-4 py-2">Cancel</Link>
-                                <button disabled={processing} className="bg-indigo-600 text-white px-6 py-2 rounded-md flex items-center gap-2">
+                            <div className="flex justify-end gap-4 border-t pt-4 mt-6">
+                                <Link href={route('rch2.index')} className="text-gray-600 px-4 py-2 hover:bg-gray-100 rounded-md">Cancel</Link>
+                                <button disabled={processing} className="bg-indigo-600 text-white px-6 py-2 rounded-md flex items-center gap-2 hover:bg-indigo-700 transition">
                                     {processing ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />}
                                     Save Checkup
                                 </button>

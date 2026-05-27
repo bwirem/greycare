@@ -78,6 +78,8 @@ class IVNormalAdjustmentController extends Controller
             'normaladjustmentitems.*.item_id' => 'required|exists:siv_products,id',
             'normaladjustmentitems.*.quantity' => 'required|numeric|min:0.01',
             'normaladjustmentitems.*.price' => 'required|numeric|min:0',
+            'normaladjustmentitems.*.expirydate' => 'nullable|date',
+            'normaladjustmentitems.*.butchno' => 'nullable|string|max:255',
         ]);
 
         $adjustment = null;
@@ -143,7 +145,9 @@ class IVNormalAdjustmentController extends Controller
             'normaladjustmentitems.*.id' => 'nullable|exists:iv_normaladjustmentitems,id',
             'normaladjustmentitems.*.item_id' => 'required|exists:siv_products,id',
             'normaladjustmentitems.*.quantity' => 'required|numeric|min:0.01',
-            'normaladjustmentitems.*.price' => 'required|numeric|min:0',  
+            'normaladjustmentitems.*.price' => 'required|numeric|min:0', 
+            'normaladjustmentitems.*.expirydate' => 'nullable|date',
+            'normaladjustmentitems.*.butchno' => 'nullable|string|max:255',
         ]);
 
         $newStage = (int) $validated['stage'];
@@ -210,6 +214,8 @@ class IVNormalAdjustmentController extends Controller
             'product_id' => $item->product_id,
             'quantity' => $item->quantity,
             'price' => $item->price,
+            'expirydate' => $item->expirydate,
+            'butchno' => $item->butchno,
         ])->all();
 
         if ($reason->action === "Add") {

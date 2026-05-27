@@ -33,6 +33,8 @@ export default function EditPhysicalInventory({ auth, physicalinventory, stores:
             countedqty: item.countedqty === null || item.countedqty === undefined ? '' : String(item.countedqty),
             expectedqty: item.expectedqty === null || item.expectedqty === undefined ? 0 : parseFloat(item.expectedqty),
             price: parseFloat(item.price) || 0,
+            expirydate: item.expirydate ? new Date(item.expirydate).toISOString().split('T')[0] : '', 
+            butchno: item.butchno || '',
         })) || [],
         _method: 'PUT', // For Laravel to treat POST as PUT
         deleted_item_ids: [],
@@ -103,6 +105,8 @@ export default function EditPhysicalInventory({ auth, physicalinventory, stores:
                 countedqty: item.countedqty === null || item.countedqty === undefined ? '' : String(item.countedqty),
                 expectedqty: item.expectedqty === null || item.expectedqty === undefined ? 0 : parseFloat(item.expectedqty),
                 price: parseFloat(item.price) || 0,
+                expirydate: item.expirydate ? new Date(item.expirydate).toISOString().split('T')[0] : '',
+                butchno: item.butchno || '',        
             })) || [],
             _method: 'PUT',
             deleted_item_ids: [],
@@ -137,6 +141,8 @@ export default function EditPhysicalInventory({ auth, physicalinventory, stores:
             id: null, _listId: `physitem-new-${Date.now()}`, item_name: selectedItem.name, item_id: selectedItem.id,
             countedqty: '', expectedqty: parseFloat(selectedItem.stock_quantity) === null || isNaN(parseFloat(selectedItem.stock_quantity)) ? 0 : parseFloat(selectedItem.stock_quantity),
             price: parseFloat(selectedItem.price) || 0,
+            expirydate: '', // Added
+            butchno: '',    // Added
         };
         setData('physicalinventoryitems', [...data.physicalinventoryitems, newItem]);
         setItemSearchQuery(''); setItemSearchResults([]); setShowItemDropdown(false);
@@ -319,13 +325,19 @@ export default function EditPhysicalInventory({ auth, physicalinventory, stores:
                                                         <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Counted Qty {isEditable && <span className="text-red-500">*</span>}</th>
                                                         <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Unit Price</th>
                                                         <th scope="col" className="w-36 px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Counted Value</th>
+                                                        <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Batch No</th>
+                                                        <th scope="col" className="w-36 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Expiry Date</th>
                                                         {isEditable && <th scope="col" className="w-20 relative py-3.5 pl-3 pr-4 sm:pr-3 text-center"><span className="sr-only">Remove</span></th>}
                                                     </tr>
                                                 </thead>
                                                 <tbody className="bg-white divide-y divide-gray-200">
                                                     {data.physicalinventoryitems.map((item, index) => (
                                                         <tr key={item._listId} className={ errors[`physicalinventoryitems.${index}.countedqty`] ? "bg-red-50" : ""}>
-                                                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-3">{item.item_name || 'N/A'}</td>
+                                                            <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-3 max-w-[180px]">
+                                                                <div className="break-words whitespace-normal line-clamp-2">
+                                                                    {item.item_name || 'N/A'}
+                                                                </div>
+                                                            </td>
                                                             <td className="whitespace-nowrap px-3 py-4 text-sm">
                                                                 <input type="number" value={item.expectedqty} readOnly
                                                                     className="w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm text-right cursor-not-allowed" />
@@ -344,7 +356,18 @@ export default function EditPhysicalInventory({ auth, physicalinventory, stores:
                                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-500">
                                                                 {formatCurrency((parseFloat(item.countedqty) || 0) * (parseFloat(item.price) || 0))}
                                                             </td>
-                                                            {isEditable && (
+                                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                                <input type="text" value={item.butchno} disabled={!isEditable}
+                                                                    onChange={(e) => handlePhysicalInventoryItemChange(index, 'butchno', e.target.value)}
+                                                                    className={`w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-500 sm:text-sm text-center ${!isEditable ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                                                    placeholder="Batch #" />
+                                                            </td>
+                                                            <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                                <input type="date" value={item.expirydate} disabled={!isEditable}
+                                                                    onChange={(e) => handlePhysicalInventoryItemChange(index, 'expirydate', e.target.value)}
+                                                                    className={`w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-500 sm:text-sm text-center ${!isEditable ? 'bg-gray-100 cursor-not-allowed' : ''}`} />
+                                                            </td>
+                                                                {isEditable && (
                                                                 <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-3">
                                                                     <button type="button" onClick={() => confirmRemovePhysicalInventoryItem(index)}
                                                                         className="text-red-500 hover:text-red-700" title="Remove item"><FontAwesomeIcon icon={faTrash} /></button>

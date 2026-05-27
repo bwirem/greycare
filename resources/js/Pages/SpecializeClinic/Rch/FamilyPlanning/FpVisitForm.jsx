@@ -5,16 +5,27 @@ import { faSave, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import Select from 'react-select';
 
 export default function FpVisitForm({ visit = null, methods }) {
+    
+    // Helper to safely extract YYYY-MM-DD from the raw ISO string
+    const safeDate = (dateStr) => (dateStr ? dateStr.substring(0, 10) : '');
+    const isEditMode = !!visit;
+
     const { data, setData, post, put, processing, errors } = useForm({
+        is_new_patient: false,
+        first_name: '',
+        last_name: '',
+        phone_number: '',
+        date_of_birth: '',
+
         patient_code: visit?.patient_code || '',
-        visit_date: visit?.visit_date || new Date().toISOString().split('T')[0],
+        visit_date: visit?.visit_date ? safeDate(visit.visit_date) : new Date().toISOString().split('T')[0],
         method_id: visit?.method_id || '',
         weight_kg: visit?.weight_kg || '',
         bp_systolic: visit?.bp_systolic || '',
         bp_diastolic: visit?.bp_diastolic || '',
         quantity: visit?.quantity || 1,
         side_effects: visit?.side_effects || '',
-        next_appointment_date: visit?.next_appointment_date || '',
+        next_appointment_date: visit?.next_appointment_date ? safeDate(visit.next_appointment_date) : '',
     });
 
     const [patientOptions, setPatientOptions] = useState([]);
@@ -53,25 +64,73 @@ export default function FpVisitForm({ visit = null, methods }) {
 
     return (
         <form onSubmit={submit} className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Patient Search *</label>
-                <Select
-                    options={patientOptions}
-                    onInputChange={(val) => loadPatients(val)}
-                    onChange={(opt) => {
-                        setSelectedPatient(opt);
-                        setData('patient_code', opt?.value);
-                    }}
-                    value={selectedPatient}
-                    isDisabled={!!visit}
-                    placeholder="Type Name or File Number..."
-                    isClearable
-                    className="basic-single"
-                />
-                {errors.patient_code && <p className="text-red-500 text-xs mt-1">{errors.patient_code}</p>}
-            </div>
+            
+            {/* TOGGLE: Show only in CREATE mode */}
+            {!isEditMode && (
+                <div className="flex space-x-4 mb-2">
+                    <button 
+                        type="button" 
+                        onClick={() => setData('is_new_patient', false)}
+                        className={`px-4 py-2 rounded-md font-medium transition ${!data.is_new_patient ? 'bg-green-600 text-white shadow' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    >
+                        Existing Patient
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => setData('is_new_patient', true)}
+                        className={`px-4 py-2 rounded-md font-medium transition ${data.is_new_patient ? 'bg-green-600 text-white shadow' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    >
+                        New Patient (Walk-In)
+                    </button>
+                </div>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* PATIENT SELECTION / REGISTRATION */}
+            {!data.is_new_patient || isEditMode ? (
+                <div className="bg-gray-50 p-4 rounded-md border border-gray-200 border-l-4 border-green-500">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Existing Patient *</label>
+                    <Select
+                        options={patientOptions}
+                        onInputChange={(val) => loadPatients(val)}
+                        onChange={(opt) => {
+                            setSelectedPatient(opt);
+                            setData('patient_code', opt?.value);
+                        }}
+                        value={selectedPatient}
+                        isDisabled={isEditMode}
+                        placeholder="Type Name or File Number..."
+                        isClearable
+                        className="basic-single"
+                    />
+                    {errors.patient_code && <p className="text-red-500 text-xs mt-1">{errors.patient_code}</p>}
+                </div>
+            ) : (
+                <div className="bg-blue-50 p-4 rounded border border-blue-200 border-l-4 border-blue-500">
+                    <h4 className="font-bold text-blue-800 mb-4 border-b border-blue-200 pb-2">Register Walk-In Patient</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">First Name *</label>
+                            <input type="text" value={data.first_name} onChange={e => setData('first_name', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required={data.is_new_patient} />
+                            {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Last Name *</label>
+                            <input type="text" value={data.last_name} onChange={e => setData('last_name', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required={data.is_new_patient} />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Phone Number *</label>
+                            <input type="text" value={data.phone_number} onChange={e => setData('phone_number', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required={data.is_new_patient} />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Date of Birth *</label>
+                            <input type="date" value={data.date_of_birth} onChange={e => setData('date_of_birth', e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required={data.is_new_patient} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CLINICAL FIELDS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Visit Date *</label>
                     <input 
@@ -156,7 +215,7 @@ export default function FpVisitForm({ visit = null, methods }) {
 
             <div className="flex justify-end gap-4 border-t pt-4">
                 <Link href={route('rch0.index')} className="text-gray-600 px-4 py-2 hover:bg-gray-100 rounded">Cancel</Link>
-                <button disabled={processing} className="bg-blue-600 text-white px-6 py-2 rounded-md flex items-center gap-2 hover:bg-blue-700">
+                <button disabled={processing} className="bg-green-600 text-white px-6 py-2 rounded-md flex items-center gap-2 hover:bg-green-700">
                     {processing ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />}
                     {visit ? 'Update Record' : 'Save Record'}
                 </button>
