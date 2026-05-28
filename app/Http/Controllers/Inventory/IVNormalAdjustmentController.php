@@ -8,6 +8,8 @@ use App\Http\Controllers\Traits\ManagesItems;
 use App\Http\Controllers\Traits\GeneratesUniqueNumbers;
 use App\Models\Inventory\IVIssue;
 use App\Models\Inventory\IVNormalAdjustment;
+use App\Models\Inventory\IVProductExpiryDates;
+use Illuminate\Validation\ValidationException;
 use App\Models\Inventory\SIV_AdjustmentReason;
 use App\Models\Inventory\SIV_Store;
 
@@ -230,7 +232,35 @@ class IVNormalAdjustmentController extends Controller
                 $items
             );
         } elseif ($reason->action === "Deduct") {
-            // --- USE THE ENUM FOR CONSISTENCY ---
+            // --- USE THE ENUM FOR CONSISTENCY ---        
+            foreach ($adjustment->normaladjustmentitems as $item) {
+                // We only need to check if the user actually typed an expiry date
+                if (!empty($item->expirydate)) {
+                    $query = IVProductExpiryDates::where('store_id', $storeId)
+                        ->where('product_id', $item->product_id)
+                        ->whereDate('expirydate', $item->expirydate);
+
+                    // Check for butch/batch number if provided
+                    if (!empty($item->butchno)) {
+                        $query->where(function($q) use ($item) {
+                            $q->where('butchno', $item->butchno)
+                              ->orWhere('butchno', $item->butchno); // Fallback depending on your actual DB column name
+                        });
+                    }
+
+                    $batchExists = $query->exists();
+
+                    if (!$batchExists) {
+                        $productName = $item->item->name ?? 'Unknown Item';
+                        $batchText = $item->butchno ? " and Batch '{$item->butchno}'" : "";
+                        
+                        throw ValidationException::withMessages([
+                            'normaladjustmentitems' => ["The Expiry Date '{$item->expirydate}'{$batchText} does not exist in the selected store for product: {$productName}."]
+                        ]);
+                    }
+                }
+            }          
+
             $inventoryService->issue(
                 $storeId,
                 $reason->id,
