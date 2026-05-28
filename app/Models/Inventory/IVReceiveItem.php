@@ -14,7 +14,7 @@ class IVReceiveItem extends Model
      */
     protected $table = 'iv_receiveitems';
 
-    protected $fillable = ['receive_id', 'product_id', 'quantity','price'];
+    protected $fillable = ['receive_id', 'product_id','expirydate', 'butchno', 'quantity','price'];
 
     public function receive()
     {

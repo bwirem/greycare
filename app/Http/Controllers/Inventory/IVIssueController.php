@@ -10,6 +10,7 @@ use App\Services\InventoryService;
 use App\Models\Facility\FacilityOption;
 use App\Models\Inventory\IVRequistion;
 use App\Models\Inventory\IVIssue;
+use App\Models\Inventory\IVProductExpiryDates;
 
 use App\Models\Inventory\SIV_Store;
 use App\Models\Billing\BLSCustomer;
@@ -277,11 +278,54 @@ class IVIssueController extends Controller
         DB::beginTransaction();
         try {
             // Map items for service
-            $items = collect($validated['requistionitems'])->map(fn($item) => [
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-            ])->all();
+            $items = [];
+            $fromStoreId = (int) $validated['from_store_id'];
+
+            foreach ($validated['requistionitems'] as $reqItem) {
+                $remainingQty = (float) $reqItem['quantity'];
+                $productId = $reqItem['product_id'];
+                $price = $reqItem['price'];
+
+                // Fetch available stock in the issuing store, ordered by nearest expiry date (FEFO)
+                $expiryRecords = IVProductExpiryDates::where('store_id', $fromStoreId)
+                    ->where('product_id', $productId)
+                    ->where('quantity', '>', 0)
+                    ->orderBy('expirydate', 'asc') // Oldest dates first
+                    ->get();
+
+                foreach ($expiryRecords as $record) {
+                    if ($remainingQty <= 0) {
+                        break; // We have fulfilled the requested quantity for this product
+                    }
+
+                    // Determine how much we can take from this specific expiry batch
+                    $qtyToTake = min($remainingQty, (float) $record->quantity);
+
+                    $items[] = [
+                        'product_id' => $productId,
+                        'quantity'   => $qtyToTake,
+                        'price'      => $price,
+                        'expirydate' => $record->expirydate,
+                        // Use butchno or batchno based on your actual column name in IVProductExpiryDates
+                        'butchno'    => $record->butchno ?? $record->batchno ?? null, 
+                    ];
+
+                    // Deduct the taken amount from our required running total
+                    $remainingQty -= $qtyToTake;
+                }
+
+                // If there's STILL requested quantity remaining 
+                // (This happens if negative stock is allowed, or stock isn't tracked in the expiry table)
+                if ($remainingQty > 0) {
+                    $items[] = [
+                        'product_id' => $productId,
+                        'quantity'   => $remainingQty,
+                        'price'      => $price,
+                        'expirydate' => null,
+                        'butchno'    => null,
+                    ];
+                }
+            }
 
             // Perform the issuance
             $inventoryService->issue(

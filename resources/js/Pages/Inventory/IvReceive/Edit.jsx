@@ -38,6 +38,7 @@ export default function Edit({ auth, receive, fromstore: initialFromStore, tosto
             item_id: item.item_id || item.item?.id || null,
             quantity: parseInt(item.quantity) || 1,
             price: parseFloat(item.price) || 0,
+            expirydate: item.expirydate || '',
         })) || [],
         delivery_no: receive.delivery_no, 
     });
@@ -142,6 +143,7 @@ export default function Edit({ auth, receive, fromstore: initialFromStore, tosto
             item_id: selectedItem.id,
             quantity: 1,
             price: parseFloat(selectedItem.price) || 0,
+            expirydate: selectedItem.expirydate ? new Date(selectedItem.expirydate).toISOString().split('T')[0] : '', 
             id: null,
         };
 
@@ -468,6 +470,7 @@ export default function Edit({ auth, receive, fromstore: initialFromStore, tosto
                                                 <th scope="col" className="w-28 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Quantity</th>
                                                 <th scope="col" className="w-32 px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Price</th>
                                                 <th scope="col" className="w-36 px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Subtotal</th>
+                                                <th scope="col" className="w-36 px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Expiry Date</th>
                                                 <th scope="col" className="w-20 relative py-3.5 pl-3 pr-4 sm:pr-3 text-center"><span className="sr-only">Remove</span></th>
                                             </tr>
                                         </thead>
@@ -501,6 +504,11 @@ export default function Edit({ auth, receive, fromstore: initialFromStore, tosto
                                                         {errors[`receiveitems.${index}.price`] && <p className="mt-1 text-xs text-red-500">{errors[`receiveitems.${index}.price`]}</p>}
                                                     </td>
                                                     <td className="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-500">{formatCurrency(item.quantity * item.price)}</td>
+                                                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                                                        <input type="date" value={item.expirydate}
+                                                            onChange={(e) => handleReceiveItemChange(index, 'expirydate', e.target.value)}
+                                                            className="w-full rounded-md shadow-sm border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-center" />
+                                                    </td>
                                                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-3">
                                                         {data.stage <= 1 && (
                                                             <button

@@ -123,7 +123,7 @@ class IVReceiveController extends Controller
          
    
     public function store(Request $request, InventoryService $inventoryService) // Inject the service
-    {
+    {               
         // 1. Validation logic remains exactly the same.
         $rules = [
             'fromstore_type' => ['required', new Enum(StoreType::class)],      
@@ -135,6 +135,8 @@ class IVReceiveController extends Controller
             'receiveitems.*.item_id' => 'required|exists:siv_products,id',
             'receiveitems.*.quantity'=> 'required|numeric|min:0.01',
             'receiveitems.*.price'   => 'required|numeric|min:0',
+            'receiveitems.*.expirydate' => 'nullable|date',
+            'receiveitems.*.butchno' => 'nullable|string|max:255',
         ];
 
         switch ($request->input('fromstore_type')) {
@@ -223,6 +225,8 @@ class IVReceiveController extends Controller
             'receiveitems.*.item_id' => 'required|exists:siv_products,id',
             'receiveitems.*.quantity' => 'required|numeric|min:0.01',
             'receiveitems.*.price' => 'required|numeric|min:0',
+            'receiveitems.*.expirydate' => 'nullable|date',
+            'receiveitems.*.butchno' => 'nullable|string|max:255',
             'delivery_no' => 'required|string',
             'expiry_date' => 'nullable|date',
         ];
@@ -260,6 +264,8 @@ class IVReceiveController extends Controller
                     'product_id' => $item->product_id,
                     'quantity' => $item->quantity,
                     'price' => $item->price,
+                    'expirydate' => $item->expirydate,
+                    'batchno' => $item->butchno,
                 ])->all();
 
                 $inventoryService->receive(

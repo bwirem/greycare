@@ -157,7 +157,7 @@ class InventoryService
     {
         $expiryDate = !empty($item['expirydate'])
             ? Carbon::parse($item['expirydate'])->toDateString()
-            : null;
+            : null;        
                     
         if ($expiryDate) {            
             IVProductExpiryDates::updateOrCreate(
@@ -245,6 +245,8 @@ class InventoryService
                 'product_id' => $item['item_id'] ?? $item['product_id'],
                 'quantity'   => $item['quantity'],
                 'price'      => $item['price'],
+                'expirydate' => $item['expirydate'] ?? null,
+                'batchno' => $item['butchno'] ?? null, 
             ])->all();
             
             $receive->receiveitems()->createMany($itemsToCreate);

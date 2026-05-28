@@ -301,22 +301,28 @@ class PharmacyDispenseController extends Controller
 
             // --- 3. INVENTORY & LOGGING ---
 
-            // Inventory Requisition (Deduct Stock)
-            $this->createInventoryRequisition(
+            // 1. Deduct Stock and capture the exact batches/expiry dates used
+            $issuedBatches = $this->createInventoryRequisition(
                 (int)$request->store_id,
                 $prescription, 
                 (float)$request->quantity_issued
             );
 
-            // Pharmacy Audit Record
-            PharmacyDispensation::create([
-                'pharmacy_prescription_id' => $prescription->id,
-                'quantity_issued' => $request->quantity_issued,
-                'batch_no' => $request->batch_no,
-                'expiry_date' => $request->expiry_date,
-                'pharmacist_user_id' => Auth::id(),
-                'dispensed_at' => now(),
-            ]);
+            // 2. Pharmacy Audit Record
+            // We loop through $issuedBatches because FEFO might have split the requested quantity 
+            // across multiple different expiring batches (e.g. 5 from Batch A, 10 from Batch B)!
+            foreach ($issuedBatches as $batchItem) {
+                if ($batchItem['quantity'] > 0) {
+                    PharmacyDispensation::create([
+                        'pharmacy_prescription_id' => $prescription->id,
+                        'quantity_issued' => $batchItem['quantity'], // Use the split quantity
+                        'batch_no' => $batchItem['butchno'] ?? null, // Pulled dynamically from DB
+                        'expiry_date' => $batchItem['expirydate'] ?? null, // Pulled dynamically from DB
+                        'pharmacist_user_id' => Auth::id(),
+                        'dispensed_at' => now(),
+                    ]);
+                }
+            }
 
             // Update Status
             $prescription->update(['status' => 'Dispensed']);
@@ -374,11 +380,48 @@ class PharmacyDispenseController extends Controller
         $requisition->saveQuietly();
         
         // Issue the items
-        $issueItems = [[
-            'product_id' => $prescription->product_id,
-            'quantity' => $qty,
-            'price' => $cost,
-        ]];
+        $issueItems = [];
+        $remainingQty = (float) $qty;
+        $productId = $prescription->product_id;
+
+        // Fetch available stock in the dispensing store, ordered by nearest expiry date
+        $expiryRecords = IVProductExpiryDates::where('store_id', $storeId)
+            ->where('product_id', $productId)
+            ->where('quantity', '>', 0)
+            ->orderBy('expirydate', 'asc') // Oldest dates first
+            ->get();
+
+        foreach ($expiryRecords as $record) {
+            if ($remainingQty <= 0) {
+                break; // We have fulfilled the requested quantity
+            }
+
+            // Determine how much we can take from this specific expiry batch
+            $qtyToTake = min($remainingQty, (float) $record->quantity);
+
+            $issueItems[] = [
+                'product_id' => $productId,
+                'quantity'   => $qtyToTake,
+                'price'      => $cost,
+                'expirydate' => $record->expirydate,
+                // Adjust 'butchno' / 'batchno' based on your actual column name
+                'butchno'    => $record->butchno ?? $record->batchno ?? null, 
+            ];
+
+            // Deduct the taken amount from our required running total
+            $remainingQty -= $qtyToTake;
+        }
+
+        // If there's STILL requested quantity remaining (e.g., negative stock allowed or missing batch data)
+        if ($remainingQty > 0) {
+            $issueItems[] = [
+                'product_id' => $productId,
+                'quantity'   => $remainingQty,
+                'price'      => $cost,
+                'expirydate' => null,
+                'butchno'    => null,
+            ];
+        }
 
         $deliveryNo = 'PHARM-' . $requisition->id . '-' . time();
 
@@ -391,6 +434,8 @@ class PharmacyDispenseController extends Controller
             $deliveryNo,
             null
         );
+
+        return $issueItems;
     }
 
     public function checkStock(Request $request)
