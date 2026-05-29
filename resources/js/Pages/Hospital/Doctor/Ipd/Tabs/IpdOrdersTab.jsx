@@ -5,7 +5,7 @@ import TextInput from '@/Components/TextInput';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faFlask, faXRay, faTint, faTrash, faEye, faTrashAlt,
-    faNotesMedical, faClock, faCheckCircle, faExclamationTriangle, faBan, faUserMd
+    faNotesMedical, faClock, faCheckCircle, faExclamationTriangle, faBan, faUserMd,faDoorOpen
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
@@ -18,7 +18,8 @@ export default function IpdOrdersTab({
     onViewResult,
     onDeleteOrder 
 }) {
-    
+    const [activeDepartment, setActiveDepartment] = useState(null);
+
     // 1. ADDED: blood_group to the local state
     const [bloodReq, setBloodReq] = useState({ id: null, label: '', units: 1, blood_group: '' });
 
@@ -294,144 +295,174 @@ export default function IpdOrdersTab({
             
             {/* --- SECTION 3: SURGERY & PROCEDURE BOOKING --- */}
             <div className="border border-red-200 rounded-xl bg-white shadow-sm overflow-hidden mt-8">
+                
                 {/* Section Header */}
                 <div className="bg-red-50 p-4 border-b border-red-200">
                     <h3 className="font-bold text-red-800 flex items-center gap-2 m-0 text-lg">
                         <FontAwesomeIcon icon={faNotesMedical} /> Book Surgery / Procedure
                     </h3>
                     <p className="text-xs text-red-600 mt-1">
-                        Select a department below to schedule a new procedure or surgery.
+                        Select a treatment room first to reveal the available procedures.
                     </p>
                 </div>
 
-                {/* Categories Grid */}
-                <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/30">
+                {/* --- GLOBAL INPUT: Theatre Room --- */}
+                <div className="p-5 bg-white border-b border-gray-100">
+                    <div className="w-full md:w-1/2">
+                        <InputLabel value="Assigned Theatre / Treatment Room" className="mb-2 text-sm font-bold text-gray-800" />
+                        <ReactSelect 
+                            options={options.theatre} 
+                            onChange={opt => {
+                                // 1. Save the ID to the form data to be submitted to backend
+                                setData('surgery_request', { ...data.surgery_request, theatre_id: opt.value });
+                                
+                                // 2. Tell the UI which department cards to show based on the theatre type!
+                                setActiveDepartment(opt.type); 
+                            }} 
+                            placeholder="Select Room..." 
+                            styles={{ 
+                                menuPortal: base => ({ ...base, zIndex: 9999 }),
+                                control: base => ({ ...base, borderColor: '#e5e7eb', boxShadow: 'none', '&:hover': { borderColor: '#d1d5db' } })
+                            }}
+                            menuPortalTarget={document.body}
+                        />
+                    </div>
+                </div>
+
+                {/* --- DYNAMIC CATEGORY SECTION --- */}
+                <div className="bg-gray-50/50 p-5">
                     
+                    {/* Empty State (Shown initially before a room is selected) */}
+                    {!activeDepartment && (
+                        <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+                            <FontAwesomeIcon icon={faDoorOpen} className="text-3xl text-gray-300 mb-2 block mx-auto" />
+                            Please select a Theatre Room above to schedule a procedure.
+                        </div>
+                    )}
+
                     {/* 1. General Surgery Card */}
-                    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden group hover:border-red-300 transition-colors">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-red-400 group-hover:bg-red-500"></div>
-                        <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm border-b border-gray-100 pb-2">
-                            <FontAwesomeIcon icon={faUserMd} className="text-red-500" /> 
-                            Theatre & General Surgery
-                        </h4>
-                        <div className="space-y-4">
-                            <div>
-                                <InputLabel value="Theatre Room" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <ReactSelect 
-                                    options={options.theatre} 
-                                    onChange={opt => setData('surgery_request', { ...data.surgery_request, theatre_id: opt.value })} 
-                                    placeholder="Select Room..." 
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                                    menuPortalTarget={document.body}
-                                />
-                            </div>
-                            <div>
-                                <InputLabel value="General Procedure" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <ReactSelect 
-                                    options={options.surgery} 
-                                    onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} 
-                                    placeholder="Select Procedure..." 
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                                    menuPortalTarget={document.body}
-                                />
-                            </div>
-                            <div>
-                                <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <TextInput 
-                                    type="datetime-local" 
-                                    className="w-full text-sm" 
-                                    onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} 
-                                />
+                    {activeDepartment === 'General' && (
+                        <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden animate-fade-in">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-red-400"></div>
+                            <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm border-b border-gray-100 pb-2">
+                                <FontAwesomeIcon icon={faUserMd} className="text-red-500" /> 
+                                General Surgery
+                            </h4>
+                            <div className="space-y-4 max-w-lg">
+                                <div>
+                                    <InputLabel value="General Procedure" className="mb-1 text-xs font-semibold text-gray-600" />
+                                    <ReactSelect 
+                                        options={options.surgery} 
+                                        onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} 
+                                        placeholder="Select Procedure..." 
+                                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                        menuPortalTarget={document.body}
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs font-semibold text-gray-600" />
+                                    <TextInput 
+                                        type="datetime-local" 
+                                        className="w-full text-sm" 
+                                        onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} 
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* 2. Dental Procedure Card */}
-                    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 group-hover:bg-blue-500"></div>
-                        <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm border-b border-gray-100 pb-2">
-                            <FontAwesomeIcon icon={faCheckCircle} className="text-blue-500" /> 
-                            Dental Procedure
-                        </h4>
-                        <div className="space-y-4">
-                            <div>
-                                <InputLabel value="Dental Procedure" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <ReactSelect 
-                                    options={options.surgery} 
-                                    onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} 
-                                    placeholder="Select Procedure..." 
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                                    menuPortalTarget={document.body}
-                                />
-                            </div>
-                            <div>
-                                <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <TextInput 
-                                    type="datetime-local" 
-                                    className="w-full text-sm" 
-                                    onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} 
-                                />
+                    {activeDepartment === 'Dental' && (
+                        <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden animate-fade-in">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-blue-400"></div>
+                            <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm border-b border-gray-100 pb-2">
+                                <FontAwesomeIcon icon={faCheckCircle} className="text-blue-500" /> 
+                                Dental Procedure
+                            </h4>
+                            <div className="space-y-4 max-w-lg">
+                                <div>
+                                    <InputLabel value="Dental Procedure" className="mb-1 text-xs font-semibold text-gray-600" />
+                                    <ReactSelect 
+                                        options={options.surgery} 
+                                        onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} 
+                                        placeholder="Select Procedure..." 
+                                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                        menuPortalTarget={document.body}
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs font-semibold text-gray-600" />
+                                    <TextInput 
+                                        type="datetime-local" 
+                                        className="w-full text-sm" 
+                                        onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} 
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* 3. Eye Surgery Card */}
-                    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition-colors">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400 group-hover:bg-emerald-500"></div>
-                        <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm border-b border-gray-100 pb-2">
-                            <FontAwesomeIcon icon={faEye} className="text-emerald-500" /> 
-                            Eye Surgery
-                        </h4>
-                        <div className="space-y-4">
-                            <div>
-                                <InputLabel value="Eye Surgery" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <ReactSelect 
-                                    options={options.surgery} 
-                                    onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} 
-                                    placeholder="Select Procedure..." 
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                                    menuPortalTarget={document.body}
-                                />
-                            </div>
-                            <div>
-                                <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <TextInput 
-                                    type="datetime-local" 
-                                    className="w-full text-sm" 
-                                    onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} 
-                                />
+                    {activeDepartment === 'Eye' && (
+                        <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden animate-fade-in">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400"></div>
+                            <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm border-b border-gray-100 pb-2">
+                                <FontAwesomeIcon icon={faEye} className="text-emerald-500" /> 
+                                Eye Surgery
+                            </h4>
+                            <div className="space-y-4 max-w-lg">
+                                <div>
+                                    <InputLabel value="Eye Surgery" className="mb-1 text-xs font-semibold text-gray-600" />
+                                    <ReactSelect 
+                                        options={options.surgery} 
+                                        onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} 
+                                        placeholder="Select Procedure..." 
+                                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                        menuPortalTarget={document.body}
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs font-semibold text-gray-600" />
+                                    <TextInput 
+                                        type="datetime-local" 
+                                        className="w-full text-sm" 
+                                        onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} 
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* 4. Physiotherapy Card */}
-                    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden group hover:border-orange-300 transition-colors">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-orange-400 group-hover:bg-orange-500"></div>
-                        <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm border-b border-gray-100 pb-2">
-                            <FontAwesomeIcon icon={faNotesMedical} className="text-orange-500" /> 
-                            Physiotherapy
-                        </h4>
-                        <div className="space-y-4">
-                            <div>
-                                <InputLabel value="Physiotherapy" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <ReactSelect 
-                                    options={options.surgery} 
-                                    onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} 
-                                    placeholder="Select Procedure..." 
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
-                                    menuPortalTarget={document.body}
-                                />
-                            </div>
-                            <div>
-                                <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs font-semibold text-gray-600" />
-                                <TextInput 
-                                    type="datetime-local" 
-                                    className="w-full text-sm" 
-                                    onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} 
-                                />
+                    {activeDepartment === 'Physio' && (
+                        <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden animate-fade-in">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-orange-400"></div>
+                            <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm border-b border-gray-100 pb-2">
+                                <FontAwesomeIcon icon={faNotesMedical} className="text-orange-500" /> 
+                                Physiotherapy
+                            </h4>
+                            <div className="space-y-4 max-w-lg">
+                                <div>
+                                    <InputLabel value="Physiotherapy" className="mb-1 text-xs font-semibold text-gray-600" />
+                                    <ReactSelect 
+                                        options={options.surgery} 
+                                        onChange={opt => setData('surgery_request', { ...data.surgery_request, procedure_id: opt.value })} 
+                                        placeholder="Select Procedure..." 
+                                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                        menuPortalTarget={document.body}
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel value="Scheduled Date & Time" className="mb-1 text-xs font-semibold text-gray-600" />
+                                    <TextInput 
+                                        type="datetime-local" 
+                                        className="w-full text-sm" 
+                                        onChange={e => setData('surgery_request', { ...data.surgery_request, date: e.target.value })} 
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                 </div>
             </div>

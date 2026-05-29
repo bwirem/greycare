@@ -60,11 +60,9 @@ export default function TheatreForm({ theatre = null }) {
                         className="w-full border rounded p-2 mt-1 focus:ring-blue-500 focus:border-blue-500"
                     >
                         <option value="General">General Surgery</option>
-                        <option value="Minor">Minor Procedure Room</option>
-                        <option value="Orthopedic">Orthopedic</option>
-                        <option value="Cardiothoracic">Cardiothoracic</option>
-                        <option value="Maternity">Maternity / Labour Ward</option>
-                        <option value="Recovery">Recovery Room</option>
+                        <option value="Dental">Dental Procedure</option>
+                        <option value="Eye">Eye Surgery</option>                        
+                        <option value="Physio">Physiotherapy</option>                        
                     </select>
                 </div>
                 <div>

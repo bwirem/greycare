@@ -203,8 +203,7 @@ class DoctorOpdController extends Controller
             'facilityoption' => FacilityOption::first(),
             // --- ADDED THIS LINE ---
             'wards_list' => IpdWard::select('id', 'name')->orderBy('name')->get(),
-            'theatre_list' => Theatre::select('id', 'name')->orderBy('name')->get() // Assuming rooms are managed as theatre procedures. Adjust if you have a separate Room model.
-
+            'theatre_list' => Theatre::select('id', 'name', 'type')->where('is_active', true)->orderBy('name')->get()
         ]);
     }
 
@@ -497,6 +496,7 @@ class DoctorOpdController extends Controller
                     'opd_booking_id' => $booking->id,
                     'theatre_procedure_id' => $procId
                 ], [
+                    'theatre_id' => $request->surgery_request['theatre_id'] ?? null,
                     'patientcode' => $booking->patientcode,
                     'doctor_user_id' => Auth::id(),
                     'scheduled_at' => Carbon::parse($request->surgery_request['date']),

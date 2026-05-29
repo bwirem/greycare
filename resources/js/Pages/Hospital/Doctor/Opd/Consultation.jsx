@@ -52,7 +52,7 @@ export default function OpdConsultation({
         rad: rad_procedures.map(r => ({ value: r.id, label: r.name })),
         drug: drugs_list.map(d => ({ value: d.id, label: d.name })),
         surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name })),        
-        theatre: theatre_list.map(t => ({ value: t.id, label: t.name }))
+        theatre: theatre_list.map(t => ({ value: t.id, label: t.name, type: t.type }))
     };
 
     // --- 2. Form State ---

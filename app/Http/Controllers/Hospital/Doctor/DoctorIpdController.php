@@ -204,7 +204,7 @@ class DoctorIpdController extends Controller
                 ->select('id', 'name', 'costprice') 
                 ->orderBy('name')
                 ->get(),
-            'theatre_list' => Theatre::select('id', 'name')->orderBy('name')->get() // Assuming rooms are managed as theatre procedures. Adjust if you have a separate Room model.
+            'theatre_list' => Theatre::select('id', 'name', 'type')->where('is_active', true)->orderBy('name')->get()
 
         ]);
     }
@@ -320,6 +320,7 @@ class DoctorIpdController extends Controller
                     'opd_booking_id'       => $admission->opd_booking_id,
                     'patientcode'          => $admission->patientcode,
                     'doctor_user_id'       => Auth::id(),
+                    'theatre_id' => $request->surgery_request['theatre_id'] ?? null,
                     'theatre_procedure_id' => $request->surgery_request['procedure_id'],
                     'scheduled_at'         => $surgDate,
                     'status'               => 'Scheduled',

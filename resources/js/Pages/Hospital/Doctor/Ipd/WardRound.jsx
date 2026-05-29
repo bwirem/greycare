@@ -37,7 +37,7 @@ export default function WardRound({
         blood: bb_components.map(b => ({ value: b.id, label: b.name })),
         drug: drugs_list.map(d => ({ value: d.id, label: d.name })),   
         surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name })), 
-        theatre: theatre_list.map(t => ({ value: t.id, label: `${t.name}` }))    
+        theatre: theatre_list.map(t => ({ value: t.id, label: t.name, type: t.type }))    
     };
   
     // Build "Reverse Lookup" Map
