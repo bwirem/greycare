@@ -18,7 +18,7 @@ enum StaffCategory: int
     case Physiotherapist = 11;
     case Others = 50;
 
-    public static function getLabel(int $value): string
+    public static function getLabel(?int $value): string
     {
         return match ($value) {
             self::LabTechnicians->value => 'Lab Technicians',
