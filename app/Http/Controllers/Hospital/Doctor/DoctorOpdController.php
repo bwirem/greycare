@@ -40,6 +40,7 @@ use App\Models\Pharmacy\PharmacyDuration;
 use App\Models\Inventory\SIV_Product; 
 use App\Models\Theatre\TheatreBooking;
 use App\Models\Theatre\TheatreProcedure;
+use App\Models\Theatre\Theatre;
 use App\Models\Ipd\IpdWard; // <--- ADDED THIS IMPORT
 use App\Models\Opd\OpdTreatmentPoint; // Import this
 
@@ -202,6 +203,7 @@ class DoctorOpdController extends Controller
             'facilityoption' => FacilityOption::first(),
             // --- ADDED THIS LINE ---
             'wards_list' => IpdWard::select('id', 'name')->orderBy('name')->get(),
+            'room_list' => Theatre::select('id', 'name')->orderBy('name')->get() // Assuming rooms are managed as theatre procedures. Adjust if you have a separate Room model.
 
         ]);
     }

@@ -41,7 +41,8 @@ export default function OpdConsultation({
     pharmacy_frequencies = [], 
     pharmacy_durations = [],
     facilityoption = null,
-    wards_list = [] 
+    wards_list = [],
+    room_list = [] 
 }) {
     
     // --- 1. Data Transformation ---
@@ -50,7 +51,8 @@ export default function OpdConsultation({
         lab: lab_panels.map(l => ({ value: l.id, label: l.name })),
         rad: rad_procedures.map(r => ({ value: r.id, label: r.name })),
         drug: drugs_list.map(d => ({ value: d.id, label: d.name })),
-        surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name }))
+        surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name })),        
+        room: room_list.map(s => ({ value: s.id, label: s.name }))
     };
 
     // --- 2. Form State ---
@@ -76,7 +78,7 @@ export default function OpdConsultation({
         prescriptions: [],
         lab_requests: [],
         rad_requests: [],
-        surgery_request: { procedure_id: '', date: '' }
+        surgery_request: {room_id: '', procedure_id: '', date: '' },        
     });
 
     // --- 3. UI State ---
