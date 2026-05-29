@@ -11,21 +11,44 @@ use Inertia\Inertia;
 // Models
 use App\Models\Theatre\TheatreBooking;
 use App\Models\Theatre\TheatreProcedure;
+use App\Models\Theatre\Theatre;
 use App\Models\Patient\Patient;
 
 class TheatreMinorController extends Controller
 {
     public function index(Request $request)
     {
-        $query = TheatreBooking::with(['patient', 'procedure'])
+        // Start the query with relationships (Make sure to include 'theatre' so we can show it in the table)
+        $query = TheatreBooking::with(['patient', 'procedure', 'theatre'])
             ->whereHas('procedure.group', function ($q) {
                 $q->where('is_minor', true);
             })
-            ->whereDate('scheduled_at', today())
-            ->orderBy('scheduled_at');
+            ->whereDate('scheduled_at', today());
+
+        // --- APPLY SEARCH FILTER ---
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->whereHas('patient', function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        // --- APPLY THEATRE FILTER ---
+        if ($request->filled('theatre_id')) {
+            $query->where('theatre_id', $request->input('theatre_id'));
+        }
+
+        $query->orderBy('scheduled_at');
 
         return Inertia::render('Hospital/Theatre/Minor/Index', [
-            'bookings' => $query->paginate(15),
+            // withQueryString() ensures pagination works even while filtered
+            'bookings' => $query->paginate(15)->withQueryString(), 
+            'theatres' => Theatre::where('is_active', true)->get(), 
+            
+            // Pass current filters back so React retains the values on page reload
+            'filters'  => $request->only(['search', 'theatre_id']), 
         ]);
     }
 

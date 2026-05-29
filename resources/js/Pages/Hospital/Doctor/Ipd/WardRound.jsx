@@ -27,7 +27,7 @@ export default function WardRound({
     lab_panels = [], rad_procedures = [], drugs_list = [], bb_components = [],
     pharmacy_frequencies = [], pharmacy_durations = [],
     surgery_procedures = [],
-    icd_list = [], ipd_diagnoses_list = []
+    icd_list = [], ipd_diagnoses_list = [], theatre_list = [] 
 }) {
     
     // --- 1. Data Transformation ---
@@ -36,7 +36,8 @@ export default function WardRound({
         rad: rad_procedures.map(r => ({ value: r.id, label: r.name })),
         blood: bb_components.map(b => ({ value: b.id, label: b.name })),
         drug: drugs_list.map(d => ({ value: d.id, label: d.name })),   
-        surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name }))     
+        surgery: surgery_procedures.map(s => ({ value: s.id, label: s.name })), 
+        theatre: theatre_list.map(t => ({ value: t.id, label: `${t.name}` }))    
     };
   
     // Build "Reverse Lookup" Map

@@ -46,6 +46,7 @@ use App\Models\Radiology\RadProcedure;
 // Theatre
 use App\Models\Theatre\TheatreProcedure;
 use App\Models\Theatre\TheatreBooking;
+use App\Models\Theatre\Theatre;
 
 // Blood Bank
 use App\Models\BloodBank\BbIssueRequest;
@@ -203,6 +204,8 @@ class DoctorIpdController extends Controller
                 ->select('id', 'name', 'costprice') 
                 ->orderBy('name')
                 ->get(),
+            'theatre_list' => Theatre::select('id', 'name')->orderBy('name')->get() // Assuming rooms are managed as theatre procedures. Adjust if you have a separate Room model.
+
         ]);
     }
 
@@ -305,6 +308,8 @@ class DoctorIpdController extends Controller
                     }
                 }
             }
+
+            Log::info("Surgery Request: " . json_encode($request->surgery_request));
 
             // E. SAVE SURGERY + BILLING
             if (!empty($request->surgery_request['procedure_id']) && !empty($request->surgery_request['date'])) {

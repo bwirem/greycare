@@ -203,7 +203,7 @@ class DoctorOpdController extends Controller
             'facilityoption' => FacilityOption::first(),
             // --- ADDED THIS LINE ---
             'wards_list' => IpdWard::select('id', 'name')->orderBy('name')->get(),
-            'room_list' => Theatre::select('id', 'name')->orderBy('name')->get() // Assuming rooms are managed as theatre procedures. Adjust if you have a separate Room model.
+            'theatre_list' => Theatre::select('id', 'name')->orderBy('name')->get() // Assuming rooms are managed as theatre procedures. Adjust if you have a separate Room model.
 
         ]);
     }

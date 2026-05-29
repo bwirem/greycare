@@ -14,15 +14,32 @@ use Carbon\Carbon; // Import Carbon for date comparison
 
 class TheatreSchedulingController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $bookings = TheatreBooking::with(['patient', 'procedure', 'doctor', 'theatre'])
-            ->where('status', 'Scheduled')
-            ->orderBy('scheduled_at', 'asc')
-            ->paginate(15);
+        $query = TheatreBooking::with(['patient', 'procedure', 'doctor', 'theatre'])
+            ->where('status', 'Scheduled');
+
+        // --- APPLY SEARCH FILTER ---
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->whereHas('patient', function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        // --- APPLY THEATRE FILTER ---
+        if ($request->filled('theatre_id')) {
+            $query->where('theatre_id', $request->input('theatre_id'));
+        }
+
+        $bookings = $query->orderBy('scheduled_at', 'asc')->paginate(15)->withQueryString();
 
         return Inertia::render('Hospital/Theatre/Scheduling/Index', [
-            'bookings' => $bookings
+            'bookings' => $bookings,
+            'theatres' => Theatre::where('is_active', true)->get(), 
+            'filters'  => $request->only(['search', 'theatre_id']),
         ]);
     }
 

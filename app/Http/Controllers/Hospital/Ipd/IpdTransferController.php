@@ -14,14 +14,29 @@ use App\Models\Ipd\IpdBed;
 
 class IpdTransferController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Show patients currently admitted who can be transferred
-        $admissions = IpdAdmission::with(['patient', 'ward', 'bed'])
-            ->where('status', 'Admitted')
-            ->paginate(15);
+        // Start the query
+        $query = IpdAdmission::with(['patient', 'ward', 'bed'])
+            ->where('status', 'Admitted');
 
-        return Inertia::render('Hospital/Ipd/Transfers/Index', ['admissions' => $admissions]);
+        // --- APPLY SEARCH FILTER ---
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->whereHas('patient', function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        // Paginate and preserve query string (so pagination works during search)
+        $admissions = $query->paginate(15)->withQueryString();
+
+        return Inertia::render('Hospital/Ipd/Transfers/Index', [
+            'admissions' => $admissions,
+            'filters'    => $request->only(['search']) // Pass current search back to React
+        ]);
     }
 
     public function create(IpdAdmission $admission)

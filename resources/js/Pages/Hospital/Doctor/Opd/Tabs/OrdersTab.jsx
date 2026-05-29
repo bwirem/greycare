@@ -261,8 +261,8 @@ export default function OrdersTab({
                             <div>
                                 <InputLabel value="Theatre Room" className="mb-1 text-xs font-semibold text-gray-600" />
                                 <ReactSelect 
-                                    options={options.room} 
-                                    onChange={opt => setData('surgery_request', { ...data.surgery_request, room_id: opt.value })} 
+                                    options={options.theatre} 
+                                    onChange={opt => setData('surgery_request', { ...data.surgery_request, theatre_id: opt.value })} 
                                     placeholder="Select Room..." 
                                     styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
                                     menuPortalTarget={document.body}
