@@ -123,7 +123,7 @@ export default function MinorIndex({ bookings, theatres = [], filters = {} }) {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">
                                         {bk.patient?.first_name} {bk.patient?.last_name}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    <td className="px-6 py-4 text-sm text-gray-700 whitespace-normal break-words">
                                         {bk.procedure?.name}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
