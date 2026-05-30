@@ -218,13 +218,15 @@ class UserPermissionController extends Controller
             ['modulekey' => 'nursing', 'moduletext' => 'Nursing Station', 'icon' => 'user_nurse'],
             ['modulekey' => 'doctor', 'moduletext' => 'Doctor Consultation', 'icon' => 'user_md'],
             ['modulekey' => 'theatre', 'moduletext' => 'Theatre', 'icon' => 'heartbeat'],
+            ['modulekey' => 'dental', 'moduletext' => 'Dental Department', 'icon' => 'tooth'],
+            ['modulekey' => 'eye', 'moduletext' => 'Eye Department', 'icon' => 'visibility'],
             ['modulekey' => 'physiotherapy', 'moduletext' => 'Physiotherapy', 'icon' => 'walking'],
             ['modulekey' => 'laboratory', 'moduletext' => 'Laboratory', 'icon' => 'microscope'],
             ['modulekey' => 'blood-bank', 'moduletext' => 'Blood Bank', 'icon' => 'tint'],
             ['modulekey' => 'radiology', 'moduletext' => 'Radiology', 'icon' => 'radiation'],
             ['modulekey' => 'pharmacy', 'moduletext' => 'Pharmacy', 'icon' => 'capsules'],  
             ['modulekey' => 'rch', 'moduletext' => 'Reproductive & Child Health', 'icon' => 'baby_carriage'],
-            ['modulekey' => 'hivart', 'moduletext' => 'HIV-ART', 'icon' => 'ribbon'],
+            ['modulekey' => 'hivart', 'moduletext' => 'HIV-ART', 'icon' => 'ribbon'],            
             ['modulekey' => 'mortuary', 'moduletext' => 'Mortuary', 'icon' => 'cross'], 
             ['modulekey' => 'orphanage', 'moduletext' => 'Orphanage Centre', 'icon' => 'child'], 
 
@@ -288,6 +290,16 @@ class UserPermissionController extends Controller
                 ['key' => 'theatre2', 'text' => 'Surgery Records', 'icon' => 'file_medical_alt'],   
                 ['key' => 'theatre3', 'text' => 'Post-Operative Care', 'icon' => 'procedures'], 
                 ['key' =>'theatre4', 'text' => 'Consumables', 'icon' => 'box_open'],                            
+            ],
+            'dental' => [
+                ['key' => 'dental0', 'text' => 'Dental Examinations', 'icon' => 'tooth'],
+                ['key' => 'dental1', 'text' => 'Dental Treatments', 'icon' => 'toothbrush'],
+                ['key' => 'dental2', 'text' => 'Dental Records', 'icon' => 'file_medical'],             
+            ],
+            'eye' => [
+                ['key' => 'eye0', 'text' => 'Eye Examinations', 'icon' => 'visibility'],
+                ['key' => 'eye1', 'text' => 'Eye Treatments', 'icon' => 'eye'],
+                ['key' => 'eye2', 'text' => 'Eye Records', 'icon' => 'file_medical'],             
             ],
             'physiotherapy' => [
                 ['key' => 'physiotherapy0', 'text' => 'Therapy Sessions', 'icon' => 'hands_helping'],

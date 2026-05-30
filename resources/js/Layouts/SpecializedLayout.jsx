@@ -13,7 +13,7 @@ import {
     faVenusMars, faBaby, faHandHoldingMedical, faChild, faSyringe, // RCH
     faIdCard, faTablets, // HIV
     faHandsHelping, faNotesMedical, // Physio
-    faChartBar, faStethoscope, faBoxOpen
+    faChartBar, faStethoscope, faBoxOpen,faTooth, faEye, // Generics
 } from "@fortawesome/free-solid-svg-icons";
 
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -29,6 +29,8 @@ const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-20
 const specializedModuleKeys = [
     'rch',
     'hivart',   
+    'dental',
+    'eye',
     'physiotherapy',
     'reporting',   // Parent for Reports
     'systemConfig'
@@ -48,6 +50,16 @@ const allowedSpecializedItemKeys = [
     'hivart0', // Enrollment
     'hivart1', // ART Mgmt
     'hivart2', // Consumables
+
+    // Dental Items
+    'dental0', // Dental Examinations
+    'dental1', // Dental Treatments
+    'dental2', // Dental Records
+
+    // Eye Items
+    'eye0', // Eye Examinations
+    'eye1', // Eye Treatments
+    'eye2', // Eye Records
     
     // Physio Items
     'physiotherapy0', // Sessions
@@ -71,6 +83,8 @@ const iconMap = {
     hivart: faRibbon,
     mortuary: faBookDead, // or faCross
     physiotherapy: faWalking,
+    dental: faTooth,
+    eye: faEye,
     settings: faCog,
 
     // RCH Items

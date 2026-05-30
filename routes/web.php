@@ -88,5 +88,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     require __DIR__.'/modules/configuration.php'; // For systemconfiguration0...
     require __DIR__.'/modules/usermanagement.php';
     require __DIR__.'/modules/mortuary.php';
+    require __DIR__.'/modules/dental.php';
+    require __DIR__.'/modules/eye.php';
 
 });
