@@ -4,7 +4,7 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
-    faStethoscope, faFileInvoice, faCheck, faTimes, 
+    faStethoscope, faCheck, faTimes, 
     faIdCard, faHashtag, faSpinner 
 } from "@fortawesome/free-solid-svg-icons";
 
@@ -17,20 +17,24 @@ export default function Booking({
     errors, 
     treatmentPoints = [], 
     billingGroups = [], 
+    billingSubgroups = [], 
     doctors = [], 
     processing,
     defaultCashGroupId = null
 }) {
     
-    // --- 1. Determine Payment Category Logic ---
+    // --- 1. Determine Selected Group & Payment Category Logic ---
     const selectedGroup = billingGroups.find(bg => bg.id == data.billinggroup_id);
+    
+    const showSubgroups = selectedGroup 
+        ? (selectedGroup.hassubgroups == 1 || selectedGroup.hassubgroups === true) 
+        : false;
     
     // Default to 'Cash' (True) until proven otherwise by flags
     let isCash = true; 
-
     if (selectedGroup) {
-        const isExemption = Boolean(selectedGroup.isexemption);
-        const isInsurance = Boolean(selectedGroup.isinsurance);
+        const isExemption = (selectedGroup.isexemption == 1 || selectedGroup.isexemption === true);
+        const isInsurance = (selectedGroup.isinsurance == 1 || selectedGroup.isinsurance === true);
         
         // If Facility has a default cash group, and this group is NOT it, it might be an Invoice/Company
         const isInvoice = defaultCashGroupId && selectedGroup.id != defaultCashGroupId;
@@ -42,6 +46,19 @@ export default function Booking({
 
     // --- 2. Auth Link Check ---
     const isAuthLinked = data.authorizationno && data.authorizationno.length > 0;
+
+    // --- 3. Handlers ---
+    const handleGroupChange = (e) => {
+        const newGroupId = e.target.value;
+        const newGroup = billingGroups.find(bg => bg.id == newGroupId);
+        const groupHasSub = newGroup ? (newGroup.hassubgroups == 1 || newGroup.hassubgroups === true) : false;
+        
+        setData(prev => ({
+            ...prev,
+            billinggroup_id: newGroupId,
+            billingsubgroup_id: groupHasSub ? prev.billingsubgroup_id : ''
+        }));
+    };
 
     return (
         <Modal show={show} onClose={onClose} maxWidth="2xl">
@@ -119,77 +136,131 @@ export default function Booking({
                         </div>
                     </div>
 
-                    {/* --- 3. Billing & Insurance Details --- */}
-                    <div>
-                        <div className="flex items-center mb-3 text-purple-700 font-bold text-sm uppercase border-b border-gray-100 pb-1">
-                            <FontAwesomeIcon icon={faFileInvoice} className="mr-2" /> Payment Information
-                        </div>
+                    {/* --- 3. Payment Mode & Subgroups --- */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-100 pt-4 mt-2">
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Payment Mode */}
-                            <div className="md:col-span-2">
-                                <InputLabel value="Payment Mode *" className="mb-1" />
-                                <select
-                                    value={data.billinggroup_id}
-                                    onChange={e => setData('billinggroup_id', e.target.value)}
-                                    className={`w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm ${errors.billinggroup_id ? 'border-red-500' : ''}`}
-                                    required
-                                >
-                                    <option value="">Select Mode...</option>
-                                    {billingGroups.map(bg => (
-                                        <option key={bg.id} value={bg.id}>{bg.name}</option>
-                                    ))}
-                                </select>
-                                {errors.billinggroup_id && <p className="text-red-500 text-xs mt-1">{errors.billinggroup_id}</p>}
-                            </div>
+                        {/* Payment Mode */}
+                        <div className={showSubgroups ? "col-span-1" : "col-span-1 md:col-span-2"}>
+                            <InputLabel value="Payment Mode *" className="mb-1" />
+                            <select
+                                value={data.billinggroup_id}
+                                onChange={handleGroupChange}
+                                className={`w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm ${
+                                    errors.billinggroup_id ? 'border-red-500' : ''
+                                }`}
+                                required
+                            >
+                                <option value="">Select Mode...</option>
+                                {billingGroups.map(bg => (
+                                    <option key={bg.id} value={bg.id}>
+                                        {bg.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.billinggroup_id && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.billinggroup_id}
+                                </p>
+                            )}
+                        </div>
 
-                            {/* --- HIDE IF CASH --- */}
-                            {!isCash && (
-                                <>
-                                    {/* Insurance Details */}
-                                    <div>
+                        {/* Billing Subgroup & Card Number */}
+                        {showSubgroups && (
+                            <>
+                                <div className="col-span-1 animate-fade-in">
+                                    <InputLabel value="Billing Subgroup *" className="mb-1" />
+                                    <select
+                                        value={data.billingsubgroup_id} 
+                                        onChange={e => setData('billingsubgroup_id', e.target.value)}
+                                        className={`w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm ${
+                                            errors.billingsubgroup_id ? 'border-red-500' : ''
+                                        }`}
+                                        required={showSubgroups}
+                                    >
+                                        <option value="">Select Subgroup...</option>
+                                        {billingSubgroups.map(bs => (
+                                            <option key={bs.id} value={bs.id}>
+                                                {bs.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.billingsubgroup_id && ( 
+                                        <p className="text-red-500 text-xs mt-1">
+                                            {errors.billingsubgroup_id} 
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Show Card Number specifically for Staff/Cash groups that have subgroups. 
+                                    (Insurance groups will handle this in the section below) */}
+                                {isCash && (
+                                    <div className="col-span-1 md:col-span-2 animate-fade-in">
                                         <InputLabel className="mb-1">
-                                            <FontAwesomeIcon icon={faIdCard} className="mr-1 text-gray-500"/> Card Number
+                                            <FontAwesomeIcon icon={faIdCard} className="mr-1 text-purple-500"/> Card / Member Number
                                         </InputLabel>
                                         <TextInput
                                             type="text"
                                             value={data.billinggroupmembershipno}
                                             onChange={e => setData('billinggroupmembershipno', e.target.value)}
-                                            className="w-full bg-gray-50 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                            className="w-full bg-white text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
                                             placeholder="N/A"
                                         />
                                     </div>
+                                )}
+                            </>
+                        )}
 
-                                    <div>
-                                        <InputLabel className="mb-1">
-                                            <FontAwesomeIcon icon={faCheck} className="mr-1 text-gray-500"/> Auth Number
-                                        </InputLabel>
-                                        <TextInput
-                                            type="text"
-                                            value={data.authorizationno}
-                                            onChange={e => setData('authorizationno', e.target.value)}
-                                            className={`w-full text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500 font-bold ${isAuthLinked ? 'bg-green-50 text-green-800' : 'bg-gray-50'}`}
-                                            placeholder="N/A"
-                                            readOnly={isAuthLinked} 
-                                        />
-                                    </div>
+                        {/* --- RESTORED: INSURANCE/COMPANY FIELDS (HIDE IF CASH) --- */}
+                        {!isCash && (
+                            <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 p-4 bg-purple-50 rounded-lg border border-purple-100 animate-fade-in">
+                                
+                                {/* Card Number */}
+                                <div>
+                                    <InputLabel className="mb-1">
+                                        <FontAwesomeIcon icon={faIdCard} className="mr-1 text-purple-500"/> Card Number
+                                    </InputLabel>
+                                    <TextInput
+                                        type="text"
+                                        value={data.billinggroupmembershipno}
+                                        onChange={e => setData('billinggroupmembershipno', e.target.value)}
+                                        className="w-full bg-white text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                        placeholder="N/A"
+                                    />
+                                </div>
 
-                                    <div className="md:col-span-2">
-                                        <InputLabel className="mb-1">
-                                            <FontAwesomeIcon icon={faHashtag} className="mr-1 text-gray-500"/> Scheme / Product ID
-                                        </InputLabel>
-                                        <TextInput
-                                            type="text"
-                                            value={data.schemeid}
-                                            onChange={e => setData('schemeid', e.target.value)}
-                                            className="w-full bg-gray-50 text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                                            placeholder="N/A"
-                                            readOnly={isAuthLinked}
-                                        />
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                                {/* Auth Number */}
+                                <div>
+                                    <InputLabel className="mb-1">
+                                        <FontAwesomeIcon icon={faCheck} className="mr-1 text-purple-500"/> Auth Number
+                                    </InputLabel>
+                                    <TextInput
+                                        type="text"
+                                        value={data.authorizationno}
+                                        onChange={e => setData('authorizationno', e.target.value)}
+                                        className={`w-full text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500 font-bold ${isAuthLinked ? 'bg-green-100 text-green-800' : 'bg-white'}`}
+                                        placeholder="N/A"
+                                        readOnly={isAuthLinked} 
+                                    />
+                                </div>
+
+                                {/* Scheme ID */}
+                                <div className="md:col-span-2">
+                                    <InputLabel className="mb-1">
+                                        <FontAwesomeIcon icon={faHashtag} className="mr-1 text-purple-500"/> Scheme / Product ID
+                                    </InputLabel>
+                                    <TextInput
+                                        type="text"
+                                        value={data.schemeid}
+                                        onChange={e => setData('schemeid', e.target.value)}
+                                        className="w-full bg-white text-sm shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                                        placeholder="N/A"
+                                        readOnly={isAuthLinked}
+                                    />
+                                </div>
+
+                            </div>
+                        )}
+
                     </div>
                 </div>
 
@@ -197,6 +268,7 @@ export default function Booking({
                 <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <button 
                         onClick={onClose}
+                        type="button"
                         className="px-5 py-2 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-sm font-semibold transition-colors"
                         disabled={processing}
                     >
@@ -204,6 +276,7 @@ export default function Booking({
                     </button>
                     <button 
                         onClick={onConfirm}
+                        type="button"
                         disabled={processing}
                         className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow-sm text-sm font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >

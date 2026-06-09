@@ -7,10 +7,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PatientBillingSubgroup extends Model
 {
-    protected $guarded = ['id'];
+    protected $table = 'patient_billing_subgroups';
 
-    public function group(): BelongsTo
+    protected $fillable = [
+        'name',
+        'code',
+        'billinggroup_id',
+        'description'
+    ];
+
+    public $timestamps = true;
+
+    public function group()
     {
-        return $this->belongsTo(PatientBillingGroup::class, 'billinggroup_id');
+        return $this->belongsTo(
+            PatientBillingGroup::class,
+            'billinggroup_id'
+        );
     }
 }

@@ -17,7 +17,8 @@ import Authorization from './Authorization';
 export default function OpdCreate({ 
     auth, 
     treatmentPoints, 
-    billingGroups, 
+    billingGroups,
+    billingSubgroups, 
     doctors, 
     defaultCashGroupId 
 }) {
@@ -45,7 +46,7 @@ export default function OpdCreate({
         gender: '',
         date_of_birth: '',
         age: '', 
-        age_months: '', // Added field
+        age_months: '', 
         national_id: '',
         phone_number: '',
         address: '',
@@ -55,6 +56,7 @@ export default function OpdCreate({
         
         doctor_user_id: '',
         billinggroup_id: '',
+        billingsubgroup_id: '', // FIXED: Changed from plural to singular
         
         // Insurance Details
         billinggroupmembershipno: '', 
@@ -103,19 +105,15 @@ export default function OpdCreate({
         let months = today.getMonth() - birthDate.getMonth();
         const days = today.getDate() - birthDate.getDate();
 
-        // Adjust for negative months (e.g. Current Month is Jan, Birth Month is Dec)
         if (months < 0 || (months === 0 && days < 0)) {
             years--;
             months += 12;
         }
 
-        // Adjust month count if the specific day hasn't been reached yet in the current month
         if (days < 0) {
             months--;
             if (months < 0) {
                 months = 11;
-                // Years already adjusted above if necessary, but double check edge case
-                // Usually logic above handles the year decrement, this handles the granular month
             }
         }
 
@@ -126,7 +124,7 @@ export default function OpdCreate({
     const handleSelectExisting = (pt) => {
         const { years, months } = calculateAgeFromDob(pt.date_of_birth);
 
-        setSelectedPatient({ ...pt, age: years }); // Store basic age for display
+        setSelectedPatient({ ...pt, age: years }); 
         setData(values => ({
             ...values,
             existing_patient_code: pt.code,
@@ -158,16 +156,12 @@ export default function OpdCreate({
     };
 
     // --- 3. AGE <-> DOB LOGIC ---
-
-    // Helper: Calculate DOB from Years and Months
     const updateDobFromAgeValues = (yearsVal, monthsVal) => {
         const y = parseInt(yearsVal) || 0;
         const m = parseInt(monthsVal) || 0;
         
         const today = new Date();
-        // Subtract Years
         today.setFullYear(today.getFullYear() - y);
-        // Subtract Months
         today.setMonth(today.getMonth() - m);
         
         return today.toISOString().split('T')[0];
@@ -209,6 +203,7 @@ export default function OpdCreate({
             existing_patient_code: authData.existing_patient_code, 
 
             billinggroup_id: authData.billing_group_id,
+            billingsubgroup_id: authData.billing_subgroup_id, // FIXED: Changed from plural to singular
             billinggroupmembershipno: authData.card_no,
             authorizationno: authData.authorization_no,
             schemeid: authData.scheme_id,
@@ -307,7 +302,7 @@ export default function OpdCreate({
 
                 <form onSubmit={handleNext}>
                     
-                    {/* --- INSURANCE AUTHORIZATION BUTTON (Only for New/Manual) --- */}
+                    {/* --- INSURANCE AUTHORIZATION BUTTON --- */}
                     {mode === 'new' && (
                         <div className="flex justify-end mb-4">
                             <button 
@@ -477,7 +472,7 @@ export default function OpdCreate({
                         </div>
                     )}
 
-                    {/* --- C. QUICK VITALS (Keep in Parent for OPD) --- */}
+                    {/* --- C. QUICK VITALS --- */}
                     <div className="bg-white shadow-sm rounded-lg mb-6">
                         <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Quick Vitals (Optional)</h3>
@@ -526,16 +521,13 @@ export default function OpdCreate({
                 </form>
 
                 {/* --- MODALS --- */}
-                
-                {/* 1. Authorization Modal */}
                 <Authorization 
                     show={showAuthModal}
                     onClose={() => setShowAuthModal(false)}
                     onAuthorized={handleAuthorizationSuccess}
-                    billingGroups={billingGroups}
+                    billingGroups={billingGroups} 
                 />
 
-                {/* 2. Booking Modal */}
                 <Booking 
                     show={showBookingModal}
                     onClose={() => setShowBookingModal(false)}
@@ -546,8 +538,9 @@ export default function OpdCreate({
                     processing={processing}
                     treatmentPoints={treatmentPoints}
                     billingGroups={billingGroups}
+                    billingSubgroups={billingSubgroups}
                     doctors={doctors}
-                    defaultCashGroupId={defaultCashGroupId} // PASS PROP
+                    defaultCashGroupId={defaultCashGroupId} 
                 />
 
             </div>

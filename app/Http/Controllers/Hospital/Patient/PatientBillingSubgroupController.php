@@ -7,6 +7,7 @@ use App\Models\Patient\PatientBillingSubgroup;
 use App\Models\Patient\PatientBillingGroup;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 class PatientBillingSubgroupController extends Controller
 {
@@ -33,6 +34,8 @@ class PatientBillingSubgroupController extends Controller
 
     public function store(Request $request)
     {
+
+        Log::info('Storing new billing subgroup with data: ', $request->all());
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',

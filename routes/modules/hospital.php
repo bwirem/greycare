@@ -84,6 +84,10 @@ Route::prefix('outpatient0')->name('outpatient0.')->group(function () {
     // Patient Search
     Route::get('/search-patient', [OpdRegistrationController::class, 'searchPatient'])->name('search_patient');
     
+    Route::get('/{order}/edit-registration', [OpdRegistrationController::class, 'edit'])->name('registration.edit');
+    Route::put('/{order}/update-registration', [OpdRegistrationController::class, 'update'])->name('registration.update');
+
+
     // Authorization Routes
     Route::get('/authorization/verify-card', [OpdAuthorizationController::class, 'verifyCard'])->name('auth.verify');
     Route::post('/authorization/request', [OpdAuthorizationController::class, 'requestAuthorization'])->name('auth.request');

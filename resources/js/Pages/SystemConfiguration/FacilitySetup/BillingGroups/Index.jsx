@@ -6,27 +6,25 @@ import {
     faSearch, faPlus, faEdit, faTrash, faHome, 
     faShieldAlt, faCloudDownloadAlt, faList, faSpinner, faExclamationTriangle 
 } from "@fortawesome/free-solid-svg-icons";
-import Modal from '@/Components/CustomModal'; // Your existing delete modal
+import Modal from '@/Components/CustomModal'; 
 import Pagination from "@/Components/Pagination";
 import { toast } from 'react-toastify';
 
 export default function GroupIndex({ auth, groups, success, filters, errors }) {
     const { data: searchData, setData: setSearchData } = useForm({ search: filters.search || "" });
     
-    // --- State Management ---
+    // State Management
     const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, idToDelete: null });
-    
-    // New State for Loading Packages
     const [loadState, setLoadState] = useState({ isOpen: false, group: null });
     const [isLoading, setIsLoading] = useState(false);
 
-    // --- Toast Handling ---
+    // Toast Handling
     useEffect(() => { 
         if (success) toast.success(success); 
         if (errors?.error) toast.error(errors.error);
     }, [success, errors]);
 
-    // --- Handlers ---
+    // Handlers
     const handleSearch = (e) => {
         setSearchData("search", e.target.value);
         router.get(route("systemconfiguration5.billinggroups.index"), 
@@ -44,9 +42,7 @@ export default function GroupIndex({ auth, groups, success, filters, errors }) {
     };
 
     // Load Package Handlers
-    const openLoadModal = (group) => {
-        setLoadState({ isOpen: true, group: group });
-    };
+    const openLoadModal = (group) => setLoadState({ isOpen: true, group: group });
 
     const confirmLoadPackages = () => {
         setIsLoading(true);
@@ -94,7 +90,6 @@ export default function GroupIndex({ auth, groups, success, filters, errors }) {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Group Name</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
                                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Type</th>
                                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ceiling</th>
                                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -105,7 +100,6 @@ export default function GroupIndex({ auth, groups, success, filters, errors }) {
                                     {groups.data.map((item) => (
                                         <tr key={item.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.name}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-500 font-mono">{item.code || '-'}</td>
                                             <td className="px-6 py-4 text-center">
                                                 {item.isinsurance ? (
                                                     <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs flex items-center justify-center w-fit mx-auto">
@@ -166,7 +160,7 @@ export default function GroupIndex({ auth, groups, success, filters, errors }) {
                 </div>
             </div>
             
-            {/* --- DELETE CONFIRMATION MODAL --- */}
+            {/* DELETE CONFIRMATION MODAL */}
             <Modal 
                 isOpen={deleteModalState.isOpen} 
                 onClose={() => setDeleteModalState({ isOpen: false, idToDelete: null })} 
@@ -175,25 +169,18 @@ export default function GroupIndex({ auth, groups, success, filters, errors }) {
                 message="Are you sure? This may affect existing patients and billing records." 
             />
 
-            {/* --- LOAD PACKAGES MODAL (CUSTOM) --- */}
+            {/* LOAD PACKAGES MODAL */}
             {loadState.isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 transition-opacity">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
-                        
-                        {/* Header */}
                         <div className="flex items-center mb-4 text-green-700">
                             <FontAwesomeIcon icon={faCloudDownloadAlt} size="lg" className="mr-3" />
                             <h3 className="text-lg font-bold">Load Price Packages</h3>
                         </div>
 
-                        {/* Body */}
                         <div className="mb-6 text-gray-600">
-                            <p className="mb-2">
-                                You are about to download the latest tariff data for:
-                            </p>
-                            <p className="font-bold text-gray-800 text-lg mb-2">
-                                {loadState.group?.name}
-                            </p>
+                            <p className="mb-2">You are about to download the latest tariff data for:</p>
+                            <p className="font-bold text-gray-800 text-lg mb-2">{loadState.group?.name}</p>
                             
                             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-xs text-yellow-700">
                                 <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
@@ -201,7 +188,6 @@ export default function GroupIndex({ auth, groups, success, filters, errors }) {
                             </div>
                         </div>
 
-                        {/* Footer / Actions */}
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setLoadState({ isOpen: false, group: null })}
@@ -231,7 +217,6 @@ export default function GroupIndex({ auth, groups, success, filters, errors }) {
                     </div>
                 </div>
             )}
-            
         </AuthenticatedLayout>
     );
 }

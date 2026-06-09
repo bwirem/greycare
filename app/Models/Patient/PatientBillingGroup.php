@@ -16,6 +16,8 @@ class PatientBillingGroup extends Model
         'inactive' => 'boolean',
         'isdefault' => 'boolean',
         'isexemption' => 'boolean',
+        'hassubgroups' => 'boolean',
+        'secrety_key' => 'string',
     ];
 
     public function subgroups(): HasMany

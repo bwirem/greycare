@@ -16,6 +16,8 @@ use App\Models\Patient\Patient;
 use App\Models\Opd\OpdBooking;
 use App\Models\Opd\OpdTreatmentPoint;
 use App\Models\Patient\PatientBillingGroup;
+use App\Models\Patient\PatientBillingSubGroup;
+
 use App\Models\MedicalRecord\MrVitalSign;
 use App\Models\User;
 use App\Models\UserGroupFunction;
@@ -106,7 +108,8 @@ class OpdRegistrationController extends Controller
 
         return Inertia::render('Hospital/Opd/Registrations/Create', [
             'treatmentPoints' => OpdTreatmentPoint::select('id', 'name')->get(),         
-            'billingGroups'   => PatientBillingGroup::select('id', 'name', 'isexemption', 'isinsurance')->get(),
+            'billingGroups'   => PatientBillingGroup::select('id', 'name', 'isexemption', 'isinsurance','hassubgroups')->get(),
+            'billingSubgroups' => PatientBillingSubGroup::select('id', 'name')->get(),  
             'doctors'         => User::select('id', 'name')
                                     ->whereNotNull('specialization_id')
                                     ->get(), 
@@ -147,6 +150,7 @@ class OpdRegistrationController extends Controller
             'treatmentpoint_id' => 'required|exists:opd_treatmentpoints,id',
             'doctor_user_id'    => 'nullable|exists:users,id', 
             'billinggroup_id'   => 'required|exists:patient_billing_groups,id',
+            'billingsubgroup_id'   => 'nullable|exists:patient_billing_subgroups,id',
             
             'authorizationno'          => 'nullable|string|max:50',
             'billinggroupmembershipno' => 'nullable|string|max:100', 
@@ -175,6 +179,7 @@ class OpdRegistrationController extends Controller
 
             // --- 1. DETERMINE PAYMENT CATEGORY ---
             $billingGroup = PatientBillingGroup::findOrFail($validated['billinggroup_id']);
+            $billingSubGroup = PatientBillingSubGroup::findOrFail($validated['billingsubgroup_id']);
             $facilityOption = FacilityOption::first();
 
             $paymentCategory = 'Cash';
@@ -276,6 +281,7 @@ class OpdRegistrationController extends Controller
                 'patientcode'        => $patientCode,
                 'treatmentpoint_id'  => $validated['treatmentpoint_id'],
                 'billinggroup_id'    => $validated['billinggroup_id'],
+                'billingsubgroup_id' => $validated['billingsubgroup_id'] ?? null,   
                 'doctor_user_id'     => $validated['doctor_user_id'],
                 'user_id'            => auth()->id(),
                 'wheretaken'         => $clinicName,
@@ -377,37 +383,40 @@ class OpdRegistrationController extends Controller
      */
     public function edit($id)
     {
-        $booking = OpdBooking::with(['patient'])->findOrFail($id);
+        $booking = OpdBooking::with('patient')->findOrFail($id);
 
         return Inertia::render('Hospital/Opd/Registrations/Edit', [
-            'booking' => $booking,
-            'treatmentPoints' => OpdTreatmentPoint::select('id', 'name')->get(),
-            'billingGroups'   => PatientBillingGroup::select('id', 'name')->get(),
-            'doctors'         => User::select('id', 'name')->get(),
+            'booking'          => $booking,
+            'treatmentPoints'  => OpdTreatmentPoint::select('id', 'name')->get(),         
+            // ADDED hassubgroups to the select array!
+            'billingGroups'    => PatientBillingGroup::select('id', 'name', 'isexemption', 'isinsurance', 'hassubgroups')->get(),
+            // ADDED billingSubgroups to the view!
+            'billingSubgroups' => PatientBillingSubGroup::select('id', 'name')->get(),  
+            'doctors'          => User::select('id', 'name')->whereNotNull('specialization_id')->get(), 
         ]);
     }
 
-    /**
-     * Update: Edit Registration details & Update Bill if needed
-     */
     public function update(Request $request, $id, ConsultationPricingService $pricingService, BillingService $billingService)
     {
         $booking = OpdBooking::findOrFail($id);
         $patient = Patient::where('code', $booking->patientcode)->first();
-
+      
         $validated = $request->validate([
             'first_name'     => 'required|string|max:255',
             'last_name'      => 'required|string|max:255',
             'middle_name'    => 'nullable|string|max:255',
             'date_of_birth'  => 'nullable|date',
             'contact'        => 'nullable|string|max:50', 
-            'address'   => 'nullable|string|max:255',
+            'address'        => 'nullable|string|max:255',
             
             'treatmentpoint_id' => 'required|exists:opd_treatmentpoints,id',
             'doctor_user_id'    => 'nullable|exists:users,id', 
             'billinggroup_id'   => 'required|exists:patient_billing_groups,id',
+            'billingsubgroup_id' => 'nullable|exists:patient_billing_subgroups,id',
             'billinggroupmembershipno' => 'nullable|string|max:100',
-        ]);
+            'authorizationno'   => 'nullable|string|max:100',
+            'schemeid'          => 'nullable|string|max:100',
+        ]);        
 
         DB::transaction(function () use ($validated, $booking, $patient, $pricingService, $billingService, $request) {
             
@@ -445,7 +454,7 @@ class OpdRegistrationController extends Controller
                 'middle_name'   => $validated['middle_name'],
                 'date_of_birth' => $validated['date_of_birth'],
                 'phone_number'  => $validated['contact'] ?? $patient->phone_number,
-                'address'   => $validated['address'],
+                'address'       => $validated['address'],
                 
                 'payment_category'        => $paymentCategory,
                 'insurance_provider_id'   => $insuranceProviderId,
@@ -466,6 +475,7 @@ class OpdRegistrationController extends Controller
             $updateData = [
                 'treatmentpoint_id' => $validated['treatmentpoint_id'],
                 'billinggroup_id'   => $validated['billinggroup_id'],
+                'billingsubgroup_id' => $validated['billingsubgroup_id'] ?? null,
                 'doctor_user_id'    => $validated['doctor_user_id'],
                 'wheretaken'        => OpdTreatmentPoint::find($validated['treatmentpoint_id'])->name,
                 
@@ -473,6 +483,8 @@ class OpdRegistrationController extends Controller
                 'pricecategory'            => $billingGroup->pricecategory ?? 'price1',
                 
                 'billinggroupmembershipno' => $validated['billinggroupmembershipno'] ?? null,
+                'authorizationno'          => $validated['authorizationno'] ?? null,
+                'schemeid'                 => $validated['schemeid'] ?? null,
             ];
 
             $shouldUpdateBill = false;
@@ -506,8 +518,8 @@ class OpdRegistrationController extends Controller
                     1,
                     'consultation',
                     $booking->id,
-                    $booking->pricecategory, // Use the updated price category
-                    $paymentCategory //e.g. Cash,Exemption,Insurance, 
+                    $booking->pricecategory,
+                    $paymentCategory 
                 );
             }
         });

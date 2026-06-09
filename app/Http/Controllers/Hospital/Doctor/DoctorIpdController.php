@@ -71,21 +71,40 @@ class DoctorIpdController extends Controller
         $query = IpdAdmission::with(['patient', 'ward', 'bed'])
             ->where('status', 'Admitted');
 
-        // Apply Ward Filter
-        if($request->ward_id) {
+        // Patient Search
+        if ($request->search) {
+            $search = trim($request->search);
+
+            $query->whereHas('patient', function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                ->orWhere('first_name', 'like', "%{$search}%")
+                ->orWhere('middle_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%");
+            });
+        }
+
+        // Ward Filter
+        if ($request->ward_id) {
             $query->where('ward_id', $request->ward_id);
         }
 
-        // Fetch Wards for Dropdown
-        $wards = IpdWard::select('id', 'name')->orderBy('name')->get();
+        $wards = IpdWard::select('id', 'name')
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('Hospital/Doctor/Ipd/Index', [
-            'admissions' => $query->orderBy('ward_id')->paginate(20)->withQueryString(),
-            'wards'      => $wards, // Pass list
-            'filters'    => $request->only(['ward_id']), // Pass active filter
+            'admissions' => $query->orderBy('ward_id')
+                ->paginate(20)
+                ->withQueryString(),
+
+            'wards' => $wards,
+
+            'filters' => $request->only([
+                'search',
+                'ward_id'
+            ]),
         ]);
     }
-
     /**
      * 2. Ward Round Form
      */

@@ -11,7 +11,7 @@ use Inertia\Inertia;
 
 // Models
 use App\Models\Patient\PatientBillingGroup;
-use App\Models\Billing\BlsNhifPackage; // Ensure you created this model in previous steps
+use App\Models\Billing\BlsNhifPackage; 
 use App\Models\Billing\BLSPriceCategory;
 
 class PatientBillingGroupController extends Controller
@@ -21,8 +21,8 @@ class PatientBillingGroupController extends Controller
         $query = PatientBillingGroup::query();
 
         if ($request->search) {
-            $query->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('code', 'like', "%{$request->search}%");
+            // Removed 'code' search because it does not exist in the DB migration
+            $query->where('name', 'like', "%{$request->search}%");
         }
 
         return Inertia::render('SystemConfiguration/FacilitySetup/BillingGroups/Index', [
@@ -63,7 +63,6 @@ class PatientBillingGroupController extends Controller
         return $activePriceCategories;
     }
 
-
     public function create()
     {       
         return Inertia::render('SystemConfiguration/FacilitySetup/BillingGroups/Create', [
@@ -75,7 +74,6 @@ class PatientBillingGroupController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            //'code' => 'nullable|string|max:50',
             'pricecategory' => 'nullable|string|max:50',
             'hasid' => 'boolean',
             'hasceiling' => 'boolean',
@@ -84,10 +82,12 @@ class PatientBillingGroupController extends Controller
             'isdefault' => 'boolean',
             'isexemption' => 'boolean',
             'inactive' => 'boolean',
+            'hassubgroups' => 'boolean', // <-- ADDED THIS
             // API Config           
             'username' => 'nullable|string|max:255',
             'password' => 'nullable|string|max:255',
             'facility_code' => 'nullable|string|max:50',
+            'secrety_key' => 'nullable|string|max:255',
             'verification_url' => 'nullable|string|max:255',
             'claims_url' => 'nullable|string|max:255',
         ]);
@@ -113,7 +113,6 @@ class PatientBillingGroupController extends Controller
         
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            //'code' => 'nullable|string|max:50',
             'pricecategory' => 'nullable|string|max:50',
             'hasid' => 'boolean',
             'hasceiling' => 'boolean',
@@ -122,10 +121,12 @@ class PatientBillingGroupController extends Controller
             'isdefault' => 'boolean',
             'isexemption' => 'boolean',
             'inactive' => 'boolean',
+            'hassubgroups' => 'boolean', // <-- ADDED THIS
             // API Config
             'username' => 'nullable|string|max:255',
             'password' => 'nullable|string|max:255',
             'facility_code' => 'nullable|string|max:50',
+            'secrety_key' => 'nullable|string|max:255',
             'verification_url' => 'nullable|string|max:255',
             'claims_url' => 'nullable|string|max:255',
         ]);
@@ -152,9 +153,6 @@ class PatientBillingGroupController extends Controller
     /**
      * Load Packages from NHIF API
      */
-    /**
-     * Load Packages from NHIF API
-     */
     public function loadPackages(Request $request, PatientBillingGroup $group)
     {
         // 1. INCREASE EXECUTION TIME
@@ -165,12 +163,12 @@ class PatientBillingGroupController extends Controller
         if (!$group->facility_code || !$group->username || !$group->password) {
             return back()->withErrors(['error' => 'Missing Facility Code, Username, or Password.']);
         }
-        if (empty($group->claims_url) && empty($group->url)) {
+        if (empty($group->claims_url) && empty($group->verification_url)) {
             return back()->withErrors(['error' => 'No API URL configured.']);
         }
 
         // URL Setup
-        $claimsBaseUrl = rtrim($group->claims_url ?? $group->url, '/');
+        $claimsBaseUrl = rtrim($group->claims_url ?? $group->verification_url, '/');
         $claimsRootUrl = preg_replace('/\/api\/v1\/?$/', '', $claimsBaseUrl);
         
         $serviceUrl = $claimsRootUrl;
@@ -180,7 +178,7 @@ class PatientBillingGroupController extends Controller
 
         // Token URLs
         $primaryTokenUrl = $claimsRootUrl . '/Token';
-        $verificationBaseUrl = rtrim($group->url, '/');
+        $verificationBaseUrl = rtrim($group->verification_url ?? '', '/');
         $verificationRootUrl = preg_replace('/\/breeze\/?$/', '', $verificationBaseUrl);
         $fallbackTokenUrl = $verificationRootUrl . '/Token';
 

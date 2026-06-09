@@ -3,11 +3,9 @@ import { Link, useForm } from '@inertiajs/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSave, faSpinner, faLink, faKey, faUserSecret } from '@fortawesome/free-solid-svg-icons';
 
-// Accept activePriceCategories from props
 export default function GroupForm({ group = null, activePriceCategories = [] }) {
     const { data, setData, post, put, processing, errors } = useForm({
         name: group?.name || '',
-        code: group?.code || '',
         pricecategory: group?.pricecategory || '',
         
         // Configuration Flags
@@ -18,9 +16,11 @@ export default function GroupForm({ group = null, activePriceCategories = [] }) 
         isdefault: group ? Boolean(group.isdefault) : false,
         isexemption: group ? Boolean(group.isexemption) : false,
         inactive: group ? Boolean(group.inactive) : false,
+        hassubgroups: group ? Boolean(group.hassubgroups) : false,
 
         // API Credentials
         facility_code: group?.facility_code || '',
+        secrety_key: group?.secrety_key || '',
         verification_url: group?.verification_url || '',
         claims_url: group?.claims_url || '',
         username: group?.username || '',
@@ -41,7 +41,7 @@ export default function GroupForm({ group = null, activePriceCategories = [] }) 
             {/* Basic Info */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                 <h3 className="font-bold text-gray-800 border-b pb-2 mb-4">Basic Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Group Name *</label>
                         <input 
@@ -53,20 +53,9 @@ export default function GroupForm({ group = null, activePriceCategories = [] }) 
                         />
                         {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Short Code</label>
-                        <input 
-                            type="text" 
-                            value={data.code} 
-                            onChange={e => setData('code', e.target.value)} 
-                            className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" 
-                        />
-                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    
-                    {/* CHANGED SECTION: PRICE CATEGORY DROPDOWN */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Price Category Link</label>
                         <select
@@ -83,7 +72,6 @@ export default function GroupForm({ group = null, activePriceCategories = [] }) 
                         </select>
                         <p className="text-xs text-gray-500 mt-1">Determines which price column (Price 1-4) is charged for this group.</p>
                     </div>
-                    {/* END CHANGED SECTION */}
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Ceiling Amount</label>
@@ -101,7 +89,7 @@ export default function GroupForm({ group = null, activePriceCategories = [] }) 
             {/* Config Flags */}
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <h3 className="font-bold text-gray-700 text-sm mb-3 uppercase tracking-wide">Settings & Behavior</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <label className="flex items-center space-x-2 cursor-pointer">
                         <input type="checkbox" checked={data.isinsurance} onChange={e => setData('isinsurance', e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500" />
                         <span className="text-sm font-medium">Is Insurance Company</span>
@@ -117,6 +105,10 @@ export default function GroupForm({ group = null, activePriceCategories = [] }) 
                     <label className="flex items-center space-x-2 cursor-pointer">
                         <input type="checkbox" checked={data.isexemption} onChange={e => setData('isexemption', e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500" />
                         <span className="text-sm">Is Exemption Category</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" checked={data.hassubgroups} onChange={e => setData('hassubgroups', e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500" />
+                        <span className="text-sm">Has Subgroups / Schemes</span>
                     </label>
                     <label className="flex items-center space-x-2 cursor-pointer">
                         <input type="checkbox" checked={data.isdefault} onChange={e => setData('isdefault', e.target.checked)} className="rounded text-blue-600 focus:ring-blue-500" />
@@ -144,7 +136,16 @@ export default function GroupForm({ group = null, activePriceCategories = [] }) 
                                 onChange={e => setData('facility_code', e.target.value)} 
                                 className="w-full border-blue-300 rounded-md shadow-sm" 
                             />
-                        </div>                        
+                        </div>    
+                        <div>
+                            <label className="block text-sm font-medium text-blue-900">Secret Key</label>
+                            <input 
+                                type="text" 
+                                value={data.secrety_key} 
+                                onChange={e => setData('secrety_key', e.target.value)} 
+                                className="w-full border-blue-300 rounded-md shadow-sm" 
+                            />
+                        </div> 
                         <div>
                             <label className="block text-sm font-medium text-blue-900">API Base URL</label>
                             <input 
