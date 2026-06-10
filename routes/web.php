@@ -90,5 +90,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     require __DIR__.'/modules/mortuary.php';
     require __DIR__.'/modules/dental.php';
     require __DIR__.'/modules/eye.php';
+    require __DIR__.'/modules/orphanage.php'; // For orphanage0...  
 
 });

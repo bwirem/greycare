@@ -945,3 +945,36 @@ Route::prefix('systemconfiguration16')->name('systemconfiguration16.')->group(fu
     Route::delete('cabinets/{cabinet}', [MortuaryCabinetController::class, 'destroy'])->name('rooms.cabinets.destroy');
 
 });
+
+
+use App\Models\Orphanage\OrpAdoptationType;
+use App\Models\Orphanage\OrpRegistrationType;
+use App\Http\Controllers\Orphanage\AdoptationTypeController;
+use App\Http\Controllers\Orphanage\RegistrationTypeController;
+
+// System Configuration 17: Adoption & Registration Setup
+Route::prefix('systemconfiguration17')->name('systemconfiguration17.')->group(function () {
+
+    // Main Dashboard
+    Route::get('/', function () {
+        return Inertia::render('SystemConfiguration/OrphanageSetup/Index', [
+            'adoptationTypeCount'   => OrpAdoptationType::count(),
+            'registrationTypeCount' => OrpRegistrationType::count(),
+        ]);
+    })->name('index');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Adoption Types
+    |--------------------------------------------------------------------------
+    */
+    Route::resource('adoptationtypes', AdoptationTypeController::class);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Registration Types
+    |--------------------------------------------------------------------------
+    */
+    Route::resource('registrationtypes', RegistrationTypeController::class);
+
+});

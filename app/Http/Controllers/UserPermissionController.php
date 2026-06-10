@@ -263,6 +263,7 @@ class UserPermissionController extends Controller
                 ['key' => 'outpatient2', 'text' => 'Approval Request', 'icon' => 'file_signature'],
                 ['key' => 'outpatient3', 'text' => 'To Referral Hospital', 'icon' => 'ambulance'],  
                 ['key' => 'outpatient4', 'text' => 'Check Out & Claims', 'icon' => 'cash_register'],
+                ['key' => 'outpatient5', 'text' => 'Edit Patient Details', 'icon' => 'box_open'],
                                              
             ],
             'inpatient' => [
@@ -437,7 +438,8 @@ class UserPermissionController extends Controller
                 // Specialized Reports
                 ['key' => 'reporting18', 'text' => 'RCH', 'icon' => 'baby_carriage'],
                 ['key' => 'reporting19', 'text' => 'HIVART', 'icon' => 'ribbon'],
-                ['key' => 'reporting20', 'text' => 'Mortuary', 'icon' => 'cross'],            
+                ['key' => 'reporting20', 'text' => 'Mortuary', 'icon' => 'cross'],  
+                ['key' => 'reporting21', 'text' => 'Orphanage', 'icon' => 'child'],          
             ],
             
             'systemConfig' => [
@@ -465,6 +467,8 @@ class UserPermissionController extends Controller
                 ['key' => 'systemconfiguration15', 'text' => 'HIVART Configuration', 'icon' => 'ribbon'],
                 // Mortuary Setup
                 ['key' => 'systemconfiguration16', 'text' => 'Mortuary Configuration', 'icon' => 'cross'],
+                // Orphanage Setup
+                ['key' => 'systemconfiguration17', 'text' => 'Orphanage Configuration', 'icon' => 'child'],
                 
             ],
             'usermanagement' => [

@@ -41,7 +41,7 @@ const caretClasses = (isOpen) => `caret ml-auto transition-transform duration-20
 const allowedFinanceItemKeys = [     
     
     //Outpatient Module Items
-    'outpatient0', 'outpatient1', 'outpatient2', 'outpatient3', 'outpatient4',
+    'outpatient0', 'outpatient1', 'outpatient2', 'outpatient3', 'outpatient4', 'outpatient5',
     //Inpatient Module Items
     'inpatient0', 'inpatient1', 'inpatient2', 
     //Nursing Module Items

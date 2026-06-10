@@ -16,7 +16,7 @@ use App\Models\Patient\Patient;
 use App\Models\Opd\OpdBooking;
 use App\Models\Opd\OpdTreatmentPoint;
 use App\Models\Patient\PatientBillingGroup;
-use App\Models\Patient\PatientBillingSubGroup;
+use App\Models\Patient\PatientBillingSubgroup;
 
 use App\Models\MedicalRecord\MrVitalSign;
 use App\Models\User;
@@ -109,7 +109,7 @@ class OpdRegistrationController extends Controller
         return Inertia::render('Hospital/Opd/Registrations/Create', [
             'treatmentPoints' => OpdTreatmentPoint::select('id', 'name')->get(),         
             'billingGroups'   => PatientBillingGroup::select('id', 'name', 'isexemption', 'isinsurance','hassubgroups')->get(),
-            'billingSubgroups' => PatientBillingSubGroup::select('id', 'name')->get(),  
+            'billingSubgroups' => PatientBillingSubgroup::select('id', 'name')->get(),  
             'doctors'         => User::select('id', 'name')
                                     ->whereNotNull('specialization_id')
                                     ->get(), 
@@ -179,7 +179,7 @@ class OpdRegistrationController extends Controller
 
             // --- 1. DETERMINE PAYMENT CATEGORY ---
             $billingGroup = PatientBillingGroup::findOrFail($validated['billinggroup_id']);
-            $billingSubGroup = PatientBillingSubGroup::findOrFail($validated['billingsubgroup_id']);
+            //$billingSubGroup = PatientBillingSubgroup::findOrFail($validated['billingsubgroup_id']);
             $facilityOption = FacilityOption::first();
 
             $paymentCategory = 'Cash';
@@ -391,7 +391,7 @@ class OpdRegistrationController extends Controller
             // ADDED hassubgroups to the select array!
             'billingGroups'    => PatientBillingGroup::select('id', 'name', 'isexemption', 'isinsurance', 'hassubgroups')->get(),
             // ADDED billingSubgroups to the view!
-            'billingSubgroups' => PatientBillingSubGroup::select('id', 'name')->get(),  
+            'billingSubgroups' => PatientBillingSubgroup::select('id', 'name')->get(),  
             'doctors'          => User::select('id', 'name')->whereNotNull('specialization_id')->get(), 
         ]);
     }

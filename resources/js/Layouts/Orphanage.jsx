@@ -39,6 +39,8 @@ const allowedSpecializedItemKeys = [
     'orphanage1', // Antenatal
     'orphanage2', // Postnatal
     'orphanage3', // Child Health   
+    'reporting21', // Orphanage Report
+    'systemconfiguration17', // Orphanage Configuration
 ];
 
 // Icon Map (Tailored for Specialized Clinics)
@@ -79,6 +81,10 @@ const iconMap = {
     // Generics
     analytics: faChartBar,
     stethoscope: faStethoscope,   
+
+    //child: faBabyCarriage,
+    donation: faHandHoldingMedical,
+    chart_line: faChartBar,
     
 };
 
