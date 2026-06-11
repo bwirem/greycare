@@ -88,8 +88,12 @@ const StockSelectionModal = ({ isOpen, onClose, onConfirm, item, stores, isLoadi
     );
 };
 
-export default function Create({ fromstore, priceCategories, auth, facilityOptions }) {
-    const { data, setData, errors, processing } = useForm({
+export default function Create({ fromstore, priceCategories, auth, facilityOptions, billinggroups, billingsubgroups}) {
+    const { data, setData, errors, processing } = useForm({        
+        billinggroup_id: null,
+        billingsubgroup_id: null,
+        billinggroupmembershipno: null,
+        ward_id: null,
         store_id: auth?.user?.store_id || null,
         pricecategory_id: auth?.user?.pricecategory_id || null,
         total: 0,
@@ -381,6 +385,21 @@ export default function Create({ fromstore, priceCategories, auth, facilityOptio
                             <section className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                                 {/* ... Your existing Setup Section code remains unchanged ... */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* --- ADD BILLING GROUP/SUBGROUP SELECTION --- */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Billing Group</label>
+                                        <select value={data.billinggroup_id || ''} onChange={e => setData("billinggroup_id", e.target.value)} className="w-full border p-2 rounded-md dark:bg-gray-700 dark:text-gray-200">
+                                            {billinggroups.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Billing Subgroup</label>
+                                        <select value={data.billingsubgroup_id || ''} onChange={e => { setData("billingsubgroup_id", e.target.value); setItemSearchQuery(''); }} className="w-full border p-2 rounded-md dark:bg-gray-700 dark:text-gray-200">
+                                            <option value="" disabled>Select...</option>
+                                            {billingsubgroups.map(pc => <option key={pc.id} value={pc.id}>{pc.name}</option>)}
+                                        </select>
+                                    </div>              
+                                    
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Store</label>
                                         <select value={data.store_id || ''} onChange={(e) => setData("store_id", e.target.value)}

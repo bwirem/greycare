@@ -18,6 +18,7 @@ export default function DailySalesReport({ auth, reportData, filters, billingGro
     const { data, setData, get, processing } = useForm({
         report_date: filters.report_date || new Date().toISOString().slice(0, 10),
         billinggroup_id: filters.billinggroup_id || '',
+        ward_id: filters.ward_id || '',
     });
 
     const handleDateChange = (e) => {
@@ -27,6 +28,10 @@ export default function DailySalesReport({ auth, reportData, filters, billingGro
     const handleBillingGroupChange = (e) => {
         setData('billinggroup_id', e.target.value);
     };
+
+    const handleWardChange = (e) => {
+        setData('ward_id', e.target.value);
+    }
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -41,6 +46,7 @@ export default function DailySalesReport({ auth, reportData, filters, billingGro
         const params = { format };
         if (data.report_date) params.report_date = data.report_date;
         if (data.billinggroup_id) params.billinggroup_id = data.billinggroup_id;
+        if (data.ward_id) params.ward_id = data.ward_id; // <-- ADD THIS LINE
         return route('reports.sales.daily.export', params);
     };
 
@@ -86,6 +92,23 @@ export default function DailySalesReport({ auth, reportData, filters, billingGro
                                             {group.name}
                                         </option>
                                     ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label htmlFor="ward_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Ward
+                                </label>
+                                <select
+                                    id="ward_id"
+                                    name="ward_id"
+                                    value={data.ward_id}
+                                    onChange={handleWardChange}
+                                    className="mt-1 block w-full min-w-[200px] rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                                >
+                                    <option value="">All Patients</option>
+                                    <option value="opd">OPD Patients</option>
+                                    <option value="ipd">IPD Patients</option>
                                 </select>
                             </div>
 

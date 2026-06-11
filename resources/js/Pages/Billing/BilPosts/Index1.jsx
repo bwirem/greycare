@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { Head, Link, useForm, router } from "@inertiajs/react";
+import { Head, Link, useForm, router, usePage} from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/FinanceLayout";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -8,37 +8,49 @@ import {
     faEdit,
     faTrash,
     faEye,
-    faFilter, // Added icon
 } from "@fortawesome/free-solid-svg-icons";
 import "@fortawesome/fontawesome-svg-core/styles.css";
-
 import Modal from '@/Components/CustomModal.jsx';
+
+// 1. IMPORT TOAST
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 const ORDER_STAGE_LABELS = {
     3: 'Pending',
     4: 'Control#', 
 };
 
-const PAYMENT_CATEGORIES = [
-    'Cash',
-    'Insurance',
-    'Exemption',
-    'Invoice'
-];
-
 const DEBOUNCE_DELAY = 300; 
 
-export default function Index({ auth, orders, filters, success }) {
-    // Added payment_category to useForm
+const formatQueueTime = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+};
+
+// 🔥 Added `error` to the props destructuring
+export default function Index({ auth, orders, filters, success, error }) {    
+    
+    // 2. EXTRACT FLASH DATA FROM PROPS
+    const { flash } = usePage().props;
+    
     const { data, setData, errors, processing } = useForm({
         search: filters.search || "",
         stage: filters.stage || "",
-        payment_category: filters.payment_category || "", // New Filter State
         start_date: filters.start_date, 
         end_date: filters.end_date,   
     });
 
-    const [modalState, setModalState] = useState({
+    const[modalState, setModalState] = useState({
         isOpen: false,
         message: '',
         isAlert: false,
@@ -46,13 +58,54 @@ export default function Index({ auth, orders, filters, success }) {
     });
 
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false); // 🔥 Added error modal state
     const searchTimeoutRef = useRef(null);
 
-    useEffect(() => {
-        if (success) {
-            setShowSuccessModal(true);
+    // --- 3. PRINTING LOGIC ---
+    const triggerPrint = (responseData) => {
+        if (!responseData) return;
+
+        // Case 1: Auto Print via hidden iframe
+        if (responseData.auto_print && responseData.preview_url) {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = responseData.preview_url;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            };
+            return;
         }
-    }, [success]);
+
+        // Case 2: Open in new tab (Preview)
+        if (responseData.preview_url) {
+            window.open(responseData.preview_url, '_blank');
+        }
+    };
+    
+    // Catch the flash message containing print instructions when the page loads
+    useEffect(() => {
+        if (flash && flash.print_response) {
+            // Show Success Toast
+            if (flash.print_response.message) {
+                toast.success(flash.print_response.message);
+            }
+            
+            // Trigger the print popup/iframe
+            triggerPrint(flash.print_response);
+            
+            // Clear flash to prevent it from firing again if the user navigates back
+            flash.print_response = null; 
+        }
+    }, [flash]);
+
+    // 🔥 Effect handles both success and error flashes
+    useEffect(() => {
+        if (success) setShowSuccessModal(true);
+        if (error) setShowErrorModal(true);
+    }, [success, error]);
 
     useEffect(() => {
         if (searchTimeoutRef.current) {
@@ -60,7 +113,7 @@ export default function Index({ auth, orders, filters, success }) {
         }
 
         searchTimeoutRef.current = setTimeout(() => {
-            router.get(route("billing1"), data, {
+            router.get(route("billing1.index"), data, {
                 preserveState: true,
                 preserveScroll: true, 
                 replace: true,        
@@ -68,9 +121,7 @@ export default function Index({ auth, orders, filters, success }) {
         }, DEBOUNCE_DELAY);
 
         return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current);
-            }
+            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         };
     }, [data]); 
 
@@ -90,11 +141,11 @@ export default function Index({ auth, orders, filters, success }) {
             isAlert: false,
             orderToDeleteId: id,
         });
-    }, []);
+    },[]);
 
     const handleModalClose = useCallback(() => {
         setModalState(prev => ({ ...prev, isOpen: false }));
-    }, []);
+    },[]);
 
     const showAlert = useCallback((message) => {
         setModalState({
@@ -103,7 +154,7 @@ export default function Index({ auth, orders, filters, success }) {
             isAlert: true,
             orderToDeleteId: null,
         });
-    }, []);
+    },[]);
 
     const handleModalConfirm = useCallback(() => {
         if (!modalState.orderToDeleteId) return;
@@ -113,11 +164,10 @@ export default function Index({ auth, orders, filters, success }) {
                 setModalState({ isOpen: false, message: '', isAlert: false, orderToDeleteId: null });
             },
             onError: (errorResponse) => {
-                console.error("Failed to delete item:", errorResponse);
                 showAlert((errorResponse && errorResponse.message) || "There was an error deleting the item.");
             },
         });
-    }, [modalState.orderToDeleteId, showAlert]);
+    },[modalState.orderToDeleteId, showAlert]);
 
     return (
         <AuthenticatedLayout
@@ -163,42 +213,20 @@ export default function Index({ auth, orders, filters, success }) {
                                     </div>
                                 </div>
 
-                                {/* Row 2: Create Button, Payment Category, and Stage Filters */}
+                                {/* Row 2: Create Button and Stage Filters */}
                                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                                        <Link
-                                            href={route("billing1.create")}
-                                            className="flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 md:w-auto"
-                                        >
-                                            <FontAwesomeIcon icon={faPlus} className="mr-2 h-4 w-4" /> Create
-                                        </Link>
-
-                                        {/* NEW: Payment Category Dropdown */}
-                                        <div className="relative">
-                                            <FontAwesomeIcon icon={faFilter} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                                            <select
-                                                name="payment_category"
-                                                value={data.payment_category}
-                                                onChange={handleSearchChange}
-                                                className="w-full rounded-md border-gray-300 py-2 pl-9 pr-4 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 md:w-48"
-                                            >
-                                                <option value="">All Categories</option>
-                                                {PAYMENT_CATEGORIES.map((category) => (
-                                                    <option key={category} value={category}>
-                                                        {category}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    {/* Stage Filters */}
+                                    <Link
+                                        href={route("billing1.create")}
+                                        className="flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700 md:w-auto"
+                                    >
+                                        <FontAwesomeIcon icon={faPlus} className="mr-2 h-4 w-4" /> Create
+                                    </Link>
                                     <ul className="flex flex-wrap items-center gap-2">
                                         <li
                                             className={`cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium flex items-center ${data.stage === "" ? "bg-indigo-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"}`}
                                             onClick={() => handleStageChange("")}
                                         >
-                                            All Stages
+                                            All
                                         </li>
                                         {Object.entries(ORDER_STAGE_LABELS).map(([key, label]) => (
                                             <li
@@ -218,52 +246,24 @@ export default function Index({ auth, orders, filters, success }) {
                                 <table className="min-w-full divide-y divide-gray-200 bg-white">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            {/* 1. Queue Time Column Header (NEW) */}
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                                Queue Time
-                                            </th>
-                                            
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                                Customer Name
-                                            </th>
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                                Category
-                                            </th>
-                                            <th scope="col" className="px-4 py-3.5 text-right text-sm font-semibold text-gray-900">
-                                                Total
-                                            </th>
-                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                                Stage
-                                            </th>
-                                            <th scope="col" className="px-4 py-3.5 text-center text-sm font-semibold text-gray-900">
-                                                Actions
-                                            </th>
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Customer Name</th>
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Queue Time</th>
+                                            <th scope="col" className="px-4 py-3.5 text-right text-sm font-semibold text-gray-900">Total</th>
+                                            <th scope="col" className="px-4 py-3.5 text-left text-sm font-semibold text-gray-900">Stage</th>
+                                            <th scope="col" className="px-4 py-3.5 text-center text-sm font-semibold text-gray-900">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200">
                                         {orders.data.length > 0 ? (
                                             orders.data.map((order) => {
                                                 const isEditStage = order.stage === 3;
-                                                const actionButtonText = isEditStage ? "Process" : "Preview";
+                                                const actionButtonText = isEditStage ? "Process" : "Payment";
                                                 const actionButtonTitle = isEditStage ? "Edit Item" : "Preview Item";
                                                 const actionButtonIcon = isEditStage ? faEdit : faEye;
                                                 const actionButtonBgColor = isEditStage ? "bg-yellow-500 hover:bg-yellow-600" : "bg-sky-500 hover:bg-sky-600";
 
                                                 return (
                                                     <tr key={order.id} className="hover:bg-gray-50">
-                                                        
-                                                        {/* 1. Queue Time Data (NEW) */}
-                                                        <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
-                                                            <div className="flex flex-col">
-                                                                <span className="font-bold text-gray-900">
-                                                                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                </span>
-                                                                <span className="text-xs text-gray-500">
-                                                                    {new Date(order.created_at).toLocaleDateString()}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
                                                             {order.customer.customer_type === 'individual' ?
                                                                 `${order.customer.first_name} ${order.customer.other_names || ''} ${order.customer.surname}`.replace(/\s+/g, ' ').trim() :
@@ -271,13 +271,7 @@ export default function Index({ auth, orders, filters, success }) {
                                                             }
                                                         </td>
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
-                                                            <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                                                                order.payment_category === 'Insurance' ? 'bg-blue-50 text-blue-700 ring-blue-700/10' :
-                                                                order.payment_category === 'Exemption' ? 'bg-green-50 text-green-700 ring-green-600/20' :
-                                                                'bg-purple-50 text-purple-700 ring-purple-700/10'
-                                                            }`}>
-                                                                {order.payment_category}
-                                                            </span>
+                                                            {formatQueueTime(order.created_at)}
                                                         </td>
                                                         <td className="whitespace-nowrap px-4 py-4 text-right text-sm text-gray-700">
                                                             {parseFloat(order.total).toLocaleString(undefined, {
@@ -305,7 +299,7 @@ export default function Index({ auth, orders, filters, success }) {
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan="6" className="whitespace-nowrap px-4 py-10 text-center text-sm text-gray-500">
+                                                <td colSpan="5" className="whitespace-nowrap px-4 py-10 text-center text-sm text-gray-500">
                                                     No items found matching your criteria.
                                                 </td>
                                             </tr>
@@ -328,6 +322,21 @@ export default function Index({ auth, orders, filters, success }) {
                 confirmButtonText="OK"
             >
                 <p className="text-sm text-gray-600">{success}</p>
+            </Modal>
+
+            {/* 🔥 ADDED: Error Modal (Handles the Redirect with Error) */}
+            <Modal
+                isOpen={showErrorModal}
+                onClose={() => setShowErrorModal(false)}
+                onConfirm={() => setShowErrorModal(false)}
+                title="API Gateway Error"
+                isAlert={true}
+                confirmButtonText="OK"
+            >
+                <div className="flex flex-col text-center">
+                    <p className="text-sm text-red-600 font-semibold mb-2">Order aborted because:</p>
+                    <p className="text-sm text-gray-800 bg-red-50 p-3 rounded-md border border-red-200">{error}</p>
+                </div>
             </Modal>
 
             {/* Confirmation/Alert Modal */}

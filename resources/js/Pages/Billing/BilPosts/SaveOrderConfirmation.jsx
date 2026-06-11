@@ -29,6 +29,10 @@ export default function SaveOrderConfirmation({ auth, orderData }) {
     // 1. BRING BACK INERTIA'S `post`, `processing`, and `errors`
     const { data, setData, post, processing, errors, reset } = useForm({
         customer_id: null,
+        billinggroup_id: null,
+        billingsubgroup_id: null,
+        billinggroupmembershipno: null,
+        ward_id: null,
         stage: '3', 
         store_id: orderData.store_id || null,
         pricecategory_id: orderData.pricecategory_id || null,

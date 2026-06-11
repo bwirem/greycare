@@ -50,16 +50,25 @@ class SalesReportsController extends Controller
         $validated = $request->validate([
             'report_date' => 'nullable|date_format:Y-m-d',
             'billinggroup_id' => 'nullable|exists:patient_billing_groups,id',
+            'ward_id' => 'nullable|in:opd,ipd', // Added validation for ward_id
         ]);
 
         $reportDate = Carbon::parse($validated['report_date'] ?? Carbon::today())->startOfDay();
         $billingGroupId = $validated['billinggroup_id'] ?? null;
+        $wardIdFilter = $validated['ward_id'] ?? null; // Extract ward_id
 
         // Base query
         $baseSalesQuery = BILSale::whereDate('transdate', $reportDate)
             ->where('voided', '!=', 1)
             ->when($billingGroupId, function ($query) use ($billingGroupId) {
                 $query->where('billinggroup_id', $billingGroupId);
+            })
+            // Apply Ward Filter Logic
+            ->when($wardIdFilter === 'opd', function ($query) {
+                $query->whereNull('ward_id');
+            })
+            ->when($wardIdFilter === 'ipd', function ($query) {
+                $query->whereNotNull('ward_id');
             });
 
         // Summary
@@ -78,6 +87,13 @@ class SalesReportsController extends Controller
             ->where('bil_sales.voided', '!=', 1)
             ->when($billingGroupId, function ($query) use ($billingGroupId) {
                 $query->where('bil_sales.billinggroup_id', $billingGroupId);
+            })
+            // Apply Ward Filter Logic with table prefix
+            ->when($wardIdFilter === 'opd', function ($query) {
+                $query->whereNull('bil_sales.ward_id');
+            })
+            ->when($wardIdFilter === 'ipd', function ($query) {
+                $query->whereNotNull('bil_sales.ward_id');
             })
             ->select(
                 'bls_items.id as item_id',
@@ -149,10 +165,9 @@ class SalesReportsController extends Controller
             'filters' => [
                 'report_date' => $reportDate->format('Y-m-d'),
                 'billinggroup_id' => $billingGroupId,
+                'ward_id' => $wardIdFilter, // Pass it back so frontend keeps its state
             ],
             'billingGroups' => PatientBillingGroup::orderBy('name')->get(['id', 'name']),
-
-
         ]);
     }
 
@@ -161,11 +176,13 @@ class SalesReportsController extends Controller
         $validated = $request->validate([
             'report_date' => 'nullable|date_format:Y-m-d',
             'billinggroup_id' => 'nullable|exists:patient_billing_groups,id',
+            'ward_id' => 'nullable|in:opd,ipd', // Added ward_id validation
             'format' => 'required|in:pdf,excel',
         ]);
 
         $reportDate = Carbon::parse($validated['report_date'] ?? Carbon::today())->startOfDay();
         $billingGroupId = $validated['billinggroup_id'] ?? null;
+        $wardIdFilter = $validated['ward_id'] ?? null; // Extract ward_id
         $format = $validated['format'];
 
         // Re-calculate the data specifically for export
@@ -177,6 +194,13 @@ class SalesReportsController extends Controller
             ->where('bil_sales.voided', '!=', 1)
             ->when($billingGroupId, function ($query) use ($billingGroupId) {
                 $query->where('bil_sales.billinggroup_id', $billingGroupId);
+            })
+            // Apply Ward Filter Logic with table prefix
+            ->when($wardIdFilter === 'opd', function ($query) {
+                $query->whereNull('bil_sales.ward_id');
+            })
+            ->when($wardIdFilter === 'ipd', function ($query) {
+                $query->whereNotNull('bil_sales.ward_id');
             })
             ->select(
                 'bls_items.id as item_id', 'bls_items.name as item_name',
@@ -196,7 +220,14 @@ class SalesReportsController extends Controller
             ])->values();
 
         $baseSalesQuery = BILSale::whereDate('transdate', $reportDate)->where('voided', '!=', 1)
-            ->when($billingGroupId, fn($q) => $q->where('billinggroup_id', $billingGroupId));
+            ->when($billingGroupId, fn($q) => $q->where('billinggroup_id', $billingGroupId))
+            // Apply Ward Filter Logic
+            ->when($wardIdFilter === 'opd', function ($query) {
+                $query->whereNull('ward_id');
+            })
+            ->when($wardIdFilter === 'ipd', function ($query) {
+                $query->whereNotNull('ward_id');
+            });
 
         $summaries = (clone $baseSalesQuery)->select(
             DB::raw('SUM(totalpaid) as total_sales'), DB::raw('COUNT(id) as transaction_count'), DB::raw('SUM(discount) as total_discount')
@@ -204,16 +235,25 @@ class SalesReportsController extends Controller
 
         // Get labels for UI
         $billingGroupName = $billingGroupId ? PatientBillingGroup::find($billingGroupId)->name : 'All Billing Groups';
+        
+        // Get ward name for report header (optional, but helpful for your PDFs)
+        $wardName = match ($wardIdFilter) {
+            'opd' => 'OPD Patients',
+            'ipd' => 'IPD Patients',
+            default => 'All Patients'
+        };
+
         $facility = FacilityOption::first();
 
         // Stream PDF or Download Excel
         if ($format === 'pdf') {
             $pdf = Pdf::loadView('pdfs.daily_sales_report', compact(
-                'aggregatedItems', 'salesByItemGroup', 'summaries', 'reportDate', 'billingGroupName', 'facility'
+                'aggregatedItems', 'salesByItemGroup', 'summaries', 'reportDate', 'billingGroupName', 'facility', 'wardName'
             ));
             return $pdf->stream('Daily_Sales_' . $reportDate->format('Y_m_d') . '.pdf');
             
         } elseif ($format === 'excel') {
+            // If you want $wardName in your Excel, remember to update the DailySalesExport constructor to accept it.
             return Excel::download(
                 new DailySalesExport($aggregatedItems, $salesByItemGroup, $summaries, $reportDate, $billingGroupName), 
                 'Daily_Sales_' . $reportDate->format('Y_m_d') . '.xlsx'
@@ -231,17 +271,27 @@ class SalesReportsController extends Controller
             'end_date'        => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
             'group_by'        => 'nullable|string|in:day,week,month,item_group,product',
             'billinggroup_id' => 'nullable|exists:patient_billing_groups,id',
+            'ward_id'         => 'nullable|in:opd,ipd', // <-- Added validation
         ]);
 
         $startDate      = Carbon::parse($validated['start_date'] ?? Carbon::now()->startOfMonth())->startOfDay();
         $endDate        = Carbon::parse($validated['end_date']   ?? Carbon::now()->endOfMonth())->endOfDay();
         $groupBy        = $validated['group_by'] ?? 'day';
         $billingGroupId = $validated['billinggroup_id'] ?? null;
+        $wardIdFilter   = $validated['ward_id'] ?? null; // <-- Extract ward_id
 
+        // Base query for Day, Week, and Month grouping
         $baseSalesQuery = BILSale::whereBetween('transdate', [$startDate, $endDate])
             ->where('voided', '!=', 1)
             ->when($billingGroupId, function ($query) use ($billingGroupId) {
                 $query->where('billinggroup_id', $billingGroupId);
+            })
+            // <-- Apply Ward Filter Logic
+            ->when($wardIdFilter === 'opd', function ($query) {
+                $query->whereNull('ward_id');
+            })
+            ->when($wardIdFilter === 'ipd', function ($query) {
+                $query->whereNotNull('ward_id');
             });
 
         $summaries = (clone $baseSalesQuery)->select(
@@ -259,7 +309,7 @@ class SalesReportsController extends Controller
                 $dailySales = (clone $baseSalesQuery)
                     ->select(
                         DB::raw('DATE(transdate) as sale_date'), 
-                        DB::raw('SUM(totaldue) as daily_dues'), // Added
+                        DB::raw('SUM(totaldue) as daily_dues'),
                         DB::raw('SUM(totalpaid) as daily_total'), 
                         DB::raw('COUNT(id) as daily_transactions')
                     )
@@ -271,7 +321,7 @@ class SalesReportsController extends Controller
                     $chartData[] = $saleForDate ? (float) $saleForDate->daily_total : 0;
                     $groupedSalesData[] = [
                         'period_label' => $date->format('D, M d, Y'), 
-                        'total_dues' => $saleForDate ? (float) $saleForDate->daily_dues : 0, // Added
+                        'total_dues' => $saleForDate ? (float) $saleForDate->daily_dues : 0,
                         'total_sales' => $saleForDate ? (float) $saleForDate->daily_total : 0, 
                         'transactions' => $saleForDate ? (int) $saleForDate->daily_transactions : 0
                     ];
@@ -281,7 +331,7 @@ class SalesReportsController extends Controller
                 $weeklySales = (clone $baseSalesQuery)
                     ->select(
                         DB::raw(config('database.default') === 'sqlite' ? "strftime('%Y-%W', transdate) as sale_week" : "DATE_FORMAT(transdate, '%x-%v') as sale_week"), 
-                        DB::raw('SUM(totaldue) as weekly_dues'), // Added
+                        DB::raw('SUM(totaldue) as weekly_dues'),
                         DB::raw('SUM(totalpaid) as weekly_total'), 
                         DB::raw('COUNT(id) as weekly_transactions')
                     )
@@ -292,17 +342,17 @@ class SalesReportsController extends Controller
                     $chartLabels[] = $label; $chartData[] = (float) $sale->weekly_total;
                     $groupedSalesData[] = [
                         'period_label' => $label, 
-                        'total_dues' => (float) $sale->weekly_dues, // Added
+                        'total_dues' => (float) $sale->weekly_dues,
                         'total_sales' => (float) $sale->weekly_total, 
                         'transactions' => (int) $sale->weekly_transactions
                     ];
                 }
                 break;
             case 'month':
-                 $monthlySales = (clone $baseSalesQuery)
+                $monthlySales = (clone $baseSalesQuery)
                     ->select(
                         DB::raw(config('database.default') === 'sqlite' ? "strftime('%Y-%m', transdate) as sale_month" : "DATE_FORMAT(transdate, '%Y-%m') as sale_month"), 
-                        DB::raw('SUM(totaldue) as monthly_dues'), // Added
+                        DB::raw('SUM(totaldue) as monthly_dues'),
                         DB::raw('SUM(totalpaid) as monthly_total'), 
                         DB::raw('COUNT(id) as monthly_transactions')
                     )
@@ -312,7 +362,7 @@ class SalesReportsController extends Controller
                     $chartLabels[] = $label; $chartData[] = (float) $sale->monthly_total;
                     $groupedSalesData[] = [
                         'period_label' => $label, 
-                        'total_dues' => (float) $sale->monthly_dues, // Added
+                        'total_dues' => (float) $sale->monthly_dues,
                         'total_sales' => (float) $sale->monthly_total, 
                         'transactions' => (int) $sale->monthly_transactions
                     ];
@@ -320,6 +370,7 @@ class SalesReportsController extends Controller
                 break;
             case 'item_group': 
             case 'product':
+                // Base query specifically for grouped items
                 $itemsQuery = BILSaleItem::query()
                     ->join('bil_sales', 'bil_saleitems.sale_id', '=', 'bil_sales.id')
                     ->join('bls_items', 'bil_saleitems.item_id', '=', 'bls_items.id')
@@ -327,6 +378,13 @@ class SalesReportsController extends Controller
                     ->where('bil_sales.voided', '!=', 1)
                     ->when($billingGroupId, function ($query) use ($billingGroupId) {
                         $query->where('bil_sales.billinggroup_id', $billingGroupId);
+                    })
+                    // <-- Apply Ward Filter Logic with table prefix
+                    ->when($wardIdFilter === 'opd', function ($query) {
+                        $query->whereNull('bil_sales.ward_id');
+                    })
+                    ->when($wardIdFilter === 'ipd', function ($query) {
+                        $query->whereNotNull('bil_sales.ward_id');
                     });
 
                 if ($groupBy === 'item_group') {
@@ -365,7 +423,8 @@ class SalesReportsController extends Controller
                 'chart_labels' => $chartLabels, 
                 'chart_data' => $chartData,
             ],
-            'filters' => $request->only(['start_date', 'end_date', 'group_by', 'billinggroup_id']),
+            // <-- Added 'ward_id' to the filters response so the React select retains its state
+            'filters' => $request->only(['start_date', 'end_date', 'group_by', 'billinggroup_id', 'ward_id']),
             'billingGroups' => PatientBillingGroup::orderBy('name')->get(['id', 'name']), 
         ]);
     }
@@ -377,6 +436,7 @@ class SalesReportsController extends Controller
             'end_date'        => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
             'group_by'        => 'nullable|string|in:day,week,month,item_group,product',
             'billinggroup_id' => 'nullable|exists:patient_billing_groups,id',
+            'ward_id'         => 'nullable|in:opd,ipd', // <-- Added validation
             'format'          => 'required|in:pdf,excel',
         ]);
 
@@ -384,12 +444,21 @@ class SalesReportsController extends Controller
         $endDate        = Carbon::parse($validated['end_date']   ?? Carbon::now()->endOfMonth())->endOfDay();
         $groupBy        = $validated['group_by'] ?? 'day';
         $billingGroupId = $validated['billinggroup_id'] ?? null;
+        $wardIdFilter   = $validated['ward_id'] ?? null; // <-- Extract ward_id
         $format         = $validated['format'];
 
+        // Base query for Day, Week, Month
         $baseSalesQuery = BILSale::whereBetween('transdate', [$startDate, $endDate])
             ->where('voided', '!=', 1)
             ->when($billingGroupId, function ($query) use ($billingGroupId) {
                 $query->where('billinggroup_id', $billingGroupId);
+            })
+            // <-- Apply Ward Filter Logic
+            ->when($wardIdFilter === 'opd', function ($query) {
+                $query->whereNull('ward_id');
+            })
+            ->when($wardIdFilter === 'ipd', function ($query) {
+                $query->whereNotNull('ward_id');
             });
 
         $summaries = (clone $baseSalesQuery)->select(
@@ -429,7 +498,7 @@ class SalesReportsController extends Controller
                 }
                 break;
             case 'month':
-                 $monthlySales = (clone $baseSalesQuery)
+                $monthlySales = (clone $baseSalesQuery)
                     ->select(DB::raw(config('database.default') === 'sqlite' ? "strftime('%Y-%m', transdate) as sale_month" : "DATE_FORMAT(transdate, '%Y-%m') as sale_month"), DB::raw('SUM(totaldue) as monthly_dues'), DB::raw('SUM(totalpaid) as monthly_total'), DB::raw('COUNT(id) as monthly_transactions'))
                     ->groupBy('sale_month')->orderBy('sale_month', 'asc')->get();
                 foreach($monthlySales as $sale) {
@@ -439,6 +508,7 @@ class SalesReportsController extends Controller
                 break;
             case 'item_group': 
             case 'product':
+                // Base query for specific items with ward_id applied
                 $itemsQuery = BILSaleItem::query()
                     ->join('bil_sales', 'bil_saleitems.sale_id', '=', 'bil_sales.id')
                     ->join('bls_items', 'bil_saleitems.item_id', '=', 'bls_items.id')
@@ -446,6 +516,13 @@ class SalesReportsController extends Controller
                     ->where('bil_sales.voided', '!=', 1)
                     ->when($billingGroupId, function ($query) use ($billingGroupId) {
                         $query->where('bil_sales.billinggroup_id', $billingGroupId);
+                    })
+                    // <-- Apply Ward Filter Logic with table prefix
+                    ->when($wardIdFilter === 'opd', function ($query) {
+                        $query->whereNull('bil_sales.ward_id');
+                    })
+                    ->when($wardIdFilter === 'ipd', function ($query) {
+                        $query->whereNotNull('bil_sales.ward_id');
                     });
 
                 if ($groupBy === 'item_group') {
@@ -468,10 +545,18 @@ class SalesReportsController extends Controller
         $facility = FacilityOption::first();
         $billingGroupName = $billingGroupId ? PatientBillingGroup::find($billingGroupId)->name : 'All Billing Groups';
 
+        // Get ward name for report header
+        $wardName = match ($wardIdFilter) {
+            'opd' => 'OPD Patients',
+            'ipd' => 'IPD Patients',
+            default => 'All Patients'
+        };
+
         $viewData = [
             'facility' => $facility,
             'report_title' => "Sales Summary ({$startDate->format('M d, Y')} - {$endDate->format('M d, Y')})",
             'billingGroupName' => $billingGroupName,
+            'wardName' => $wardName, // Passed to View
             'groupBy' => $groupBy,
             'grouped_data_title' => "Sales by " . ucwords(str_replace('_', ' ', $groupBy)),
             'summaries' => $summaries,
@@ -490,8 +575,7 @@ class SalesReportsController extends Controller
 
     /**
      * Generate a session report for a specific cashier.
-     */
-    
+     */    
     
     public function cashierSession(Request $request): InertiaResponse
     {

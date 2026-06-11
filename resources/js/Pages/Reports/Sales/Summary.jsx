@@ -18,6 +18,7 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
         end_date: filters.end_date || new Date().toISOString().slice(0, 10), 
         group_by: filters.group_by || 'day',
         billinggroup_id: filters.billinggroup_id || '', 
+        ward_id: filters.ward_id || '',
     });
 
     const handleInputChange = (e) => {
@@ -39,7 +40,7 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
         if (data.end_date) params.end_date = data.end_date;
         if (data.group_by) params.group_by = data.group_by;
         if (data.billinggroup_id) params.billinggroup_id = data.billinggroup_id;
-        
+        if (data.ward_id) params.ward_id = data.ward_id;
         return route('reports.sales.summary.export', params);
     };
 
@@ -91,6 +92,23 @@ export default function SalesSummaryReport({ auth, reportData, filters, billingG
                                             {group.name}
                                         </option>
                                     ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label htmlFor="ward_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Ward
+                                </label>
+                                <select
+                                    id="ward_id"
+                                    name="ward_id"
+                                    value={data.ward_id}
+                                    onChange={handleInputChange}
+                                    className="mt-1 block w-full min-w-[200px] rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                                >
+                                    <option value="">All Patients</option>
+                                    <option value="opd">OPD Patients</option>
+                                    <option value="ipd">IPD Patients</option>
                                 </select>
                             </div>
 

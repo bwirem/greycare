@@ -409,6 +409,10 @@ class DoctorOpdController extends Controller
                         if ($panel && $panel->blsItem) {
                             $billingService->addToBill(
                                 $booking->patientcode,
+                                $booking->billinggroup_id,
+                                $booking->billingsubgroup_id,  
+                                $booking->billinggroupmembershipno,
+                                null, // OPD
                                 $panel->blsItem->id, // Bill Item ID
                                 1, // Qty
                                 'laboratory', // Source Type
@@ -446,6 +450,10 @@ class DoctorOpdController extends Controller
                         if ($procedure && $procedure->blsItem) {
                             $billingService->addToBill(
                                 $booking->patientcode,
+                                $booking->billinggroup_id,
+                                $booking->billingsubgroup_id,                          
+                                $booking->billinggroupmembershipno,
+                                null, // OPD
                                 $procedure->blsItem->id,
                                 1,
                                 'radiology',
@@ -510,6 +518,10 @@ class DoctorOpdController extends Controller
                     if ($procedure && $procedure->blsItem) {
                         $billingService->addToBill(
                             $booking->patientcode,
+                            $booking->billinggroup_id,
+                            $booking->billingsubgroup_id,
+                            $booking->billinggroupmembershipno,
+                            null, // OPD  
                             $procedure->blsItem->id,
                             1,
                             'theatre',

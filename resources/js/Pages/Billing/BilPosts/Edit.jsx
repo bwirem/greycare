@@ -49,7 +49,7 @@ const StockSelectionModal = ({ isOpen, onClose, onConfirm, item, stores, isLoadi
     );
 };
 
-export default function Edit({ order, fromstore, auth, priceCategories, facilityOptions }) {
+export default function Edit({ order, fromstore, auth, priceCategories, facilityOptions, billinggroups, billingsubgroups }) {
     const STORAGE_KEY = `pendingOrderChanges_${order.id}`;
 
     const initializeOrderItems = (items) => {
@@ -81,6 +81,10 @@ export default function Edit({ order, fromstore, auth, priceCategories, facility
     };
    
     const { data, setData, errors, processing } = useForm({
+        billinggroup_id: order.billinggroup_id || null,
+        billingsubgroup_id: order.billingsubgroup_id || null,
+        billinggroupmembershipno: order.billinggroupmembershipno || null,
+        ward_id: order.ward_id || null,
         store_id: order.store_id,
         pricecategory_id: order.pricecategory_id || auth?.user?.pricecategory_id || null,
         total: parseFloat(order.total) || 0,
@@ -292,6 +296,21 @@ export default function Edit({ order, fromstore, auth, priceCategories, facility
                                     <span className="font-medium">Customer:</span> {order.customer?.company_name || `${order.customer?.first_name} ${order.customer?.surname}`}
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* --- ADD BILLING GROUP/SUBGROUP SELECTION --- */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Billing Group</label>
+                                        <select value={data.billinggroup_id || ''} onChange={e => setData("billinggroup_id", e.target.value)} className="w-full border p-2 rounded-md dark:bg-gray-700 dark:text-gray-200">
+                                            {billinggroups.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Billing Subgroup</label>
+                                        <select value={data.billingsubgroup_id || ''} onChange={e => { setData("billingsubgroup_id", e.target.value); setItemSearchQuery(''); }} className="w-full border p-2 rounded-md dark:bg-gray-700 dark:text-gray-200">
+                                            <option value="" disabled>Select...</option>
+                                            {billingsubgroups.map(pc => <option key={pc.id} value={pc.id}>{pc.name}</option>)}
+                                        </select>
+                                    </div>                                    
+                                    
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Store</label>
                                         <select value={data.store_id || ''} onChange={e => setData("store_id", e.target.value)} className="w-full border p-2 rounded-md dark:bg-gray-700 dark:text-gray-200">

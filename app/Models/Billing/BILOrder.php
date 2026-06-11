@@ -15,7 +15,8 @@ class BILOrder extends Model
     protected $table = 'bil_orders';
   
 
-    protected $fillable = ['transdate', 'store_id','customer_id','stage','total','payment_category', 'user_id'];
+    protected $fillable = ['transdate', 'store_id','customer_id','billinggroup_id','billingsubgroup_id',
+    'billinggroupmembershipno','ward_id','stage','total','payment_category', 'user_id'];
     
     public function store()
     {

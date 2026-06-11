@@ -26,7 +26,9 @@ class BillingService
      * Add a line item to the patient's active bill.
      * Returns the Order object so the controller can redirect to it.
      */
-    public function addToBill($patientCode, $billItemId, $quantity, $sourceType, $sourceId, $priceCategory = 'price1', $paymentCategory)
+    public function addToBill($patientCode,$billinggroupId = null,$billingsubgroupId=null,
+    $billinggroupmembershipno=null,$wardId=null, $billItemId,$quantity, $sourceType, 
+    $sourceId, $priceCategory = 'price1', $paymentCategory)
     {
         // 1. Find the Billing Customer
         $customer = BLSCustomer::where('patient_code', $patientCode)->first();
@@ -50,6 +52,10 @@ class BillingService
                 'transdate' => now(),
                 'store_id' => $defaultStoreId,
                 'customer_id' => $customer->id,
+                'billinggroup_id' => $billinggroupId,
+                'billingsubgroup_id' => $billingsubgroupId,
+                'billinggroupmembershipno' => $billinggroupmembershipno,
+                'ward_id' => $wardId,   
                 'stage' => 3, 
                 'payment_category' => $paymentCategory,
                 'total' => 0, 

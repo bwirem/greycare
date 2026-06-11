@@ -19,8 +19,8 @@ class BILSale extends Model
   
 
     protected $fillable = ['transdate','receiptno','invoiceno','customer_id','billinggroup_id',
-                           'voided','voidsysdate','voidtransdate','voidno','voiduser_id',
-                           'totaldue','discount','totalpaid','changeamount', 
+                           'billingsubgroup_id', 'billinggroupmembershipno','ward_id','voided','voidsysdate',
+                           'voidtransdate','voidno','voiduser_id','totaldue','discount','totalpaid','changeamount', 
                            'yearpart','monthpart','transtype', 'user_id'];
 
 

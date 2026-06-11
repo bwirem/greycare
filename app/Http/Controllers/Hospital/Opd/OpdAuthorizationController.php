@@ -46,18 +46,19 @@ class OpdAuthorizationController extends Controller
         // Fallback to hardcoded credentials if the DB values are empty
         $clientId = $group->facility_code ?: '00038';
         $clientSecret = $group->secret_key ?: 'uViitGoULBuwTpDW11yC6g==';
+        $username = $group->username ?: 'default_user';             
+        $password = $group->password ?: 'default_password';
 
         Log::info("NHIF Requesting New Access Token", ['endpoint' => $endpoint]);
 
         try {
-            $response = Http::timeout(30)
-                ->withoutVerifying()
-                ->asForm() 
-                ->withBasicAuth($clientId, $clientSecret) // <--- THE FIX: Send as Basic Auth Header
+            $response = Http::asForm()                
                 ->post($endpoint, [
-                    'grant_type'    => 'client_credentials',
-                    'client_id'     => $clientId,      // Keep in body too, just to be safe
-                    'client_secret' => $clientSecret,  // Keep in body too, just to be safe
+                    'username' => $username,
+                    //'password' => $password,
+                    'client_secret' => $clientSecret,
+                    'client_id' => $clientId,
+                    //'grant_type' => 'password',
                 ]);
 
             if ($response->successful()) {

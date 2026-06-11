@@ -99,17 +99,35 @@ class PharmacyDispenseController extends Controller
                 'quantity_prescribed' => $request->verified_qty,
                 'status' => 'Billed' 
             ]);
-
+          
             $priceCategory = 'price1';
-            if ($prescription->visit && $prescription->visit->billingGroup) {
-                $priceCategory = $prescription->visit->billingGroup->pricecategory ?? 'price1';
-            }
+            $billingGroup = null;
+            $billingSubGroup = null;
+            $billingGroupMembershipNo = null;
+            $wardId = null;
+
+            if ($prescription->ipd_admission_id && $prescription->admission) {
+                    $billingGroup = $prescription->admission->billingGroup;
+                    $billingSubGroup = $prescription->admission->billingsubgroup_id;
+                    $billingGroupMembershipNo = $prescription->admission->billinggroupmembershipno;
+                    $wardId = $prescription->admission->ward_id;
+                    $priceCategory = $prescription->admission->pricecategory ?? 'price1';
+                } elseif ($prescription->opd_booking_id && $prescription->visit) {
+                    $billingGroup = $prescription->visit->billingGroup;
+                    $billingSubGroup = $prescription->visit->billingsubgroup_id;
+                    $billingGroupMembershipNo = $prescription->visit->billinggroupmembershipno;
+                    $priceCategory = $prescription->visit->pricecategory ?? 'price1';
+                }
 
             $product = SIV_Product::with('blsItem')->find($prescription->product_id);
 
             if ($product && $product->blsItem) {
                 $billingService->addToBill(
                     $prescription->patientcode,
+                    $billingGroup?->id,
+                    $billingSubGroup,
+                    $billingGroupMembershipNo,
+                    $wardId,
                     $product->blsItem->id,
                     $request->verified_qty,
                     'pharmacy',
@@ -244,11 +262,17 @@ class PharmacyDispenseController extends Controller
             $isCash = true;
             $priceCategory = 'price1';
             $billingGroup = null;
+            $billingSubGroup = null;
+            $billingGroupMembershipNo = null;
+            $wardId = null;
 
             // A. Extract Context (IPD vs OPD)
             if ($isAdmitted && $prescription->admission) {
                 // --- IPD CONTEXT ---
                 $billingGroup = $prescription->admission->billingGroup;
+                $billingSubGroup = $prescription->admission->billingsubgroup_id;
+                $billingGroupMembershipNo = $prescription->admission->billinggroupmembershipno;
+                $wardId = $prescription->admission->ward_id;
                 $priceCategory = $prescription->admission->pricecategory 
                                 ?? $billingGroup?->pricecategory 
                                 ?? 'price1';
@@ -256,6 +280,8 @@ class PharmacyDispenseController extends Controller
             } elseif ($prescription->opd_booking_id && $prescription->visit) {
                 // --- OPD CONTEXT ---
                 $billingGroup = $prescription->visit->billingGroup;
+                $billingSubGroup = $prescription->visit->billingsubgroup_id;
+                $billingGroupMembershipNo = $prescription->visit->billinggroupmembershipno;
                 $priceCategory = $prescription->visit->pricecategory 
                                 ?? $billingGroup?->pricecategory 
                                 ?? 'price1';
@@ -290,6 +316,10 @@ class PharmacyDispenseController extends Controller
                 if ($product && $product->blsItem) {
                     $billingService->addToBill(
                         $prescription->patientcode,
+                        $billingGroup?->id,
+                        $billingSubGroup,
+                        $billingGroupMembershipNo,
+                        $wardId,
                         $product->blsItem->id,
                         $request->quantity_issued, // Use actual issued quantity
                         'pharmacy',
@@ -495,14 +525,22 @@ class PharmacyDispenseController extends Controller
 
                 $priceCategory = 'price1';
                 $paymentCategory = 'Cash'; 
-                $billingGroup = null;
+                $billingGroup = null;                
+                $billingSubGroup = null;
+                $billingGroupMembershipNo = null;
+                $wardId = null;
 
                 // Check IPD vs OPD context
                 if ($prescription->ipd_admission_id && $prescription->admission) {
                     $billingGroup = $prescription->admission->billingGroup;
+                    $billingSubGroup = $prescription->admission->billingsubgroup_id;
+                    $billingGroupMembershipNo = $prescription->admission->billinggroupmembershipno;
+                    $wardId = $prescription->admission->ward_id;
                     $priceCategory = $prescription->admission->pricecategory ?? 'price1';
                 } elseif ($prescription->opd_booking_id && $prescription->visit) {
                     $billingGroup = $prescription->visit->billingGroup;
+                    $billingSubGroup = $prescription->visit->billingsubgroup_id;
+                    $billingGroupMembershipNo = $prescription->visit->billinggroupmembershipno;
                     $priceCategory = $prescription->visit->pricecategory ?? 'price1';
                 }
 
@@ -574,6 +612,10 @@ class PharmacyDispenseController extends Controller
                         // BillingService will group these into the SAME order automatically
                         $lastOrder = $billingService->addToBill(
                             $rx->patientcode,
+                            $billingGroup?->id,
+                            $billingSubGroup,
+                            $billingGroupMembershipNo,
+                            $wardId,
                             $product->blsItem->id,
                             $qtyToProcess,
                             'pharmacy',

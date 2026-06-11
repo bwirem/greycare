@@ -34,6 +34,9 @@ use App\Models\Laboratory\LabPrescription;
 use App\Models\Radiology\RadRequest;
 use App\Models\Pharmacy\PharmacyPrescription;
 use App\Models\Theatre\TheatreBooking;
+//use App\Models\Ipd\IpdAdmission; // Already imported in the main controller namespace
+use App\Models\Patient\PatientBillingGroup;
+use App\Models\Patient\PatientBillingSubgroup;
 
 use App\Models\Facility\{    
     FacilityOption,
@@ -88,6 +91,7 @@ class BilPostController extends Controller
         }
 
         $query->whereIn('stage', [3, 4]); // Proforma (3) and Saved for Later (4)
+        $query->orderByRaw("FIELD(payment_category, 'Cash', 'Insurance', 'Exemption', 'Invoice') ASC");        
 
         //$query->where('payment_category', 'Cash'); // Proforma (3) and Saved for Later (4)
 
@@ -113,6 +117,8 @@ class BilPostController extends Controller
             'fromstore' => SIV_Store::all(),
             'priceCategories' => $this->fetchPriceCategories(),
             'facilityOptions' => FacilityOption::first(),
+            'billinggroups' => PatientBillingGroup::all(),
+            'billingsubgroups' => PatientBillingSubgroup::all(),
         ]);
     }
 
@@ -125,6 +131,10 @@ class BilPostController extends Controller
         Log::info('Confirm Save Payload:', $request->all());
         // Validate the incoming order data
         $validatedData = $request->validate([
+            'billinggroup_id' => 'nullable|integer|exists:patient_billing_groups,id',
+            'billingsubgroup_id' => 'nullable|integer|exists:patient_billing_subgroups,id',
+            'billinggroupmembershipno' => 'nullable|string|max:255',
+            'ward_id' => 'nullable|integer',
             'store_id' => 'required|integer|exists:siv_stores,id',
             'pricecategory_id' => 'required|string',
             'total' => 'required|numeric|min:0',
@@ -209,9 +219,11 @@ class BilPostController extends Controller
 
         return inertia('Billing/BilPosts/Edit', [
             'order' => $order,
-            'fromstore' => SIV_Store::all(),
+            'fromstore' => SIV_Store::all(),             
             'priceCategories' => $this->fetchPriceCategories(),
             'facilityOptions' => FacilityOption::first(),
+            'billinggroups' => PatientBillingGroup::all(),
+            'billingsubgroups' => PatientBillingSubgroup::all(),   
         ]);
     }
 
@@ -246,7 +258,12 @@ class BilPostController extends Controller
      */
     public function confirmPayment(Request $request)
     {
+    
         $validatedData = $request->validate([
+            'billinggroup_id' => 'nullable|integer|exists:patient_billing_groups,id',
+            'billingsubgroup_id' => 'nullable|integer|exists:patient_billing_subgroups,id',
+            'billinggroupmembershipno' => 'nullable|string|max:255',
+            'ward_id' => 'nullable|integer',
             'store_id' => 'required|integer|exists:siv_stores,id',
             'pricecategory_id' => 'required|string',
             'total' => 'required|numeric|min:0',
@@ -324,7 +341,6 @@ class BilPostController extends Controller
                 }
         }
 
-
         // 2. Validation (Same as before)
         $validated = $request->validate([
             'orderitems' => 'required|array|min:1',
@@ -342,6 +358,11 @@ class BilPostController extends Controller
             'total' => 'required|numeric|min:0',
             'customer_id' => 'required|integer|exists:bls_customers,id',
             'store_id' => 'required|integer|exists:siv_stores,id',
+            
+            'billinggroup_id' => 'nullable|integer|exists:patient_billing_groups,id',
+            'billingsubgroup_id' => 'nullable|integer|exists:patient_billing_subgroups,id',
+            'billinggroupmembershipno' => 'nullable|string|max:255',
+            'ward_id' => 'nullable|integer',
         ]);
 
         try {
@@ -694,28 +715,15 @@ class BilPostController extends Controller
      * Creates the primary sale record.
      */
     private function createSaleRecord(array $data, Carbon $transdate, ?string $receiptNo, ?string $invoiceNo):BILSale
-    {
-        // Identify the Customer
-        $customer = BLSCustomer::find($data['customer_id']);
-        $patientCode = $customer?->patient_code;
-
-        $billinggroup_id = null;
-
-        // Only query if we actually have a patient code
-        if ($patientCode) {           
-            $billinggroup_id = \App\Models\Opd\OpdBooking::where('patientcode', $patientCode)              
-                ->latest()
-                ->value('billinggroup_id') 
-                ?? 
-                \App\Models\Ipd\IpdAdmission::where('patientcode', $patientCode)               
-                ->latest()
-                ->value('billinggroup_id');
-        }        
+    {           
 
         $sale = BILSale::create([
             'transdate' => $transdate,
             'customer_id' => $data['customer_id'],
-            'billinggroup_id' => $billinggroup_id,
+            'billinggroup_id' => $data['billinggroup_id'],
+            'billingsubgroup_id' => $data['billingsubgroup_id'],
+            'billinggroupmembershipno' => $data['billinggroupmembershipno'],
+            'ward_id' => $data['ward_id'], 
             'receiptno' => $receiptNo,
             'invoiceno' => $invoiceNo,
             'totaldue' => $data['total'],
@@ -1028,6 +1036,10 @@ class BilPostController extends Controller
                     // B. Push to Billing
                     $billingService->addToBill(
                         $admission->patientcode,
+                        $admission->billinggroup_id,
+                        $admission->billingsubgroup_id,
+                        $admission->billinggroupmembershipno,
+                        $admission->ward_id,
                         $admission->ward->blsItem->id, // Bill Item ID
                         1,                             // Quantity
                         'ipd_bed_charge',              // Source Type
@@ -1121,7 +1133,7 @@ class BilPostController extends Controller
         if (!$booking) {
             // Get Defaults for required fields
             $defaultPoint = \App\Models\Opd\OpdTreatmentPoint::first(); 
-            $defaultGroup = \App\Models\Patient\PatientBillingGroup::where('name', 'Cash')->first();
+            $defaultGroup = PatientBillingGroup::where('name', 'Cash')->first();
 
             $booking = \App\Models\Opd\OpdBooking::create([
                 'bookdate'           => now(),

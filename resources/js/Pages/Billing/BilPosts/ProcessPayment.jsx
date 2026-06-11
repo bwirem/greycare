@@ -29,6 +29,10 @@ const STORAGE_KEY = 'pendingOrderData';
 export default function ProcessPayment({ auth, orderData, facilityoption, paymentMethods }) {
     const { data, setData, errors, setError, clearErrors, reset } = useForm({
         customer_id: orderData.customer_id || null, 
+        billinggroup_id: orderData.billinggroup_id || null,
+        billingsubgroup_id: orderData.billingsubgroup_id || null,
+        billinggroupmembershipno: orderData.billinggroupmembershipno || null,
+        ward_id: orderData.ward_id || null,
         stage: '3',
         sale_type: 'cash',
         payment_method: auth?.user?.paymenttype_id || '',

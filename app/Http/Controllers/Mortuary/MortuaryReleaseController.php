@@ -112,6 +112,10 @@ class MortuaryReleaseController extends Controller
                 $endDate = Carbon::parse($validated['released_at'])->startOfDay();
                 
                 $currentDate = $startDate->copy();
+                $billingGroup = 1;
+                $billingSubGroup = null;
+                $billingGroupMembershipNo = null;
+                $wardId = null;
                 
                 // Even if startDate and endDate are the same day, this will evaluate to True and run exactly 1 time.
                 while ($currentDate->lte($endDate)) {
@@ -130,6 +134,10 @@ class MortuaryReleaseController extends Controller
 
                         $billingService->addToBill(
                             $record->patient_code,
+                            $billingGroup,
+                            $billingSubGroup,
+                            $billingGroupMembershipNo,
+                            $wardId,                            
                             $record->room->blsItem->id, 
                             1,                          
                             'mortuary_charge',          

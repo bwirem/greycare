@@ -287,6 +287,10 @@ class DoctorIpdController extends Controller
                     if ($panel && $panel->blsItem) {
                         $billingService->addToBill(
                             $admission->patientcode,
+                            $admission->billinggroup_id,
+                            $admission->billingsubgroup_id,  
+                            $admission->billinggroupmembershipno,
+                            $admission->ward_id ,
                             $panel->blsItem->id,
                             1,
                             'laboratory',
@@ -317,6 +321,10 @@ class DoctorIpdController extends Controller
                     if ($procedure && $procedure->blsItem) {
                         $billingService->addToBill(
                             $admission->patientcode,
+                            $admission->billinggroup_id,
+                            $admission->billingsubgroup_id,  
+                            $admission->billinggroupmembershipno,
+                            $admission->ward_id ,
                             $procedure->blsItem->id,
                             1,
                             'radiology',
@@ -352,6 +360,10 @@ class DoctorIpdController extends Controller
                 if ($procedure && $procedure->blsItem) {
                     $billingService->addToBill(
                         $admission->patientcode,
+                        $admission->billinggroup_id,
+                        $admission->billingsubgroup_id,  
+                        $admission->billinggroupmembershipno,
+                        $admission->ward_id ,
                         $procedure->blsItem->id,
                         1,
                         'theatre',

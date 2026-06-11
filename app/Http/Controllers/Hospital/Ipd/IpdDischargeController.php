@@ -105,6 +105,10 @@ class IpdDischargeController extends Controller
                         // B. Push to Billing
                         $billingService->addToBill(
                             $admission->patientcode,
+                            $admission->billinggroup_id,
+                            $admission->billingsubgroup_id,
+                            $admission->billinggroupmembershipno,
+                            $admission->ward_id,
                             $admission->ward->blsItem->id, // Bill Item ID
                             1,                             // Quantity
                             'ipd_bed_charge',              // Source Type

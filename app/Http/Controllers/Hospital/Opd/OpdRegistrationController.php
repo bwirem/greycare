@@ -332,7 +332,11 @@ class OpdRegistrationController extends Controller
             $generatedOrder = null; // Variable to hold the order
             if ($booking->bill_item_id) {
                $generatedOrder = $billingService->addToBill(
-                    $booking->patientcode,      
+                    $booking->patientcode,
+                    $booking->billinggroup_id,
+                    $booking->billingsubgroup_id,
+                    $booking->billinggroupmembershipno, 
+                    null,       
                     $booking->bill_item_id,     
                     1,                          
                     'consultation',             
@@ -514,6 +518,10 @@ class OpdRegistrationController extends Controller
             if ($shouldUpdateBill && $booking->bill_item_id) {
                 $billingService->addToBill(
                     $booking->patientcode,
+                    $booking->billinggroup_id,
+                    $booking->billingsubgroup_id, 
+                    $booking->billinggroupmembershipno,
+                    null, 
                     $booking->bill_item_id, 
                     1,
                     'consultation',
