@@ -1,8 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/FinanceLayout';
-import { Head, useForm, Link } from '@inertiajs/react'; // Added Link
-import React from 'react';
+import { Head, useForm, Link } from '@inertiajs/react';
+import React, { useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCalendarAlt, faFilter, faTags, faLayerGroup, faRedo } from '@fortawesome/free-solid-svg-icons'; // Added faRedo for reset
+import { faFilter, faRedo } from '@fortawesome/free-solid-svg-icons';
 
 const formatCurrency = (amount, currencyCode = 'TZS') => {
     const parsedAmount = parseFloat(amount);
@@ -11,21 +11,22 @@ const formatCurrency = (amount, currencyCode = 'TZS') => {
     return parsedAmount.toLocaleString(locale, { style: 'currency', currency: currencyCode, minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-export default function SalesByItemReport({ auth, reportData, stores, items, itemGroups, filters }) {
+export default function SalesByItemReport({ auth, reportData, stores, items, itemGroups, billingGroups, filters }) {
     const { data, setData, get, processing, errors, reset } = useForm({
-        start_date: filters.start_date || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10), // Default to start of current month
-        end_date: filters.end_date || new Date().toISOString().slice(0, 10), // Default to today
+        start_date: filters.start_date || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10),
+        end_date: filters.end_date || new Date().toISOString().slice(0, 10),
         group_by: filters.group_by || 'product',
         store_id: filters.store_id || '',
         item_id: filters.item_id || '',
         itemgroup_id: filters.itemgroup_id || '',
+        billinggroup_id: filters.billinggroup_id || '',
+        ward_id: filters.ward_id || '',
     });
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setData(prevData => {
             const newData = {...prevData, [name]: value};
-            // If group_by changes, reset item_id and itemgroup_id
             if (name === 'group_by') {
                 newData.item_id = '';
                 newData.itemgroup_id = '';
@@ -36,21 +37,29 @@ export default function SalesByItemReport({ auth, reportData, stores, items, ite
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // The 'get' method from useForm automatically sends the current 'data' object
-        get(route('reports.sales.by_item'), { // Ensure this route name is correct
-            preserveState: true, // Keep component state on navigation
-            preserveScroll: true, // Keep scroll position
+        get(route('reports.sales.by_item'), {
+            preserveState: true,
+            preserveScroll: true,
         });
     };
 
     const resetFilters = () => {
-        reset(); // Resets form to initial values defined in useForm
-        // Optionally, trigger a fetch with default/empty filters if needed immediately
-        // get(route('reports.sales.by_item'), { start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10), end_date: new Date().toISOString().slice(0, 10), group_by: 'product'}, { preserveState: true, preserveScroll: true });
+        reset();
     };
 
-
     const isProductGrouping = data.group_by === 'product';
+
+    // Grouping Logic: Group products by item_group_name if 'product' is selected
+    const groupedResults = useMemo(() => {
+        if (!reportData?.results || !isProductGrouping) return null;
+
+        return reportData.results.reduce((acc, row) => {
+            const groupName = row.item_group_name || 'Uncategorized';
+            if (!acc[groupName]) acc[groupName] = [];
+            acc[groupName].push(row);
+            return acc;
+        }, {});
+    }, [reportData, isProductGrouping]);
 
     return (
         <AuthenticatedLayout
@@ -106,7 +115,27 @@ export default function SalesByItemReport({ auth, reportData, stores, items, ite
                                         </select>
                                     </div>
                                 )}
-                                <div className="flex items-end space-x-2 pt-5 md:pt-0"> {/* Ensure buttons align well */}
+
+                                 <div>
+                                    <label htmlFor="billinggroup_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Billing Group</label>
+                                    <select id="billinggroup_id" name="billinggroup_id" value={data.billinggroup_id} onChange={handleInputChange} className="mt-1 block w-full min-w-[200px] rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                                        <option value="">All Billing Groups</option>
+                                        {billingGroups && billingGroups.map((group) => (
+                                            <option key={group.id} value={group.id}>{group.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="ward_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ward</label>
+                                    <select id="ward_id" name="ward_id" value={data.ward_id} onChange={handleInputChange} className="mt-1 block w-full min-w-[200px] rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
+                                        <option value="">All Patients</option>
+                                        <option value="opd">OPD Patients</option>
+                                        <option value="ipd">IPD Patients</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex items-end space-x-2 pt-5 md:pt-0">
                                     <button type="submit" disabled={processing} className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">
                                         <FontAwesomeIcon icon={faFilter} className="mr-2 h-4 w-4" />
                                         {processing ? 'Generating...' : 'Generate Report'}
@@ -118,7 +147,7 @@ export default function SalesByItemReport({ auth, reportData, stores, items, ite
                             </div>
                         </form>
 
-                        {reportData && Object.keys(reportData).length > 0 ? ( // Check if reportData is not null and has content
+                        {reportData && Object.keys(reportData).length > 0 ? (
                             <div className="space-y-6">
                                 <h3 className="text-xl font-semibold text-center text-gray-800 dark:text-gray-100">
                                     {reportData.report_title} <br />
@@ -146,18 +175,84 @@ export default function SalesByItemReport({ auth, reportData, stores, items, ite
                                                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">% of Total Sales</th>
                                                 </tr>
                                             </thead>
+                                            
+                                            {/* RENDER TABLE BODY */}
                                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                                {reportData.results.map(row => (
-                                                    <tr key={row.id}>
-                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">{row.name}</td>
-                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{row.total_quantity_sold}</td>
-                                                        {isProductGrouping && (
-                                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{row.average_price !== null ? formatCurrency(row.average_price) : 'N/A'}</td>
-                                                        )}
-                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{formatCurrency(row.total_sales_amount)}</td>
-                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{row.percentage_of_total_sales}%</td>
-                                                    </tr>
-                                                ))}
+                                                {isProductGrouping ? (
+                                                    Object.entries(groupedResults).map(([groupName, items]) => {
+                                                        const groupTotalQty = items.reduce(
+                                                            (sum, item) => sum + Number(item.total_quantity_sold || 0),
+                                                            0
+                                                        );
+
+                                                        const groupTotalSales = items.reduce(
+                                                            (sum, item) => sum + Number(item.total_sales_amount || 0),
+                                                            0
+                                                        );
+
+                                                        return (
+                                                            <React.Fragment key={groupName}>
+                                                                {/* CATEGORY HEADER ROW */}
+                                                                <tr className="bg-gray-50 dark:bg-gray-700">
+                                                                    <td
+                                                                        colSpan="5"
+                                                                        className="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider"
+                                                                    >
+                                                                        {groupName}
+                                                                    </td>
+                                                                </tr>
+
+                                                                {/* PRODUCT ROWS */}
+                                                                {items.map(row => (
+                                                                    <tr key={row.id}>
+                                                                        <td className="px-8 py-2 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
+                                                                            {row.name}
+                                                                        </td>
+                                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">
+                                                                            {row.total_quantity_sold}
+                                                                        </td>
+                                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">
+                                                                            {row.average_price !== null
+                                                                                ? formatCurrency(row.average_price)
+                                                                                : 'N/A'}
+                                                                        </td>
+                                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">
+                                                                            {formatCurrency(row.total_sales_amount)}
+                                                                        </td>
+                                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">
+                                                                            {row.percentage_of_total_sales}%
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+
+                                                                {/* SUBTOTAL ROW */}
+                                                                <tr className="bg-gray-100 dark:bg-gray-600 font-bold">
+                                                                    <td className="px-4 py-2 text-right">
+                                                                        Subtotal ({groupName})
+                                                                    </td>
+                                                                    <td className="px-4 py-2 text-right">
+                                                                        {groupTotalQty}
+                                                                    </td>
+                                                                    <td></td>
+                                                                    <td className="px-4 py-2 text-right">
+                                                                        {formatCurrency(groupTotalSales)}
+                                                                    </td>
+                                                                    <td></td>
+                                                                </tr>
+                                                            </React.Fragment>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    // FALLBACK WHEN GROUPING BY ITEM CATEGORY
+                                                    reportData.results.map(row => (
+                                                        <tr key={row.id}>
+                                                            <td className="px-4 py-2 whitespace-nowrap text-sm font-semibold text-gray-800 dark:text-gray-200">{row.name}</td>
+                                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{row.total_quantity_sold}</td>
+                                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{formatCurrency(row.total_sales_amount)}</td>
+                                                            <td className="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-600 dark:text-gray-300">{row.percentage_of_total_sales}%</td>
+                                                        </tr>
+                                                    ))
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
@@ -166,15 +261,14 @@ export default function SalesByItemReport({ auth, reportData, stores, items, ite
                                 )}
                             </div>
                         ) : (
-                             !processing && (filters.start_date || filters.group_by) && // Show if filters were applied from URL but no data
+                             !processing && (filters.start_date || filters.group_by) && 
                              <p className="text-center text-gray-500 dark:text-gray-400 mt-8">No data to display for the current filters. Try adjusting your criteria.</p>
                         )}
-                         {!reportData && !processing && !(filters.start_date || filters.group_by) && ( // Initial state prompt
+                         {!reportData && !processing && !(filters.start_date || filters.group_by) && (
                              <p className="text-center text-gray-500 dark:text-gray-400 mt-8">
                                 Please select criteria and click "Generate Report".
                             </p>
                         )}
-                         {/* Display Inertia form errors globally if any */}
                         {Object.keys(errors).length > 0 && (
                             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
                                 <p className="font-semibold">Please correct the following errors:</p>
