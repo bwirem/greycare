@@ -264,9 +264,9 @@ export default function Index({ auth, orders, filters, success }) {
                                                         </td>
 
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">
-                                                            {order.customer.customer_type === 'individual' ?
-                                                                `${order.customer.first_name} ${order.customer.other_names || ''} ${order.customer.surname}`.replace(/\s+/g, ' ').trim() :
-                                                                order.customer.company_name
+                                                            {order.customer?.customer_type === 'individual'
+                                                                ? `${order.customer?.first_name || ''} ${order.customer?.other_names || ''} ${order.customer?.surname || ''}`.replace(/\s+/g, ' ').trim()
+                                                                : order.customer?.company_name || 'No Customer'
                                                             }
                                                         </td>
                                                         <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-700">

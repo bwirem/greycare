@@ -54,7 +54,7 @@ class BilVoidHistoryController extends Controller
                          ->orWhere('surname', 'like', $searchTerm)
                          ->orWhere('other_names', 'like', $searchTerm)
                          ->orWhere('company_name', 'like', $searchTerm);
-                })->orWhere('invoice_number', 'like', $searchTerm)
+                })->orWhere('invoiceno', 'like', $searchTerm)
                   ->orWhere('receiptno', 'like', $searchTerm);
             });
         }

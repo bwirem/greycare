@@ -389,9 +389,25 @@ class SalesReportsController extends Controller
 
                 if ($groupBy === 'item_group') {
                     $itemsQuery->join('bls_itemgroups', 'bls_items.itemgroup_id', '=', 'bls_itemgroups.id')
-                        ->select('bls_itemgroups.name as group_name', DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales'), DB::raw('SUM(bil_saleitems.quantity) as total_quantity'))
-                        ->groupBy('bls_itemgroups.name')
-                        ->orderBy('group_name');
+                    ->select(
+                        DB::raw("
+                            CASE
+                                WHEN bls_itemgroups.name = 'Inventory' THEN 'Pharmacy'
+                                ELSE bls_itemgroups.name
+                            END as group_name
+                        "),
+                        DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales'),
+                        DB::raw('SUM(bil_saleitems.quantity) as total_quantity')
+                    )
+                    ->groupBy(
+                        DB::raw("
+                            CASE
+                                WHEN bls_itemgroups.name = 'Inventory' THEN 'Pharmacy'
+                                ELSE bls_itemgroups.name
+                            END
+                        ")
+                    )
+                    ->orderBy('group_name');
                 } else {
                     $itemsQuery->select('bls_items.name as product_name', 'bls_items.id as product_id', DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales'), DB::raw('SUM(bil_saleitems.quantity) as total_quantity'))
                         ->groupBy('bls_items.id', 'bls_items.name')
@@ -723,122 +739,122 @@ class SalesReportsController extends Controller
      */
     
     public function salesByItem(Request $request): InertiaResponse
-{
-    $validated = $request->validate([
-        'start_date'      => 'nullable|date_format:Y-m-d',
-        'end_date'        => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
-        'group_by'        => 'nullable|string|in:product,item_group',
-        'store_id'        => 'nullable|exists:siv_stores,id',
-        'item_id'         => 'nullable|exists:bls_items,id',
-        'itemgroup_id'    => 'nullable|exists:bls_itemgroups,id',
-        'billinggroup_id' => 'nullable|exists:patient_billing_groups,id', // Added validation
-        'ward_id'         => 'nullable|in:opd,ipd', // Added validation for ward_id
-    ]);
+    {
+        $validated = $request->validate([
+            'start_date'      => 'nullable|date_format:Y-m-d',
+            'end_date'        => 'nullable|date_format:Y-m-d|after_or_equal:start_date',
+            'group_by'        => 'nullable|string|in:product,item_group',
+            'store_id'        => 'nullable|exists:siv_stores,id',
+            'item_id'         => 'nullable|exists:bls_items,id',
+            'itemgroup_id'    => 'nullable|exists:bls_itemgroups,id',
+            'billinggroup_id' => 'nullable|exists:patient_billing_groups,id', // Added validation
+            'ward_id'         => 'nullable|in:opd,ipd', // Added validation for ward_id
+        ]);
 
-    $startDate      = Carbon::parse($validated['start_date'] ?? Carbon::now()->startOfMonth())->startOfDay();
-    $endDate        = Carbon::parse($validated['end_date']   ?? Carbon::now()->endOfMonth())->endOfDay();
-    $groupBy        = $validated['group_by'] ?? 'product';
-    $storeId        = $validated['store_id'] ?? null;
-    $itemId         = $validated['item_id'] ?? null;
-    $itemGroupId    = $validated['itemgroup_id'] ?? null;
-    $billingGroupId = $validated['billinggroup_id'] ?? null; // Extract billinggroup_id
-    $wardIdFilter   = $validated['ward_id'] ?? null; // Extract ward_id
+        $startDate      = Carbon::parse($validated['start_date'] ?? Carbon::now()->startOfMonth())->startOfDay();
+        $endDate        = Carbon::parse($validated['end_date']   ?? Carbon::now()->endOfMonth())->endOfDay();
+        $groupBy        = $validated['group_by'] ?? 'product';
+        $storeId        = $validated['store_id'] ?? null;
+        $itemId         = $validated['item_id'] ?? null;
+        $itemGroupId    = $validated['itemgroup_id'] ?? null;
+        $billingGroupId = $validated['billinggroup_id'] ?? null; // Extract billinggroup_id
+        $wardIdFilter   = $validated['ward_id'] ?? null; // Extract ward_id
 
-    $salesColumns = $this->getSafeColumnListing('bil_sales');
+        $salesColumns = $this->getSafeColumnListing('bil_sales');
 
-    $query = BILSaleItem::query()
-        ->join('bil_sales', 'bil_saleitems.sale_id', '=', 'bil_sales.id')
-        ->join('bls_items', 'bil_saleitems.item_id', '=', 'bls_items.id')
-        ->whereBetween('bil_sales.transdate', [$startDate, $endDate])
-        ->where('bil_sales.voided', '!=', 1)
-        ->when($storeId && in_array('store_id', $salesColumns), fn($q) => $q->where('bil_sales.store_id', $storeId))
-        ->when($itemId && $groupBy === 'product', fn($q) => $q->where('bil_saleitems.item_id', $itemId))
-        ->when($itemGroupId, fn($q) => $q->where('bls_items.itemgroup_id', $itemGroupId))
-        // <-- Apply Billing Group Filter
-        ->when($billingGroupId, fn($q) => $q->where('bil_sales.billinggroup_id', $billingGroupId))
-        // <-- Apply Ward Filter Logic with table prefix
-        ->when($wardIdFilter === 'opd', fn($q) => $q->whereNull('bil_sales.ward_id'))
-        ->when($wardIdFilter === 'ipd', fn($q) => $q->whereNotNull('bil_sales.ward_id'));
+        $query = BILSaleItem::query()
+            ->join('bil_sales', 'bil_saleitems.sale_id', '=', 'bil_sales.id')
+            ->join('bls_items', 'bil_saleitems.item_id', '=', 'bls_items.id')
+            ->whereBetween('bil_sales.transdate', [$startDate, $endDate])
+            ->where('bil_sales.voided', '!=', 1)
+            ->when($storeId && in_array('store_id', $salesColumns), fn($q) => $q->where('bil_sales.store_id', $storeId))
+            ->when($itemId && $groupBy === 'product', fn($q) => $q->where('bil_saleitems.item_id', $itemId))
+            ->when($itemGroupId, fn($q) => $q->where('bls_items.itemgroup_id', $itemGroupId))
+            // <-- Apply Billing Group Filter
+            ->when($billingGroupId, fn($q) => $q->where('bil_sales.billinggroup_id', $billingGroupId))
+            // <-- Apply Ward Filter Logic with table prefix
+            ->when($wardIdFilter === 'opd', fn($q) => $q->whereNull('bil_sales.ward_id'))
+            ->when($wardIdFilter === 'ipd', fn($q) => $q->whereNotNull('bil_sales.ward_id'));
 
-    if ($groupBy === 'product') {
-        // We added a leftJoin to bls_itemgroups and included it in the select/groupBy
-        $query->leftJoin('bls_itemgroups', 'bls_items.itemgroup_id', '=', 'bls_itemgroups.id')
-            ->select(
-            'bls_items.id as product_id', 'bls_items.name as product_name',
-            'bls_itemgroups.name as item_group_name', // <-- Added this
-            DB::raw('SUM(bil_saleitems.quantity) as total_quantity_sold'),
-            DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales_amount'),
-            DB::raw('CASE WHEN SUM(bil_saleitems.quantity) > 0 THEN SUM(bil_saleitems.quantity * bil_saleitems.price) / SUM(bil_saleitems.quantity) ELSE 0 END as average_price')
-        )->groupBy('bls_items.id', 'bls_items.name', 'bls_itemgroups.name')
-         ->orderBy('item_group_name', 'asc') // Sort categories first
-         ->orderBy('product_name', 'asc');   // Then sort products alphabetically
-    } else { // item_group
-        // ... (Keep the item_group block exactly as it was) ...
-        $query->join('bls_itemgroups', 'bls_items.itemgroup_id', '=', 'bls_itemgroups.id')
-            ->select(
-                'bls_itemgroups.id as item_group_id', 'bls_itemgroups.name as item_group_name',
+        if ($groupBy === 'product') {
+            // We added a leftJoin to bls_itemgroups and included it in the select/groupBy
+            $query->leftJoin('bls_itemgroups', 'bls_items.itemgroup_id', '=', 'bls_itemgroups.id')
+                ->select(
+                'bls_items.id as product_id', 'bls_items.name as product_name',
+                'bls_itemgroups.name as item_group_name', // <-- Added this
                 DB::raw('SUM(bil_saleitems.quantity) as total_quantity_sold'),
-                DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales_amount')
-            )->groupBy('bls_itemgroups.id', 'bls_itemgroups.name')->orderBy('item_group_name', 'asc');
-    }
-
-    $results = $query->get();
-    
-    if ($itemId || $itemGroupId) {
-        $overallTotalSalesForPeriod = $results->sum('total_sales_amount');
-    } else {
-        $overallTotalSalesQuery = BILSale::whereBetween('transdate', [$startDate, $endDate])->where('voided', '!=', 1);
-        if ($storeId && in_array('store_id', $salesColumns)) {
-            $overallTotalSalesQuery->where('store_id', $storeId);
+                DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales_amount'),
+                DB::raw('CASE WHEN SUM(bil_saleitems.quantity) > 0 THEN SUM(bil_saleitems.quantity * bil_saleitems.price) / SUM(bil_saleitems.quantity) ELSE 0 END as average_price')
+            )->groupBy('bls_items.id', 'bls_items.name', 'bls_itemgroups.name')
+            ->orderBy('item_group_name', 'asc') // Sort categories first
+            ->orderBy('product_name', 'asc');   // Then sort products alphabetically
+        } else { // item_group
+            // ... (Keep the item_group block exactly as it was) ...
+            $query->join('bls_itemgroups', 'bls_items.itemgroup_id', '=', 'bls_itemgroups.id')
+                ->select(
+                    'bls_itemgroups.id as item_group_id', 'bls_itemgroups.name as item_group_name',
+                    DB::raw('SUM(bil_saleitems.quantity) as total_quantity_sold'),
+                    DB::raw('SUM(bil_saleitems.quantity * bil_saleitems.price) as total_sales_amount')
+                )->groupBy('bls_itemgroups.id', 'bls_itemgroups.name')->orderBy('item_group_name', 'asc');
         }
+
+        $results = $query->get();
         
-        // <-- Apply the exact same filters to the overall total query
-        $overallTotalSalesQuery->when($billingGroupId, fn($q) => $q->where('billinggroup_id', $billingGroupId))
-            ->when($wardIdFilter === 'opd', fn($q) => $q->whereNull('ward_id'))
-            ->when($wardIdFilter === 'ipd', fn($q) => $q->whereNotNull('ward_id'));
+        if ($itemId || $itemGroupId) {
+            $overallTotalSalesForPeriod = $results->sum('total_sales_amount');
+        } else {
+            $overallTotalSalesQuery = BILSale::whereBetween('transdate', [$startDate, $endDate])->where('voided', '!=', 1);
+            if ($storeId && in_array('store_id', $salesColumns)) {
+                $overallTotalSalesQuery->where('store_id', $storeId);
+            }
+            
+            // <-- Apply the exact same filters to the overall total query
+            $overallTotalSalesQuery->when($billingGroupId, fn($q) => $q->where('billinggroup_id', $billingGroupId))
+                ->when($wardIdFilter === 'opd', fn($q) => $q->whereNull('ward_id'))
+                ->when($wardIdFilter === 'ipd', fn($q) => $q->whereNotNull('ward_id'));
 
-        $overallTotalSalesForPeriod = $overallTotalSalesQuery->sum('totalpaid');
+            $overallTotalSalesForPeriod = $overallTotalSalesQuery->sum('totalpaid');
+        }
+
+        $reportData = [
+            'report_title' => "Sales by " . ($groupBy === 'product' ? "Product/Service" : "Item Category"),
+            'start_date_formatted' => $startDate->format('F d, Y'), 'end_date_formatted' => $endDate->format('F d, Y'),
+            'group_by_selected'    => $groupBy,
+            'results' => $results->map(function ($item) use ($overallTotalSalesForPeriod) {
+                    $percentageOfTotal = ($overallTotalSalesForPeriod > 0) ? (($item->total_sales_amount / $overallTotalSalesForPeriod) * 100) : 0;
+                    return [
+                        'id' => $item->product_id ?? $item->item_group_id, 
+                        'name' => $item->product_name ?? $item->item_group_name,
+                        'item_group_name' => $item->item_group_name
+                        ? ($item->item_group_name === 'Inventory' ? 'Pharmacy' : $item->item_group_name)
+                        : 'Uncategorized',
+                        'total_quantity_sold' => (float) $item->total_quantity_sold, 
+                        'total_sales_amount' => (float) $item->total_sales_amount,
+                        'average_price' => isset($item->average_price) ? (float) $item->average_price : null,
+                        'percentage_of_total_sales' => round($percentageOfTotal, 2),
+                    ];
+                }),
+            'overall_total_sales_for_period' => (float) $overallTotalSalesForPeriod,
+        ];
+
+        return Inertia::render('Reports/Sales/ByItem', [
+            'reportData' => $reportData,
+            'stores' => SIV_Store::orderBy('name')->get(['id', 'name']),
+            'items' => BLSItem::orderBy('name')->get(['id', 'name']),
+            'itemGroups' => BLSItemGroup::orderBy('name')->get(['id', 'name']),
+            'billingGroups' => PatientBillingGroup::orderBy('name')->get(['id', 'name']),
+            'filters' => [
+                'start_date'      => $startDate->format('Y-m-d'), 
+                'end_date'        => $endDate->format('Y-m-d'),
+                'group_by'        => $groupBy, 
+                'store_id'        => $storeId,
+                'item_id'         => $itemId, 
+                'itemgroup_id'    => $itemGroupId,
+                'billinggroup_id' => $billingGroupId, // <-- Added so UI remembers choice
+                'ward_id'         => $wardIdFilter,   // <-- Added so UI remembers choice
+            ]
+        ]);
     }
-
-    $reportData = [
-        'report_title' => "Sales by " . ($groupBy === 'product' ? "Product/Service" : "Item Category"),
-        'start_date_formatted' => $startDate->format('F d, Y'), 'end_date_formatted' => $endDate->format('F d, Y'),
-        'group_by_selected'    => $groupBy,
-        'results' => $results->map(function ($item) use ($overallTotalSalesForPeriod) {
-                $percentageOfTotal = ($overallTotalSalesForPeriod > 0) ? (($item->total_sales_amount / $overallTotalSalesForPeriod) * 100) : 0;
-                return [
-                    'id' => $item->product_id ?? $item->item_group_id, 
-                    'name' => $item->product_name ?? $item->item_group_name,
-                    'item_group_name' => $item->item_group_name
-                    ? ($item->item_group_name === 'Inventory' ? 'Pharmacy' : $item->item_group_name)
-                    : 'Uncategorized',
-                    'total_quantity_sold' => (float) $item->total_quantity_sold, 
-                    'total_sales_amount' => (float) $item->total_sales_amount,
-                    'average_price' => isset($item->average_price) ? (float) $item->average_price : null,
-                    'percentage_of_total_sales' => round($percentageOfTotal, 2),
-                ];
-            }),
-        'overall_total_sales_for_period' => (float) $overallTotalSalesForPeriod,
-    ];
-
-    return Inertia::render('Reports/Sales/ByItem', [
-        'reportData' => $reportData,
-        'stores' => SIV_Store::orderBy('name')->get(['id', 'name']),
-        'items' => BLSItem::orderBy('name')->get(['id', 'name']),
-        'itemGroups' => BLSItemGroup::orderBy('name')->get(['id', 'name']),
-        'billingGroups' => PatientBillingGroup::orderBy('name')->get(['id', 'name']),
-        'filters' => [
-            'start_date'      => $startDate->format('Y-m-d'), 
-            'end_date'        => $endDate->format('Y-m-d'),
-            'group_by'        => $groupBy, 
-            'store_id'        => $storeId,
-            'item_id'         => $itemId, 
-            'itemgroup_id'    => $itemGroupId,
-            'billinggroup_id' => $billingGroupId, // <-- Added so UI remembers choice
-            'ward_id'         => $wardIdFilter,   // <-- Added so UI remembers choice
-        ]
-    ]);
-}
 
     /**
      * Generate a summary of payments received, broken down by payment method.

@@ -65,6 +65,7 @@ class BilPostController extends Controller
     /**
      * Display a listing of posted or proforma orders.
      */
+    
     public function index(Request $request)
     {
         $today = now()->format('Y-m-d');
@@ -73,26 +74,34 @@ class BilPostController extends Controller
 
         $query = BILOrder::with(['orderitems', 'customer']);
 
+        // 1. Search Filter
         if ($request->filled('search')) {
             $query->whereHas('customer', function ($q) use ($request) {
                 $q->where('first_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('surname', 'like', '%' . $request->search . '%')
-                  ->orWhere('other_names', 'like', '%' . $request->search . '%')
-                  ->orWhere('company_name', 'like', '%' . $request->search . '%');
+                ->orWhere('surname', 'like', '%' . $request->search . '%')
+                ->orWhere('other_names', 'like', '%' . $request->search . '%')
+                ->orWhere('company_name', 'like', '%' . $request->search . '%');
             });
         }
 
+        // 2. Date Filter
         $parsedStartDate = Carbon::parse($startDate)->startOfDay();
         $parsedEndDate = Carbon::parse($endDate)->endOfDay();
         $query->whereBetween('created_at', [$parsedStartDate, $parsedEndDate]);
+        $query->orderByRaw("FIELD(payment_category, 'Cash', 'Insurance', 'Exemption', 'Invoice') ASC");
 
+        // 3. Stage Filter
         if ($request->filled('stage')) {
             $query->where('stage', $request->stage);
         }
+        
+        // 4. NEW: Payment Category Filter
+        if ($request->filled('payment_category')) {
+            $query->where('payment_category', $request->payment_category);
+        }
 
         $query->whereIn('stage', [3, 4]); // Proforma (3) and Saved for Later (4)
-        $query->orderByRaw("FIELD(payment_category, 'Cash', 'Insurance', 'Exemption', 'Invoice') ASC");        
-
+        
         //$query->where('payment_category', 'Cash'); // Proforma (3) and Saved for Later (4)
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(30)->withQueryString();
@@ -100,10 +109,11 @@ class BilPostController extends Controller
         return inertia('Billing/BilPosts/Index', [
             'orders' => $orders,
             'filters' => [
-                'search'     => $request->input('search'),
-                'stage'      => $request->input('stage'),
-                'start_date' => $startDate,
-                'end_date'   => $endDate,
+                'search'           => $request->input('search'),
+                'stage'            => $request->input('stage'),
+                'payment_category' => $request->input('payment_category'), // Pass back to view
+                'start_date'       => $startDate,
+                'end_date'         => $endDate,
             ],
         ]);
     }
