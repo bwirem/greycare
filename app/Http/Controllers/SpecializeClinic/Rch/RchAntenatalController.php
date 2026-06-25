@@ -327,8 +327,17 @@ class RchAntenatalController extends Controller
                         $panel = LabPanel::with('blsItem')->find($lab['panel_id']);
                         if ($panel && $panel->blsItem) {
                             $billingService->addToBill(
-                                $patientCode, $panel->blsItem->id, 1, 'laboratory',
-                                $labRecord->id, $booking->pricecategory ?? 'price1', $booking->billinggroup_id ?? 1
+                                $patientCode, 
+                                $booking->billinggroup_id ?? 1, 
+                                $booking->billingsubgroup_id ?? 1,
+                                null, 
+                                null,
+                                $panel->blsItem->id, 
+                                1, 
+                                'laboratory',
+                                $labRecord->id,
+                                $booking->pricecategory ?? 'price1', 
+                                $booking->billinggroup_id ?? 1
                             );
                         }
                     }
@@ -355,8 +364,17 @@ class RchAntenatalController extends Controller
                         $procedure = RadProcedure::with('blsItem')->find($rad['procedure_id']);
                         if ($procedure && $procedure->blsItem) {
                             $billingService->addToBill(
-                                $patientCode, $procedure->blsItem->id, 1, 'radiology',
-                                $radRecord->id, $booking->pricecategory ?? 'price1', $booking->billinggroup_id ?? 1
+                                $patientCode, 
+                                $booking->billinggroup_id ?? 1, 
+                                $booking->billingsubgroup_id ?? 1,
+                                null, 
+                                null,
+                                $procedure->blsItem->id,
+                                1, 
+                                'radiology',
+                                $radRecord->id,
+                                $booking->pricecategory ?? 'price1',
+                                $booking->billinggroup_id ?? 1
                             );
                         }
                     }
@@ -382,8 +400,17 @@ class RchAntenatalController extends Controller
                     $procedure = TheatreProcedure::with('blsItem')->find($procId);
                     if ($procedure && $procedure->blsItem) {
                         $billingService->addToBill(
-                            $patientCode, $procedure->blsItem->id, 1, 'theatre',
-                            $surgRecord->id, $booking->pricecategory ?? 'price1', $booking->billinggroup_id ?? 1
+                            $patientCode, 
+                            $booking->billinggroup_id ?? 1, 
+                            $booking->billingsubgroup_id ?? 1,
+                            null, 
+                            null,
+                            $procedure->blsItem->id, 
+                            1, 
+                            'theatre',
+                            $surgRecord->id,
+                            $booking->pricecategory ?? 'price1',
+                            $booking->billinggroup_id ?? 1
                         );
                     }
                 }
@@ -520,8 +547,17 @@ class RchAntenatalController extends Controller
                             if ($panel && $panel->blsItem) {
                                 $booking = OpdBooking::find($bookingId);
                                 $billingService->addToBill(
-                                    $patientCode, $panel->blsItem->id, 1, 'laboratory',
-                                    $labRecord->id, $booking->pricecategory ?? 'price1', $booking->billinggroup_id ?? 1
+                                    $patientCode,
+                                    $booking->billinggroup_id ?? 1, 
+                                    $booking->billingsubgroup_id ?? 1,
+                                    null, 
+                                    null, 
+                                    $panel->blsItem->id,
+                                    1, 
+                                    'laboratory',
+                                    $labRecord->id,
+                                    $booking->pricecategory ?? 'price1',
+                                    $booking->billinggroup_id ?? 1
                                 );
                             }
                         }
@@ -549,8 +585,17 @@ class RchAntenatalController extends Controller
                             if ($procedure && $procedure->blsItem) {
                                 $booking = OpdBooking::find($bookingId);
                                 $billingService->addToBill(
-                                    $patientCode, $procedure->blsItem->id, 1, 'radiology',
-                                    $radRecord->id, $booking->pricecategory ?? 'price1', $booking->billinggroup_id ?? 1
+                                    $patientCode, 
+                                    $booking->billinggroup_id ?? 1, 
+                                    $booking->billingsubgroup_id ?? 1,
+                                    null, 
+                                    null,
+                                    $procedure->blsItem->id,
+                                    1, 
+                                    'radiology',
+                                    $radRecord->id, 
+                                    $booking->pricecategory ?? 'price1', 
+                                    $booking->billinggroup_id ?? 1
                                 );
                             }
                         }
@@ -577,8 +622,17 @@ class RchAntenatalController extends Controller
                         if ($procedure && $procedure->blsItem) {
                              $booking = OpdBooking::find($bookingId);
                              $billingService->addToBill(
-                                $patientCode, $procedure->blsItem->id, 1, 'theatre',
-                                $surgRecord->id, $booking->pricecategory ?? 'price1', $booking->billinggroup_id ?? 1
+                                $patientCode,
+                                $booking->billinggroup_id ?? 1, 
+                                $booking->billingsubgroup_id ?? 1,
+                                null, 
+                                null,
+                                $procedure->blsItem->id,
+                                1, 
+                                'theatre',
+                                $surgRecord->id,
+                                $booking->pricecategory ?? 'price1',
+                                $booking->billinggroup_id ?? 1
                             );
                         }
                     }
